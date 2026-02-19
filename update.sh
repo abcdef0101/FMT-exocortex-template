@@ -1,0 +1,142 @@
+#!/bin/bash
+# Exocortex Update — pull upstream changes from FMT-exocortex-template
+#
+# Использование:
+#   update.sh              # fetch + merge + reinstall platform-space
+#   update.sh --check      # только проверить, есть ли обновления
+#   update.sh --dry-run    # показать что изменится, не применять
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# --- Определить рабочую директорию ---
+# Если скрипт в fork-е экзокортекса (FMT-exocortex)
+if [ -f "$SCRIPT_DIR/CLAUDE.md" ] && [ -d "$SCRIPT_DIR/memory" ]; then
+    EXOCORTEX_DIR="$SCRIPT_DIR"
+elif [ -d "$HOME/Github/FMT-exocortex" ]; then
+    EXOCORTEX_DIR="$HOME/Github/FMT-exocortex"
+else
+    echo "ERROR: Cannot find exocortex directory."
+    echo "Run this script from your exocortex fork root or ~/Github/FMT-exocortex/"
+    exit 1
+fi
+
+WORKSPACE_DIR="$(dirname "$EXOCORTEX_DIR")"
+DRY_RUN=false
+CHECK_ONLY=false
+
+case "${1:-}" in
+    --dry-run)   DRY_RUN=true ;;
+    --check)     CHECK_ONLY=true ;;
+esac
+
+echo "=========================================="
+echo "  Exocortex Update"
+echo "=========================================="
+echo "  Source: $EXOCORTEX_DIR"
+echo ""
+
+cd "$EXOCORTEX_DIR"
+
+# --- 1. Fetch upstream ---
+echo "[1/4] Fetching upstream..."
+if ! git remote | grep -q upstream; then
+    echo "  Adding upstream remote..."
+    git remote add upstream https://github.com/TserenTserenov/FMT-exocortex-template.git
+fi
+
+git fetch upstream main 2>&1 | sed 's/^/  /'
+
+# --- 2. Check for changes ---
+LOCAL=$(git rev-parse HEAD)
+UPSTREAM=$(git rev-parse upstream/main)
+BASE=$(git merge-base HEAD upstream/main)
+
+if [ "$LOCAL" = "$UPSTREAM" ]; then
+    echo "  Already up to date."
+    exit 0
+fi
+
+COMMITS_BEHIND=$(git rev-list --count HEAD..upstream/main)
+echo "  $COMMITS_BEHIND new commits from upstream"
+echo ""
+
+# Show what changed
+echo "  Changes:"
+git log --oneline HEAD..upstream/main | sed 's/^/    /'
+echo ""
+
+if $CHECK_ONLY; then
+    echo "Run 'update.sh' to apply these changes."
+    exit 0
+fi
+
+if $DRY_RUN; then
+    echo "[DRY RUN] Would merge $COMMITS_BEHIND commits and reinstall platform-space."
+    echo ""
+    echo "Files that would change:"
+    git diff --stat HEAD..upstream/main | sed 's/^/  /'
+    exit 0
+fi
+
+# --- 3. Merge upstream ---
+echo "[2/4] Merging upstream..."
+
+# Stash local changes if any
+STASHED=false
+if ! git diff --quiet || ! git diff --cached --quiet; then
+    echo "  Stashing local changes..."
+    git stash push -m "pre-update stash $(date +%Y-%m-%d)"
+    STASHED=true
+fi
+
+if ! git merge upstream/main --no-edit 2>&1 | sed 's/^/  /'; then
+    echo ""
+    echo "ERROR: Merge conflict. Resolve manually:"
+    echo "  cd $EXOCORTEX_DIR"
+    echo "  git status  # see conflicting files"
+    echo "  # resolve conflicts, then: git add . && git merge --continue"
+    exit 1
+fi
+
+# Restore stash if needed
+if $STASHED; then
+    echo "  Restoring local changes..."
+    git stash pop || echo "  WARN: Stash pop conflict. Run 'git stash pop' manually."
+fi
+
+# --- 4. Reinstall platform-space ---
+echo "[3/4] Reinstalling platform-space..."
+
+# Copy CLAUDE.md to workspace root
+if [ -f "$EXOCORTEX_DIR/CLAUDE.md" ]; then
+    cp "$EXOCORTEX_DIR/CLAUDE.md" "$WORKSPACE_DIR/CLAUDE.md"
+    echo "  Updated: $WORKSPACE_DIR/CLAUDE.md"
+fi
+
+# Copy memory files
+CLAUDE_MEMORY_DIR="$HOME/.claude/projects/-$(echo "$WORKSPACE_DIR" | tr '/' '-')/memory"
+if [ -d "$EXOCORTEX_DIR/memory" ] && [ -d "$CLAUDE_MEMORY_DIR" ]; then
+    # Update all memory files EXCEPT MEMORY.md (user's РП table)
+    for f in "$EXOCORTEX_DIR/memory/"*.md; do
+        fname=$(basename "$f")
+        if [ "$fname" != "MEMORY.md" ]; then
+            cp "$f" "$CLAUDE_MEMORY_DIR/$fname"
+            echo "  Updated: memory/$fname"
+        fi
+    done
+    echo "  Skipped: memory/MEMORY.md (user data preserved)"
+fi
+
+# --- Done ---
+echo "[4/4] Pushing merge commit..."
+git push 2>&1 | sed 's/^/  /'
+
+echo ""
+echo "=========================================="
+echo "  Update Complete!"
+echo "=========================================="
+echo "  Merged $COMMITS_BEHIND commits from upstream"
+echo "  Platform-space reinstalled"
+echo ""
