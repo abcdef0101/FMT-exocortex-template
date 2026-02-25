@@ -21,10 +21,14 @@
 
 | Репо | Путь |
 |------|------|
-| Шаблон экзокортекса | `FMT-exocortex-template/` |
-| — Стратег (R1) | `FMT-exocortex-template/roles/strategist/` |
-| — Экстрактор (R2) | `FMT-exocortex-template/roles/extractor/` |
-| — Синхронизатор (R8) | `FMT-exocortex-template/roles/synchronizer/` |
+| LMS Aisystant (READ-ONLY) | `DS-IT-systems/aisystant/` |
+| SystemsSchool_bot (READ-ONLY) | `DS-IT-systems/SystemsSchool_bot/` |
+| Монорепо ИИ-систем (7 шт.) | `DS-IT-systems/DS-ai-systems/` |
+| — Стратег (Grade 3) | `DS-IT-systems/DS-strategist/` |
+| — Шаблонизатор (Grade 0) | `DS-IT-systems/DS-ai-systems/setup/` |
+| — Наладчик (Grade 2) | `DS-IT-systems/DS-ai-systems/fixer/` |
+| — Статистик (Grade 1) | `DS-IT-systems/DS-ai-systems/pulse/` |
+| — Оценщик (Grade 2) | `DS-IT-systems/DS-ai-systems/evaluator/` |
 | Личная онтология | `DS-strategy/ontology.md` |
 | Программа обучения | `DS-principles-curriculum/` |
 

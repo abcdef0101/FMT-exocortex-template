@@ -27,10 +27,10 @@ Source-of-truth: DP.IWE.001.
 - Git + GitHub аккаунт + GitHub CLI (`gh`)
 - Node.js v18+ и npm
 - Claude Code CLI (`npm install -g @anthropic-ai/claude-code`)
-- Подписка Anthropic: **Claude Max** (~$100/мес) или **Claude Pro** ($20/мес, с ограничениями). Для полноценной работы с Claude Code рекомендуется Max.
+- Подписка Anthropic: **Claude Pro** ($20/мес) — рекомендуется для старта. Если получите значительный эффект от работы с Claude Code — переходите на **Claude Max** (~$100/мес) для полноценной работы без ограничений на количество сообщений.
 
 ### Опционально
-- VS Code (рекомендуется)
+- VS Code (рекомендуется) или любой другой редактор с терминалом. Claude Code — CLI, работает в любом терминале (Terminal.app, iTerm2 и др.). VS Code удобен: редактор + терминал + расширение Claude Code в одном окне
 - Telegram (@aist_me_bot) — для заметок
 - WakaTime — трекинг рабочего времени
 
@@ -40,33 +40,24 @@ Source-of-truth: DP.IWE.001.
 
 **Время установки: 30–60 минут** (зависит от опыта с терминалом).
 
-```bash
-cd ~/Github
-gh repo clone TserenTserenov/DS-ai-systems -- --depth 1
-cd DS-ai-systems/setup
-bash setup.sh
-```
+Подробное руководство с пошаговыми инструкциями (включая как открыть терминал, установить все зависимости и что делать, если что-то пошло не так): **[SETUP-GUIDE.md](SETUP-GUIDE.md)**
 
-Скрипт спросит: GitHub username, рабочую директорию, час запуска Стратега (UTC), описание часового пояса.
-
-Результат:
+Результат установки:
 - Форк шаблона экзокортекса в твой GitHub
-- Заполненные файлы (плейсхолдеры → твои данные)
-- CLAUDE.md установлен в рабочую директорию
-- Memory/ для Claude Code
-- Стратег (launchd) в расписании
-- DS-strategy — приватный репо
+- CLAUDE.md и memory/ — настроенные под тебя
+- Стратег (ИИ-агент) — в автоматическом расписании
+- DS-strategy — приватный репо для планирования
 
 ---
 
 ## Три роли в IWE
 
-> В шаблоне экзокортекса ровно **3 роли**: Стратег, Экстрактор, Синхронизатор. Других ролей (Рецензент, Аналитик и т.д.) в шаблоне нет.
+> В шаблоне экзокортекса пока **3 роли**: Стратег, Экстрактор, Синхронизатор. Набор будет расширяться.
 
 ### Стратег (R1)
 Планирование и рефлексия. Каждое утро (Вт-Вс) формирует план дня из коммитов вчера. Понедельник — подготовка к недельной сессии. Вечером (23:00) — разбор заметок из Telegram.
 
-Ручной запуск:
+Ручной запуск (в терминале или встроенном терминале VS Code):
 ```bash
 bash ~/Github/FMT-exocortex-template/roles/strategist/scripts/strategist.sh day-plan
 ```
@@ -76,12 +67,12 @@ bash ~/Github/FMT-exocortex-template/roles/strategist/scripts/strategist.sh day-
 
 Всегда предлагает, никогда не пишет без одобрения (human-in-the-loop).
 
-Установка: `bash ~/Github/FMT-exocortex-template/roles/extractor/install.sh`
+Установка (в терминале): `bash ~/Github/FMT-exocortex-template/roles/extractor/install.sh`
 
 ### Синхронизатор (R8)
 Центральный диспетчер (bash, не ИИ). Управляет расписанием всех ролей, отправляет уведомления в Telegram, делает ночной обзор кода.
 
-Установка: `bash ~/Github/FMT-exocortex-template/roles/synchronizer/install.sh`
+Установка (в терминале): `bash ~/Github/FMT-exocortex-template/roles/synchronizer/install.sh`
 
 ---
 
@@ -135,7 +126,7 @@ bash update.sh --check  # проверить без применения
 
 ## Частые проблемы
 
-**Claude Code не запускается** — проверь подписку Anthropic и `claude --version`. Рекомендуется Max plan ($100/мес). Pro plan ($20/мес) работает, но с лимитами на количество сообщений.
+**Claude Code не запускается** — проверь подписку Anthropic и `claude --version`. Начинать можно с Pro plan ($20/мес). Если упираетесь в лимиты — переходите на Max ($100/мес).
 
 **Стратег не формирует план** — проверь `launchctl list | grep strategist` (macOS). Если нет — `bash roles/strategist/install.sh`.
 
