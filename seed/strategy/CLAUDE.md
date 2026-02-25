@@ -1,6 +1,6 @@
 # DS-strategy — Инструкции для Claude Code
 
-> **Тип репозитория:** `Downstream/governance` (personal)
+> **Тип репозитория:** `DS/governance` (personal)
 
 ## Назначение
 
