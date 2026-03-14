@@ -12,6 +12,15 @@ VERSION="0.4.0"
 DRY_RUN=false
 CORE_ONLY=false
 
+# Cross-platform sed -i (macOS требует пустой суффикс, Linux — нет)
+sed_inplace() {
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        sed -i '' "$@"
+    else
+        sed -i "$@"
+    fi
+}
+
 # === Parse arguments ===
 for arg in "$@"; do
     case "$arg" in
@@ -211,8 +220,8 @@ mkdir -p "$WORKSPACE_DIR"
 echo ""
 echo "[1/6] Configuring placeholders..."
 
-find "$TEMPLATE_DIR" -type f \( -name "*.md" -o -name "*.json" -o -name "*.sh" -o -name "*.plist" -o -name "*.yaml" -o -name "*.yml" \) | while read file; do
-    sed -i '' \
+find "$TEMPLATE_DIR" -type f \( -name "*.md" -o -name "*.json" -o -name "*.sh" -o -name "*.plist" -o -name "*.yaml" -o -name "*.yml" -o -name "*.service" -o -name "*.timer" \) | while read file; do
+    sed_inplace \
         -e "s|{{GITHUB_USER}}|$GITHUB_USER|g" \
         -e "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g" \
         -e "s|{{CLAUDE_PATH}}|$CLAUDE_PATH|g" \
@@ -236,8 +245,8 @@ if [ "$EXOCORTEX_REPO" != "$CURRENT_DIR_NAME" ]; then
         echo "  WARN: $TARGET_DIR already exists. Skipping rename."
     else
         # Replace references in all text files
-        find "$TEMPLATE_DIR" -type f \( -name "*.md" -o -name "*.json" -o -name "*.sh" -o -name "*.plist" -o -name "*.yaml" -o -name "*.yml" \) | while read file; do
-            sed -i '' "s|$CURRENT_DIR_NAME|$EXOCORTEX_REPO|g" "$file"
+        find "$TEMPLATE_DIR" -type f \( -name "*.md" -o -name "*.json" -o -name "*.sh" -o -name "*.plist" -o -name "*.yaml" -o -name "*.yml" -o -name "*.service" -o -name "*.timer" \) | while read file; do
+            sed_inplace "s|$CURRENT_DIR_NAME|$EXOCORTEX_REPO|g" "$file"
         done
 
         # Rename GitHub repo (if gh is available and not core mode)

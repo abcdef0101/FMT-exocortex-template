@@ -38,7 +38,11 @@ log() {
 notify() {
     local title="$1"
     local message="$2"
-    printf 'display notification "%s" with title "%s"' "$message" "$title" | osascript 2>/dev/null || true
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        printf 'display notification "%s" with title "%s"' "$message" "$title" | osascript 2>/dev/null || true
+    elif command -v notify-send &>/dev/null; then
+        notify-send "$title" "$message" 2>/dev/null || true
+    fi
 }
 
 notify_telegram() {

@@ -8,6 +8,15 @@
 
 set -euo pipefail
 
+# Cross-platform sed -i
+sed_inplace() {
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        sed -i '' "$@"
+    else
+        sed -i "$@"
+    fi
+}
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # --- Определить рабочую директорию ---
@@ -114,8 +123,8 @@ PLACEHOLDER_COUNT=$(grep -r '{{WORKSPACE_DIR}}' "$EXOCORTEX_DIR" --include="*.md
 
 if [ "$PLACEHOLDER_COUNT" -gt 0 ]; then
     echo "  Found $PLACEHOLDER_COUNT files with unsubstituted {{WORKSPACE_DIR}}"
-    find "$EXOCORTEX_DIR" -type f \( -name "*.md" -o -name "*.json" -o -name "*.sh" -o -name "*.plist" -o -name "*.yaml" -o -name "*.yml" \) | while read file; do
-        sed -i '' "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g" "$file"
+    find "$EXOCORTEX_DIR" -type f \( -name "*.md" -o -name "*.json" -o -name "*.sh" -o -name "*.plist" -o -name "*.yaml" -o -name "*.yml" -o -name "*.service" -o -name "*.timer" \) | while read file; do
+        sed_inplace "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g" "$file"
     done
     echo "  Re-substituted {{WORKSPACE_DIR}} → $WORKSPACE_DIR"
 

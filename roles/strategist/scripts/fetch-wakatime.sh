@@ -19,6 +19,16 @@ fi
 ENCODED=$(echo -n "$WAKATIME_API_KEY" | base64)
 API="https://wakatime.com/api/v1/users/current"
 
+# Cross-platform date offset: date_offset -1 → вчера, date_offset -7 → неделю назад
+date_offset() {
+    local days="$1"
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        date -v${days}d +%Y-%m-%d
+    else
+        date -d "${days} days" +%Y-%m-%d
+    fi
+}
+
 waka_fetch() {
     local url="$1"
     curl -s -H "Authorization: Basic $ENCODED" "$url" 2>/dev/null
@@ -58,7 +68,7 @@ mode="${1:-day}"
 case "$mode" in
     "day")
         # Yesterday's summary
-        YESTERDAY=$(date -v-1d +%Y-%m-%d)
+        YESTERDAY=$(date_offset -1)
         RESPONSE=$(waka_fetch "$API/summaries?start=$YESTERDAY&end=$YESTERDAY")
 
         TOTAL=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['cumulative_total']['text'])" 2>/dev/null || echo "н/д")
@@ -89,12 +99,12 @@ EOF
         # Current week
         DOW=$(date +%u)  # 1=Mon
         DAYS_SINCE_MON=$((DOW - 1))
-        MON_THIS=$(date -v-${DAYS_SINCE_MON}d +%Y-%m-%d)
+        MON_THIS=$(date_offset -${DAYS_SINCE_MON})
         TODAY=$(date +%Y-%m-%d)
 
         # Previous week
-        MON_PREV=$(date -v-$((DAYS_SINCE_MON + 7))d +%Y-%m-%d)
-        SUN_PREV=$(date -v-$((DAYS_SINCE_MON + 1))d +%Y-%m-%d)
+        MON_PREV=$(date_offset -$((DAYS_SINCE_MON + 7)))
+        SUN_PREV=$(date_offset -$((DAYS_SINCE_MON + 1)))
 
         RESP_THIS=$(waka_fetch "$API/summaries?start=$MON_THIS&end=$TODAY")
         RESP_PREV=$(waka_fetch "$API/summaries?start=$MON_PREV&end=$SUN_PREV")

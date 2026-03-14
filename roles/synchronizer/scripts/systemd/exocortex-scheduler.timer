@@ -1,0 +1,29 @@
+[Unit]
+Description=Exocortex Scheduler timer
+# Dispatch points (mirrors com.exocortex.scheduler.plist):
+#   00:00 — week-review (Пн) + code-scan
+#   03:00 — extractor inbox-check
+#   {{TIMEZONE_HOUR}}:00 — strategist morning
+#   06:00 — extractor + daily-report
+#   09:00 — extractor
+#   12:00 — extractor
+#   15:00 — extractor
+#   18:00 — extractor
+#   21:00 — extractor
+#   23:00 — strategist note-review
+
+[Timer]
+OnCalendar=*-*-* 00:00:00
+OnCalendar=*-*-* 03:00:00
+OnCalendar=*-*-* {{TIMEZONE_HOUR}}:00:00
+OnCalendar=*-*-* 06:00:00
+OnCalendar=*-*-* 09:00:00
+OnCalendar=*-*-* 12:00:00
+OnCalendar=*-*-* 15:00:00
+OnCalendar=*-*-* 18:00:00
+OnCalendar=*-*-* 21:00:00
+OnCalendar=*-*-* 23:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
