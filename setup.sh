@@ -12,15 +12,14 @@ VERSION="0.4.1"
 DRY_RUN=false
 CORE_ONLY=false
 
-# === Cross-platform sed -i ===
-# macOS sed requires '' after -i, GNU sed does not
-if sed --version >/dev/null 2>&1; then
-    # GNU sed (Linux)
-    sed_inplace() { sed -i "$@"; }
-else
-    # BSD sed (macOS)
-    sed_inplace() { sed -i '' "$@"; }
-fi
+# Cross-platform sed -i (macOS требует пустой суффикс, Linux — нет)
+sed_inplace() {
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        sed -i '' "$@"
+    else
+        sed -i "$@"
+    fi
+}
 
 # === Parse arguments ===
 for arg in "$@"; do
