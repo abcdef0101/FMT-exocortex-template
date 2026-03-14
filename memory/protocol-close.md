@@ -16,9 +16,9 @@
 #### 1. Сбор данных
 
 ```bash
-for repo in $(ls {{WORKSPACE_DIR}}/); do
-  if [ -d {{WORKSPACE_DIR}}/$repo/.git ]; then
-    commits=$(git -C {{WORKSPACE_DIR}}/$repo log --since="today 00:00" --oneline --no-merges 2>/dev/null)
+for repo in $(ls ~/IWE/); do
+  if [ -d ~/IWE/$repo/.git ]; then
+    commits=$(git -C ~/IWE/$repo log --since="today 00:00" --oneline --no-merges 2>/dev/null)
     [ -n "$commits" ] && echo "=== $repo ===" && echo "$commits"
   fi
 done
@@ -47,7 +47,10 @@ done
 - Незаписанные мысли? (спросить пользователя)
 - Обещания кому-то? (спросить пользователя)
 
-**д) Задел на завтра:** Стратег предлагает — с чего начать утром, какой контекст подготовить.
+**д) Задел на завтра** (= Agent→Agent handoff: вечерний Стратег → утренний Стратег):
+- С чего начать утром
+- Какой контекст подготовить (файлы, WP context files)
+- Незавершённые РП: что именно осталось, следующий шаг
 
 #### 3. Согласование
 
@@ -80,8 +83,8 @@ done
 ```
 
 - Обновить статусы РП в WeekPlan + MEMORY.md
-- Backup: `memory/ + CLAUDE.md → DS-strategy/exocortex/`
-- Закоммитить DS-strategy
+- Backup: `memory/ + CLAUDE.md → DS-my-strategy/exocortex/`
+- Закоммитить DS-my-strategy
 
 ---
 
@@ -113,37 +116,41 @@ done
 
 ## Алгоритм Close
 
-0. **Pull** → `cd DS-strategy && git pull --rebase`
+0. **Pull** → `cd DS-my-strategy && git pull --rebase`
 1. **Knowledge Extraction** → прочитай и выполни `DS-IT-systems/DS-ai-systems/extractor/prompts/session-close.md`:
    - Собрать отложенные captures + проверить пропущенные
    - Классифицировать → маршрутизировать → формализовать → валидировать
    - Показать Extraction Report → получить одобрение
    - Применить одобренные (accept → Pack/CLAUDE.md/memory)
-2. Обновить MEMORY.md (статус РП) + **WP-REGISTRY.md** (`DS-strategy/docs/WP-REGISTRY.md`): обновить статус РП, дату. Если новые РП создавались в Open — проверить, что они уже в реестре
+2. Обновить MEMORY.md (статус РП) + **WP-REGISTRY.md** (`DS-my-strategy/docs/WP-REGISTRY.md`): обновить статус РП, дату. Если новые РП создавались в Open — проверить, что они уже в реестре
 3. Зафиксировать: что сделано, что осталось
 4. Закоммитить (с подтверждением)
-5. Обновить `DS-strategy/current/Plan W{N}...` (статусы РП)
-6. Синхронизировать backup: `memory/ + CLAUDE.md → DS-strategy/exocortex/`
+5. Обновить `DS-my-strategy/current/Plan W{N}...` (статусы РП)
+5b. **Обновить DayPlan** (`DS-my-strategy/current/DayPlan YYYY-MM-DD.md`): статусы РП в таблице «План на сегодня». Done → зачеркнуть строку. Без этого шага DayPlan остаётся стейл до Day Close.
+6. Синхронизировать backup: `memory/ + CLAUDE.md → DS-my-strategy/exocortex/`
 7. **WP Context File:**
-   - in_progress + ≥2 сессий → обновить `DS-strategy/inbox/WP-{N}-{slug}.md`
+   - in_progress + ≥2 сессий → обновить `DS-my-strategy/inbox/WP-{N}-{slug}.md`
    - done → `mv inbox/WP-{N}-*.md → archive/wp-contexts/` (сразу, не откладывая)
    - Проверка: РП есть в WeekPlan и MEMORY.md? Нет → добавить
 8. **Незавершённое и идеи:**
    - Недоделка по РП → context file (секция «Осталось»)
    - Идея развития системы → `<repo>/MAPSTRATEGIC.md`
-   - Новая задача → `DS-strategy/inbox/captures.md` или fleeting-notes.md
-   - Зерно для поста → `DS-strategy/drafts/draft-list.md`
+   - Новая задача → `DS-my-strategy/inbox/captures.md` или fleeting-notes.md
+   - Зерно для поста → `DS-my-strategy/drafts/draft-list.md`
 9. **Draft-list проверка:**
    - Были captures в Pack? → Предложить: «Pack обогащён — добавить черновик для поста?»
    - Обновить draft-list.md если создавались черновики в этой сессии
 
 ---
 
-## Шаблон отчёта Close
+## Шаблон отчёта Close (= Agent→Human handoff artifact)
+
+> Close report — это handoff-артефакт (PROCESSES.md §3.3). Цель: передать человеку достаточно контекста для проверки результата.
 
 ```
 **РП:** #N — [название]
 **Статус:** done / in_progress
+**Класс верификации:** closed-loop / open-loop / problem-framing
 
 **Исполнитель:** A1 Claude Code (модель: Opus / Sonnet / Haiku)
 **Роли в сессии:**
@@ -153,10 +160,11 @@ done
 - R1 Стратег: [что обновил / не активирован]
 
 **Сделано:** [итог]
-**Captures:** [N → куда]
+**Captures:** [N → Pack, N → DS docs/, N → IWE root (CLAUDE.md, memory/, протоколы)]. Разделять по слоям: Pack (доменное знание), DS (реализационное), IWE root (кросс-системные правила и протоколы). «0» только если ничего не записано никуда.
+**Что проверить:** [конкретно — что требует внимания человека, в чём не уверен]
 **Git:** закоммичено + запушено ✅
 **Деплой бота:** залито на `pilot` ✅ / на `new-architecture` не заливалось
-**Осталось:** ничего / [что]
+**Осталось:** ничего / [что — это Agent→Agent handoff для следующей сессии]
 ```
 
 > Указывать только активированные роли. Ключевые (R1, R2) — указывать всегда (даже «не активирован»).
@@ -167,17 +175,19 @@ done
 
 ## Чеклист Close
 
-- [ ] **Session log:** удалить строку этой сессии из `DS-strategy/inbox/open-sessions.log`
+- [ ] **Session log:** удалить строку этой сессии из `DS-my-strategy/inbox/open-sessions.log`
 - [ ] Все изменения закоммичены и запушены
 - [ ] MEMORY.md обновлён (статусы РП)
 - [ ] WP-REGISTRY.md обновлён (статусы + новые РП)
-- [ ] DS-strategy/current/Plan обновлён
+- [ ] DS-my-strategy/current/Plan (WeekPlan) обновлён
+- [ ] DS-my-strategy/current/DayPlan обновлён (статусы РП в таблице)
 - [ ] Captures применены
 - [ ] **Selective Reindex:** Pack изменены? → `selective-reindex.sh`
 - [ ] **Repo CLAUDE.md:** feat-коммиты → новые правила для CLAUDE.md репо?
 - [ ] **WP context:** коммиты реализуют пункт WP-плана → пункт done?
 - [ ] **Draft-list:** Pack обогащён → предложить черновик? Черновики из сессии → draft-list обновлён?
-- [ ] Backup → DS-strategy/exocortex/ синхронизирован
+- [ ] **CHANGELOG шаблона:** коммиты в FMT-exocortex-template? → обновить `FMT-exocortex-template/CHANGELOG.md` (новая версия или дописать в текущую)
+- [ ] Backup → DS-my-strategy/exocortex/ синхронизирован
 - [ ] Context file: done → `mv inbox/WP-*.md → archive/wp-contexts/` (сразу при Close)
 - [ ] Отчёт Close сформирован
 - [ ] WP Context File создан/обновлён при ПЕРВОМ Close
