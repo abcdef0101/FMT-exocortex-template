@@ -44,6 +44,7 @@ done
 
 **г) Не забыто?** Стратег проверяет:
 - Незакоммиченные изменения (`git status` по всем репо)
+- **Синхронизация веток** (если есть multi-branch workflow): проверить, что ветки не расходятся
 - Незаписанные мысли? (спросить пользователя)
 - Обещания кому-то? (спросить пользователя)
 
@@ -83,8 +84,10 @@ done
 ```
 
 - Обновить статусы РП в WeekPlan + MEMORY.md
-- Backup: `memory/ + CLAUDE.md → DS-my-strategy/exocortex/`
-- Закоммитить DS-my-strategy
+- Backup: `memory/ + CLAUDE.md → DS-strategy/exocortex/`
+- Закоммитить DS-strategy
+
+> **Ветки бота:** Если в твоём IWE есть multi-branch workflow (например, pilot + production) — добавь проверку синхронизации веток в секцию «Не забыто?» и в Close report.
 
 ---
 
@@ -116,27 +119,27 @@ done
 
 ## Алгоритм Close
 
-0. **Pull** → `cd DS-my-strategy && git pull --rebase`
+0. **Pull** → `cd DS-strategy && git pull --rebase`
 1. **Knowledge Extraction** → прочитай и выполни `DS-IT-systems/DS-ai-systems/extractor/prompts/session-close.md`:
    - Собрать отложенные captures + проверить пропущенные
    - Классифицировать → маршрутизировать → формализовать → валидировать
    - Показать Extraction Report → получить одобрение
    - Применить одобренные (accept → Pack/CLAUDE.md/memory)
-2. Обновить MEMORY.md (статус РП) + **WP-REGISTRY.md** (`DS-my-strategy/docs/WP-REGISTRY.md`): обновить статус РП, дату. Если новые РП создавались в Open — проверить, что они уже в реестре
+2. Обновить MEMORY.md (статус РП) + **WP-REGISTRY.md** (`DS-strategy/docs/WP-REGISTRY.md`): обновить статус РП, дату. Если новые РП создавались в Open — проверить, что они уже в реестре
 3. Зафиксировать: что сделано, что осталось
 4. Закоммитить (с подтверждением)
-5. Обновить `DS-my-strategy/current/Plan W{N}...` (статусы РП)
-5b. **Обновить DayPlan** (`DS-my-strategy/current/DayPlan YYYY-MM-DD.md`): статусы РП в таблице «План на сегодня». Done → зачеркнуть строку. Без этого шага DayPlan остаётся стейл до Day Close.
-6. Синхронизировать backup: `memory/ + CLAUDE.md → DS-my-strategy/exocortex/`
+5. Обновить `DS-strategy/current/Plan W{N}...` (статусы РП)
+5b. **Обновить DayPlan** (`DS-strategy/current/DayPlan YYYY-MM-DD.md`): статусы **всех строк** в таблице «План на сегодня» — и РП, и ad-hoc задач (без номера). Done → зачеркнуть строку. Без этого шага DayPlan остаётся стейл до Day Close.
+6. Синхронизировать backup: `memory/ + CLAUDE.md → DS-strategy/exocortex/`
 7. **WP Context File:**
-   - in_progress + ≥2 сессий → обновить `DS-my-strategy/inbox/WP-{N}-{slug}.md`
+   - in_progress + ≥2 сессий → обновить `DS-strategy/inbox/WP-{N}-{slug}.md`
    - done → `mv inbox/WP-{N}-*.md → archive/wp-contexts/` (сразу, не откладывая)
    - Проверка: РП есть в WeekPlan и MEMORY.md? Нет → добавить
 8. **Незавершённое и идеи:**
    - Недоделка по РП → context file (секция «Осталось»)
    - Идея развития системы → `<repo>/MAPSTRATEGIC.md`
-   - Новая задача → `DS-my-strategy/inbox/captures.md` или fleeting-notes.md
-   - Зерно для поста → `DS-my-strategy/drafts/draft-list.md`
+   - Новая задача → `DS-strategy/inbox/captures.md` или fleeting-notes.md
+   - Зерно для поста → `DS-strategy/drafts/draft-list.md`
 9. **Draft-list проверка:**
    - Были captures в Pack? → Предложить: «Pack обогащён — добавить черновик для поста?»
    - Обновить draft-list.md если создавались черновики в этой сессии
@@ -163,7 +166,6 @@ done
 **Captures:** [N → Pack, N → DS docs/, N → IWE root (CLAUDE.md, memory/, протоколы)]. Разделять по слоям: Pack (доменное знание), DS (реализационное), IWE root (кросс-системные правила и протоколы). «0» только если ничего не записано никуда.
 **Что проверить:** [конкретно — что требует внимания человека, в чём не уверен]
 **Git:** закоммичено + запушено ✅
-**Деплой бота:** залито на `pilot` ✅ / на `new-architecture` не заливалось
 **Осталось:** ничего / [что — это Agent→Agent handoff для следующей сессии]
 ```
 
@@ -175,19 +177,19 @@ done
 
 ## Чеклист Close
 
-- [ ] **Session log:** удалить строку этой сессии из `DS-my-strategy/inbox/open-sessions.log`
+- [ ] **Session log:** удалить строку этой сессии из `DS-strategy/inbox/open-sessions.log`
 - [ ] Все изменения закоммичены и запушены
 - [ ] MEMORY.md обновлён (статусы РП)
 - [ ] WP-REGISTRY.md обновлён (статусы + новые РП)
-- [ ] DS-my-strategy/current/Plan (WeekPlan) обновлён
-- [ ] DS-my-strategy/current/DayPlan обновлён (статусы РП в таблице)
+- [ ] DS-strategy/current/Plan (WeekPlan) обновлён
+- [ ] DS-strategy/current/DayPlan обновлён (статусы ВСЕХ строк в таблице: РП + ad-hoc)
 - [ ] Captures применены
 - [ ] **Selective Reindex:** Pack изменены? → `selective-reindex.sh`
 - [ ] **Repo CLAUDE.md:** feat-коммиты → новые правила для CLAUDE.md репо?
 - [ ] **WP context:** коммиты реализуют пункт WP-плана → пункт done?
 - [ ] **Draft-list:** Pack обогащён → предложить черновик? Черновики из сессии → draft-list обновлён?
 - [ ] **CHANGELOG шаблона:** коммиты в FMT-exocortex-template? → обновить `FMT-exocortex-template/CHANGELOG.md` (новая версия или дописать в текущую)
-- [ ] Backup → DS-my-strategy/exocortex/ синхронизирован
+- [ ] Backup → DS-strategy/exocortex/ синхронизирован
 - [ ] Context file: done → `mv inbox/WP-*.md → archive/wp-contexts/` (сразу при Close)
 - [ ] Отчёт Close сформирован
 - [ ] WP Context File создан/обновлён при ПЕРВОМ Close
