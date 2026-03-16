@@ -314,6 +314,10 @@ fi
 if $CORE_ONLY; then
     echo "[5/6] Автоматизация... пропущена (--core)"
     echo "  Установить позже: см. $TEMPLATE_DIR/roles/ROLE-CONTRACT.md"
+elif ! command -v launchctl >/dev/null 2>&1; then
+    echo "[5/6] Автоматизация... пропущена (launchd не найден — не macOS)"
+    echo "  Роли используют launchd (macOS). На Linux используйте cron/systemd вручную."
+    echo "  См. $TEMPLATE_DIR/roles/ROLE-CONTRACT.md"
 else
     echo "[5/6] Installing roles..."
 
