@@ -1410,34 +1410,51 @@ gh repo create PACK-my-domain --private --source=. --push
 
 ## 11. Быстрый справочник
 
-### Вопрос → Ответ
+> **Архитектура FAQ:** Практические вопросы («как сделать») — здесь. Доменные вопросы («что такое», «зачем») — [DP.IWE.002 §11](../../../PACK-digital-platform/pack/digital-platform/02-domain-entities/DP.IWE.002-iwe-template-and-setup.md#11-частые-вопросы-faq) (source-of-truth для бота).
+
+### Протоколы и рабочий процесс
 
 | Вопрос | Ответ | Где |
 |--------|-------|-----|
 | Куда записать знание? | Pack (доменное), CLAUDE.md (правило), memory/ (урок) | [CLAUDE.md](../CLAUDE.md) § 2 |
-| Какой тип у этого репо? | Смотри `REPO-TYPE.md` в репо | `<repo>/REPO-TYPE.md` |
-| Это система или эпистема? | Различение #1 | [hard-distinctions.md](../memory/hard-distinctions.md) |
 | Можно ли пропустить WP Gate? | Только если ≤15 мин, исследование, или экстренный баг-фикс | [CLAUDE.md](../CLAUDE.md) § 2 |
 | Как предложить решение? | Сначала ArchGate (7 характеристик, порог ≥8) | [CLAUDE.md](../CLAUDE.md) § 5 |
-| Какой SOTA применим? | Приоритетная тройка | [sota-reference.md](../memory/sota-reference.md) |
-| Где доменное знание? | Pack-репозитории или Knowledge MCP | § 6.5 |
 | Как закончить сессию? | Close Protocol (15 шагов) | § 5.1c |
-| Как создать Pack? | 11 стадий SPF | § 6.2 |
-| В каком контуре я? | L4 (Personal IWE), если T4+. L2 (Platform), если T1-T3 | § 2.1 |
-| Куда добавить инструмент? | IntegrationGate: определи контур | § 8.4 |
 | Почему pending-РП не попадает в план? | Проверь условие активации в WP-REGISTRY (date/dep/on-demand) | § 5.5 |
 | Что делать со старыми pending-РП? | Dormant Review на стратегировании: архивировать или назначить условие | § 5.5 |
 | Как сменить день стратегирования? | `strategy_day: saturday` в `memory/day-rhythm-config.yaml` | § 5.5 |
 | Почему в Пн нет DayPlan? | В strategy_day план дня встроен в WeekPlan | § 5.1, 5.5 |
-| Как обновить шаблон? | `bash update.sh` | § 2.5 |
-| Где моя стратегия? | `DS-strategy/docs/Strategy.md` | § 5.5 |
-| Что значит Pack entity ID? | `КОНТЕКСТ.ТИП.NNN` | § 4.5 |
-| Как настроить WakaTime? | `/setup-wakatime` в Claude Code | § 2.6 |
-| Где мой Digital Twin? | Бот → `/twin` | § 2.6 |
-| Как попасть в клуб? | [systemsworld.club](https://systemsworld.club) | § 2.6 |
+
+### Репозитории и структура
+
+| Вопрос | Ответ | Где |
+|--------|-------|-----|
+| Какой тип у этого репо? | Смотри `REPO-TYPE.md` в репо | `<repo>/REPO-TYPE.md` |
+| Это система или эпистема? | Различение #1 | [hard-distinctions.md](../memory/hard-distinctions.md) |
 | Как создать DS-проект? | `gh repo create DS-my-project --private` + CLAUDE.md | § 4.4 |
 | Что такое S2R? | Format для проектных репо (3×3 матрица) | § 4.3 |
 | Как настроить CLAUDE.md для нового репо? | Тип + связанные Pack + специфичные правила | § 5.4 |
+
+### Знания и Pack
+
+| Вопрос | Ответ | Где |
+|--------|-------|-----|
+| Какой SOTA применим? | Приоритетная тройка | [sota-reference.md](../memory/sota-reference.md) |
+| Где доменное знание? | Pack-репозитории или Knowledge MCP | § 6.5 |
+| Как создать Pack? | 11 стадий SPF | § 6.2 |
+| Что значит Pack entity ID? | `КОНТЕКСТ.ТИП.NNN` | § 4.5 |
+
+### Навигация и инструменты
+
+| Вопрос | Ответ | Где |
+|--------|-------|-----|
+| В каком контуре я? | L4 (Personal IWE), если T4+. L2 (Platform), если T1-T3 | § 2.1 |
+| Куда добавить инструмент? | IntegrationGate: определи контур | § 8.4 |
+| Как обновить шаблон? | `bash update.sh` | § 2.5 |
+| Где моя стратегия? | `DS-strategy/docs/Strategy.md` | § 5.5 |
+| Как настроить WakaTime? | `/setup-wakatime` в Claude Code | § 2.6 |
+| Где мой Digital Twin? | Бот → `/twin` | § 2.6 |
+| Как попасть в клуб? | [systemsworld.club](https://systemsworld.club) | § 2.6 |
 
 ### Типичные проблемы и решения
 
