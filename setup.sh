@@ -8,9 +8,19 @@
 #
 set -e
 
-VERSION="0.4.0"
+VERSION="0.4.1"
 DRY_RUN=false
 CORE_ONLY=false
+
+# === Cross-platform sed -i ===
+# macOS sed requires '' after -i, GNU sed does not
+if sed --version >/dev/null 2>&1; then
+    # GNU sed (Linux)
+    sed_inplace() { sed -i "$@"; }
+else
+    # BSD sed (macOS)
+    sed_inplace() { sed -i '' "$@"; }
+fi
 
 # === Parse arguments ===
 for arg in "$@"; do
@@ -212,7 +222,7 @@ echo ""
 echo "[1/6] Configuring placeholders..."
 
 find "$TEMPLATE_DIR" -type f \( -name "*.md" -o -name "*.json" -o -name "*.sh" -o -name "*.plist" -o -name "*.yaml" -o -name "*.yml" \) | while read file; do
-    sed -i '' \
+    sed_inplace \
         -e "s|{{GITHUB_USER}}|$GITHUB_USER|g" \
         -e "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g" \
         -e "s|{{CLAUDE_PATH}}|$CLAUDE_PATH|g" \
@@ -237,7 +247,7 @@ if [ "$EXOCORTEX_REPO" != "$CURRENT_DIR_NAME" ]; then
     else
         # Replace references in all text files
         find "$TEMPLATE_DIR" -type f \( -name "*.md" -o -name "*.json" -o -name "*.sh" -o -name "*.plist" -o -name "*.yaml" -o -name "*.yml" \) | while read file; do
-            sed -i '' "s|$CURRENT_DIR_NAME|$EXOCORTEX_REPO|g" "$file"
+            sed_inplace "s|$CURRENT_DIR_NAME|$EXOCORTEX_REPO|g" "$file"
         done
 
         # Rename GitHub repo (if gh is available and not core mode)
