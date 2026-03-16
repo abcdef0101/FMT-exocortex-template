@@ -8,14 +8,12 @@
 
 set -euo pipefail
 
-# Cross-platform sed -i
-sed_inplace() {
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        sed -i '' "$@"
-    else
-        sed -i "$@"
-    fi
-}
+# === Cross-platform sed -i ===
+if sed --version >/dev/null 2>&1; then
+    sed_inplace() { sed -i "$@"; }
+else
+    sed_inplace() { sed -i '' "$@"; }
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
