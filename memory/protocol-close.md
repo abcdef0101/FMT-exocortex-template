@@ -44,6 +44,7 @@ done
 
 **г) Не забыто?** Стратег проверяет:
 - Незакоммиченные изменения (`git status` по всем репо)
+- **Governance-синхронизация:** новые репо или сервисы за день? → проверить актуальность реестров (REPOSITORY-REGISTRY, navigation.md, каталог сервисов). Быстрый тест: `ls -1d {{WORKSPACE_DIR}}/*/ | wc -l` vs количество записей в реестре. Расхождение → пометить в задел на завтра
 <!-- YOUR CUSTOM CHECKS HERE -->
 - Незаписанные мысли? (спросить пользователя)
 - Обещания кому-то? (спросить пользователя)
@@ -194,6 +195,7 @@ done
 - [ ] **Draft-list:** Pack обогащён → предложить черновик? Черновики из сессии → draft-list обновлён?
 - [ ] **Видео:** обработанные видео помечены, captures извлечены (если video.enabled)
 - [ ] **CHANGELOG шаблона:** коммиты в FMT-exocortex-template? → обновить `FMT-exocortex-template/CHANGELOG.md` (новая версия или дописать в текущую)
+- [ ] **Governance-синхронизация:** новые репо/сервисы → обновить реестры (REPOSITORY-REGISTRY, navigation.md, каталог сервисов)
 - [ ] Backup → DS-strategy/exocortex/ синхронизирован
 - [ ] Context file: done → `mv inbox/WP-*.md → archive/wp-contexts/` (сразу при Close)
 - [ ] Отчёт Close сформирован

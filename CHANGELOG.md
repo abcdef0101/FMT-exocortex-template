@@ -5,6 +5,14 @@ All notable changes to FMT-exocortex-template will be documented in this file.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
+## [0.8.5] — 2026-03-17
+
+### Added
+- **docs/use-cases/USE-CASES.md** — каталог всех 15 сценариев использования IWE (WP-116):
+  - SC.001–SC.005: планирование, обучение, знания, публикации
+  - SC.006–SC.009: обслуживание, триаж, самовосстановление, аналитика
+  - SC.010–SC.015: ОРЗ-ритм, стратегирование, онбординг, рабочая сессия, формализация знаний, развитие системы
+
 ## [0.8.4] — 2026-03-17
 
 ### Added
