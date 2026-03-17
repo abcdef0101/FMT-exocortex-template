@@ -19,6 +19,12 @@ sed_inplace() {
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
+# Load IWE env
+WORKSPACE_DIR_TMP="$(dirname "$SCRIPT_DIR")"
+ENV_FILE="$HOME/.$(basename "$WORKSPACE_DIR_TMP")/env"
+[ -f "$ENV_FILE" ] && { set -a; source "$ENV_FILE"; set +a; }
+unset WORKSPACE_DIR_TMP
+
 # --- Определить рабочую директорию ---
 # Скрипт должен запускаться из корня форка экзокортекса
 if [ -f "$SCRIPT_DIR/CLAUDE.md" ] && [ -d "$SCRIPT_DIR/memory" ]; then
@@ -124,7 +130,7 @@ if [ "$PLACEHOLDER_COUNT" -gt 0 ]; then
     if $DRY_RUN; then
         echo "  [DRY RUN] Would re-substitute {{WORKSPACE_DIR}} → $WORKSPACE_DIR in $PLACEHOLDER_COUNT files"
     else
-        find "$EXOCORTEX_DIR" -type f \( -name "*.md" -o -name "*.json" -o -name "*.sh" -o -name "*.plist" -o -name "*.yaml" -o -name "*.yml" -o -name "*.service" -o -name "*.timer" \) | while read file; do
+        find "$EXOCORTEX_DIR" -type f \( -name "*.md" -o -name "*.json" -o -name "*.plist" -o -name "*.yaml" -o -name "*.yml" -o -name "*.service" -o -name "*.timer" \) | while read file; do
             sed_inplace "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g" "$file"
         done
         echo "  Re-substituted {{WORKSPACE_DIR}} → $WORKSPACE_DIR"

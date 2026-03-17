@@ -13,11 +13,15 @@ set -e
 # Конфигурация
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(dirname "$SCRIPT_DIR")"
-WORKSPACE="{{WORKSPACE_DIR}}"
+# IWE env (scripts/ → role/ → roles/ → repo/ → workspace)
+_iwe_ws="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
+ENV_FILE="$HOME/.$(basename "$_iwe_ws")/env"
+[ -f "$ENV_FILE" ] && { set -a; source "$ENV_FILE"; set +a; } \
+    || { echo "IWE env not found: $ENV_FILE" >&2; exit 1; }
+unset _iwe_ws
+WORKSPACE="$WORKSPACE_DIR"
 PROMPTS_DIR="$REPO_DIR/prompts"
-LOG_DIR="{{HOME_DIR}}/logs/extractor"
-CLAUDE_PATH="{{CLAUDE_PATH}}"
-ENV_FILE="{{HOME_DIR}}/.config/aist/env"
+LOG_DIR="$HOME/logs/extractor"
 
 # AI CLI: переопределение через переменные окружения (см. strategist.sh)
 AI_CLI="${AI_CLI:-$CLAUDE_PATH}"
@@ -55,14 +59,6 @@ notify_telegram() {
 }
 
 # Загрузка переменных окружения
-load_env() {
-    if [ -f "$ENV_FILE" ]; then
-        set -a
-        source "$ENV_FILE"
-        set +a
-    fi
-}
-
 run_claude() {
     local command_file="$1"
     local extra_args="$2"
@@ -129,9 +125,6 @@ is_work_hours() {
     hour=$(date +%H)
     [ "$hour" -ge 7 ] && [ "$hour" -le 23 ]
 }
-
-# Загружаем env
-load_env
 
 # Определяем процесс
 case "$1" in
