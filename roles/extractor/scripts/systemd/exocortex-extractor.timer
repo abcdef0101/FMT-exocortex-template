@@ -1,0 +1,14 @@
+[Unit]
+Description=Exocortex Extractor timer (every 3h during work hours, mirrors StartInterval=10800)
+
+[Timer]
+OnCalendar=*-*-* 07:00:00
+OnCalendar=*-*-* 10:00:00
+OnCalendar=*-*-* 13:00:00
+OnCalendar=*-*-* 16:00:00
+OnCalendar=*-*-* 19:00:00
+OnCalendar=*-*-* 22:00:00
+Persistent=false
+
+[Install]
+WantedBy=timers.target

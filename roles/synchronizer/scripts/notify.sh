@@ -10,7 +10,12 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 TEMPLATES_DIR="$SCRIPT_DIR/templates"
-ENV_FILE="$HOME/.config/aist/env"
+# IWE env (scripts/ → role/ → roles/ → repo/ → workspace)
+_iwe_ws="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
+ENV_FILE="$HOME/.$(basename "$_iwe_ws")/env"
+[ -f "$ENV_FILE" ] && { set -a; source "$ENV_FILE"; set +a; } \
+    || { echo "IWE env not found: $ENV_FILE" >&2; exit 1; }
+unset _iwe_ws
 
 AVAILABLE=$(ls "$TEMPLATES_DIR"/*.sh 2>/dev/null | xargs -I{} basename {} .sh | tr '\n' '|' | sed 's/|$//')
 AGENT="${1:?Ошибка: укажи агента (${AVAILABLE:-нет шаблонов})}"

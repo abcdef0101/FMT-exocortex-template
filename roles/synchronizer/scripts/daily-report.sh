@@ -12,9 +12,15 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# IWE env (scripts/ → role/ → roles/ → repo/ → workspace)
+_iwe_ws="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
+ENV_FILE="$HOME/.$(basename "$_iwe_ws")/env"
+[ -f "$ENV_FILE" ] && { set -a; source "$ENV_FILE"; set +a; } \
+    || { echo "IWE env not found: $ENV_FILE" >&2; exit 1; }
+unset _iwe_ws
 STATE_DIR="$HOME/.local/state/exocortex"
-LOG_DIR="{{HOME_DIR}}/logs/synchronizer"
-STRATEGY_DIR="{{WORKSPACE_DIR}}/DS-strategy"
+LOG_DIR="$HOME/logs/synchronizer"
+STRATEGY_DIR="$WORKSPACE_DIR/DS-strategy"
 REPORT_DIR="$STRATEGY_DIR/current"
 ARCHIVE_DIR="$STRATEGY_DIR/archive/scheduler-reports"
 
@@ -28,7 +34,7 @@ DRY_RUN=false
 
 REPORT_FILE="$REPORT_DIR/SchedulerReport $DATE.md"
 SCHEDULER_LOG="$LOG_DIR/scheduler-$DATE.log"
-STRATEGIST_LOG="{{HOME_DIR}}/logs/strategist/$DATE.log"
+STRATEGIST_LOG="$HOME/logs/strategist/$DATE.log"
 
 mkdir -p "$ARCHIVE_DIR"
 
@@ -212,7 +218,7 @@ $warnings
 **Что делать:**
 "
         if echo "$warnings" | grep -q "push failed" 2>/dev/null; then
-            report+="- **push failed:** Mac был оффлайн. Запусти \`cd {{WORKSPACE_DIR}}/DS-strategy && git pull --rebase && git push\`
+            report+="- **push failed:** Mac был оффлайн. Запусти \`cd $WORKSPACE_DIR/DS-strategy && git pull --rebase && git push\`
 "
         fi
     else

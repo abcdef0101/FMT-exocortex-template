@@ -20,11 +20,17 @@ portable_date_offset() {
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SYNC_DIR="$(dirname "$SCRIPT_DIR")"
+# IWE env (scripts/ → role/ → roles/ → repo/ → workspace)
+_iwe_ws="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
+ENV_FILE="$HOME/.$(basename "$_iwe_ws")/env"
+[ -f "$ENV_FILE" ] && { set -a; source "$ENV_FILE"; set +a; } \
+    || { echo "IWE env not found: $ENV_FILE" >&2; exit 1; }
+unset _iwe_ws
 STATE_DIR="$HOME/.local/state/exocortex"
 LOG_DIR="$HOME/logs/synchronizer"
 LOG_FILE="$LOG_DIR/scheduler-$(date +%Y-%m-%d).log"
 
-ROLES_DIR="{{WORKSPACE_DIR}}/FMT-exocortex-template/roles"
+ROLES_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 NOTIFY_SH="$SCRIPT_DIR/notify.sh"
 
 # Role runner discovery: reads runner path from role.yaml, fallback to convention
@@ -99,7 +105,7 @@ cleanup_state() {
 # Разделяет архивацию (мгновенно) и генерацию (15+ мин Claude Code).
 # Гарантирует: даже если генерация ещё не началась, старый план не висит в current/.
 pre_archive_dayplan() {
-    local strategy_dir="{{WORKSPACE_DIR}}/DS-strategy"
+    local strategy_dir="$WORKSPACE_DIR/DS-strategy"
     local archive_dir="$strategy_dir/archive/day-plans"
     local moved=0
 

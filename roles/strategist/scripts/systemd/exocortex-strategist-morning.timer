@@ -1,0 +1,9 @@
+[Unit]
+Description=Exocortex Strategist morning timer ({{TIMEZONE_HOUR}}:00 daily)
+
+[Timer]
+OnCalendar=*-*-* {{TIMEZONE_HOUR}}:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

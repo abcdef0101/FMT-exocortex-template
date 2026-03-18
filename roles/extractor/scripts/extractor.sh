@@ -13,11 +13,15 @@ set -euo pipefail
 # Конфигурация
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(dirname "$SCRIPT_DIR")"
-WORKSPACE="{{WORKSPACE_DIR}}"
+# IWE env (scripts/ → role/ → roles/ → repo/ → workspace)
+_iwe_ws="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
+ENV_FILE="$HOME/.$(basename "$_iwe_ws")/env"
+[ -f "$ENV_FILE" ] && { set -a; source "$ENV_FILE"; set +a; } \
+    || { echo "IWE env not found: $ENV_FILE" >&2; exit 1; }
+unset _iwe_ws
+WORKSPACE="$WORKSPACE_DIR"
 PROMPTS_DIR="$REPO_DIR/prompts"
-LOG_DIR="{{HOME_DIR}}/logs/extractor"
-CLAUDE_PATH="{{CLAUDE_PATH}}"
-ENV_FILE="{{HOME_DIR}}/.config/aist/env"
+LOG_DIR="$HOME/logs/extractor"
 
 # AI CLI: переопределение через переменные окружения (см. strategist.sh)
 AI_CLI="${AI_CLI:-$CLAUDE_PATH}"
@@ -39,10 +43,11 @@ log() {
 notify() {
     local title="$1"
     local message="$2"
-    # macOS: osascript, Linux: notify-send, fallback: silent
-    printf 'display notification "%s" with title "%s"' "$message" "$title" | osascript 2>/dev/null \
-        || notify-send "$title" "$message" 2>/dev/null \
-        || true
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        printf 'display notification "%s" with title "%s"' "$message" "$title" | osascript 2>/dev/null || true
+    elif command -v notify-send &>/dev/null; then
+        notify-send "$title" "$message" 2>/dev/null || true
+    fi
 }
 
 notify_telegram() {
@@ -137,9 +142,6 @@ is_work_hours() {
     hour=$(date +%H)
     [ "$hour" -ge 7 ] && [ "$hour" -le 23 ]
 }
-
-# Загружаем env
-load_env
 
 # Определяем процесс
 case "$1" in
