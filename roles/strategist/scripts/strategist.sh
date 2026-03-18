@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Strategist (Стратег) Agent Runner
 # Запускает Claude Code с заданным сценарием
 
-set -e
+set -euo pipefail
 
 # Конфигурация
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -12,10 +12,12 @@ _iwe_ws="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
 ENV_FILE="$HOME/.$(basename "$_iwe_ws")/env"
 [ -f "$ENV_FILE" ] && { set -a; source "$ENV_FILE"; set +a; } \
     || { echo "IWE env not found: $ENV_FILE" >&2; exit 1; }
-unset _iwe_ws
-WORKSPACE="$WORKSPACE_DIR/DS-strategy"
-PROMPTS_DIR="$REPO_DIR/prompts"
-LOG_DIR="$HOME/logs/strategist"
+_ws_slug="${_iwe_ws//\//-}"
+RHYTHM_CONFIG="$HOME/.claude/projects/${_ws_slug}/memory/day-rhythm-config.yaml"
+unset _iwe_ws _ws_slug
+readonly WORKSPACE="$WORKSPACE_DIR/DS-strategy"
+readonly PROMPTS_DIR="$REPO_DIR/prompts"
+readonly LOG_DIR="$HOME/logs/strategist"
 
 # Создаём папку для логов
 mkdir -p "$LOG_DIR"
@@ -28,8 +30,8 @@ DATE=$(date +%Y-%m-%d)
 LOG_FILE="$LOG_DIR/$DATE.log"
 
 log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> "$LOG_FILE"
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ${1}" >> "$LOG_FILE"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ${1}"
 }
 
 notify() {
@@ -50,6 +52,14 @@ notify_telegram() {
 run_claude() {
     local command_file="$1"
     local command_path="$PROMPTS_DIR/$command_file.md"
+
+    # Traversal validation: command_file must not contain path separators or ..
+    case "$command_file" in
+        */* | *..*  )
+            log "ERROR: Invalid command_file (traversal): $command_file"
+            exit 1
+            ;;
+    esac
 
     if [ ! -f "$command_path" ]; then
         log "ERROR: Command file not found: $command_path"
@@ -77,7 +87,7 @@ ${prompt}"
     log "Command file: $command_path"
     log "Date context: $ru_date_context"
 
-    cd "$WORKSPACE"
+    cd "$WORKSPACE" || { log "ERROR: Cannot cd to WORKSPACE: ${WORKSPACE}"; exit 1; }
 
     # Запуск Claude Code с содержимым команды как промпт
     "$CLAUDE_PATH" --dangerously-skip-permissions \
@@ -112,23 +122,48 @@ already_ran_today() {
     [ -f "$LOG_FILE" ] && grep -q "Completed scenario: $scenario" "$LOG_FILE"
 }
 
+# Global lock registry — populated by acquire_lock(), cleaned by _cleanup_locks()
+_LOCK_FILES=()
+_LOCK_DIRS=()
+
+_cleanup_locks() {
+    local f d
+    if [[ ${#_LOCK_FILES[@]} -gt 0 ]]; then
+        for f in "${_LOCK_FILES[@]}"; do rm -f "$f"; done
+    fi
+    if [[ ${#_LOCK_DIRS[@]} -gt 0 ]]; then
+        for d in "${_LOCK_DIRS[@]}"; do rm -rf "$d"; done
+    fi
+}
+
+trap _cleanup_locks EXIT INT TERM
+
 # File-based lock to prevent concurrent execution (RunAtLoad + CalendarInterval race)
-LOCK_DIR="$LOG_DIR/locks"
+readonly LOCK_DIR="$LOG_DIR/locks"
 mkdir -p "$LOCK_DIR"
 
 acquire_lock() {
     local scenario="$1"
-    local lockfile="$LOCK_DIR/${scenario}.${DATE}.lock"
-    if ! mkdir "$lockfile" 2>/dev/null; then
+    local lockfile="${LOCK_DIR}/${scenario}.${DATE}.lock"
+    local tempdir
+
+    if ! tempdir=$(mktemp -d "${LOCK_DIR}/.lock.XXXXXX"); then
+        log "ERROR: Cannot create temp dir for lock (scenario: $scenario)"
+        exit 3
+    fi
+
+    if ! ln -s "$tempdir" "$lockfile" 2>/dev/null; then
+        rm -rf "$tempdir"
         log "SKIP: $scenario already running (lock exists: $lockfile)"
         exit 2  # non-zero → scheduler won't mark_done
     fi
-    # Auto-cleanup lock on exit
-    trap "rmdir '$lockfile' 2>/dev/null" EXIT
+
+    # Register lock artifacts for cleanup by _cleanup_locks()
+    _LOCK_FILES+=("$lockfile")
+    _LOCK_DIRS+=("$tempdir")
 }
 
 # Читаем strategy_day из конфига (L4 Personal)
-RHYTHM_CONFIG="$HOME/.claude/projects/-Users-$(whoami)-IWE/memory/day-rhythm-config.yaml"
 STRATEGY_DAY_NAME=$(grep 'strategy_day:' "$RHYTHM_CONFIG" 2>/dev/null | awk '{print $2}' || echo "monday")
 # Конвертируем имя дня в номер (1=Mon..7=Sun)
 case "$STRATEGY_DAY_NAME" in
@@ -142,136 +177,141 @@ case "$STRATEGY_DAY_NAME" in
     *)         STRATEGY_DAY_NUM=1 ;;  # fallback: monday
 esac
 
-# Определяем какой сценарий запускать
-case "$1" in
-    "morning")
-        # Определяем нужный сценарий: strategy_day → session-prep, иначе → day-plan
-        if [ "$DAY_OF_WEEK" -eq "$STRATEGY_DAY_NUM" ]; then
-            SCENARIO="session-prep"
-        else
-            SCENARIO="day-plan"
-        fi
+main() {
+    # Определяем какой сценарий запускать
+    case "${1:-}" in
+        "morning")
+            # Определяем нужный сценарий: strategy_day → session-prep, иначе → day-plan
+            if [ "$DAY_OF_WEEK" -eq "$STRATEGY_DAY_NUM" ]; then
+                SCENARIO="session-prep"
+            else
+                SCENARIO="day-plan"
+            fi
 
-        # Защита от повторного запуска (RunAtLoad + CalendarInterval race condition)
-        acquire_lock "$SCENARIO"
-        if already_ran_today "$SCENARIO"; then
-            log "SKIP: $SCENARIO already completed today"
-            exit 0
-        fi
+            # Защита от повторного запуска (RunAtLoad + CalendarInterval race condition)
+            acquire_lock "$SCENARIO"
+            if already_ran_today "$SCENARIO"; then
+                log "SKIP: $SCENARIO already completed today"
+                exit 0
+            fi
 
-        if [ "$DAY_OF_WEEK" -eq "$STRATEGY_DAY_NUM" ]; then
-            log "Strategy day ($STRATEGY_DAY_NAME): running session prep"
+            if [ "$DAY_OF_WEEK" -eq "$STRATEGY_DAY_NUM" ]; then
+                log "Strategy day ($STRATEGY_DAY_NAME): running session prep"
+                run_claude "session-prep"
+                notify_telegram "session-prep"
+            else
+                log "Morning: running day plan"
+                run_claude "day-plan"
+                notify_telegram "day-plan"
+            fi
+            ;;
+        "evening")
+            log "Evening: running evening review"
+            run_claude "evening"
+            notify_telegram "evening"
+            ;;
+        "week-review")
+            acquire_lock "week-review"
+            if already_ran_today "week-review"; then
+                log "SKIP: week-review already completed today"
+                exit 0
+            fi
+            log "Sunday: running week review"
+            run_claude "week-review"
+            # Fallback push for Knowledge Index (week-review creates a post there)
+            KI_REPO="$WORKSPACE_DIR/DS-Knowledge-Index"
+            if git -C "$KI_REPO" log --oneline -1 --since="1 hour ago" --grep="week-review" 2>/dev/null | grep -q .; then
+                git -C "$KI_REPO" push >> "$LOG_FILE" 2>&1 && log "Pushed Knowledge Index (fallback)" || log "WARN: KI push failed"
+            fi
+            notify_telegram "week-review"
+            ;;
+        "session-prep")
+            log "Manual: running session prep"
             run_claude "session-prep"
             notify_telegram "session-prep"
-        else
-            log "Morning: running day plan"
+            ;;
+        "day-plan")
+            log "Manual: running day plan"
             run_claude "day-plan"
             notify_telegram "day-plan"
-        fi
-        ;;
-    "evening")
-        log "Evening: running evening review"
-        run_claude "evening"
-        notify_telegram "evening"
-        ;;
-    "week-review")
-        acquire_lock "week-review"
-        if already_ran_today "week-review"; then
-            log "SKIP: week-review already completed today"
-            exit 0
-        fi
-        log "Sunday: running week review"
-        run_claude "week-review"
-        # Fallback push for Knowledge Index (week-review creates a post there)
-        KI_REPO="$WORKSPACE_DIR/DS-Knowledge-Index"
-        if git -C "$KI_REPO" log --oneline -1 --since="1 hour ago" --grep="week-review" 2>/dev/null | grep -q .; then
-            git -C "$KI_REPO" push >> "$LOG_FILE" 2>&1 && log "Pushed Knowledge Index (fallback)" || log "WARN: KI push failed"
-        fi
-        notify_telegram "week-review"
-        ;;
-    "session-prep")
-        log "Manual: running session prep"
-        run_claude "session-prep"
-        notify_telegram "session-prep"
-        ;;
-    "day-plan")
-        log "Manual: running day plan"
-        run_claude "day-plan"
-        notify_telegram "day-plan"
-        ;;
-    "note-review")
-        acquire_lock "note-review"
-        log "Evening: running note review"
-        # Canary: count bold notes before (exclude 🔄 — deferred ideas stay bold by design)
-        FLEETING="$WORKSPACE/inbox/fleeting-notes.md"
-        BOLD_BEFORE=$(grep -c '^\*\*' "$FLEETING" 2>/dev/null || echo 0)
-        BOLD_NEW_BEFORE=$(grep '^\*\*' "$FLEETING" 2>/dev/null | grep -v '🔄' | grep -c '.' || echo 0)
-        log "Canary: $BOLD_BEFORE bold total ($BOLD_NEW_BEFORE new, $(( BOLD_BEFORE - BOLD_NEW_BEFORE )) deferred 🔄)"
+            ;;
+        "note-review")
+            acquire_lock "note-review"
+            log "Evening: running note review"
+            # Canary: count bold notes before (exclude 🔄 — deferred ideas stay bold by design)
+            FLEETING="$WORKSPACE/inbox/fleeting-notes.md"
+            BOLD_BEFORE=$(grep -c '^\*\*' "$FLEETING" 2>/dev/null || echo 0)
+            BOLD_NEW_BEFORE=$(grep '^\*\*' "$FLEETING" 2>/dev/null | grep -v '🔄' | grep -c '.' || echo 0)
+            log "Canary: $BOLD_BEFORE bold total ($BOLD_NEW_BEFORE new, $(( BOLD_BEFORE - BOLD_NEW_BEFORE )) deferred 🔄)"
 
-        run_claude "note-review"
+            run_claude "note-review"
 
-        # Canary: count bold notes after — only NEW bold (without 🔄) should decrease
-        BOLD_AFTER=$(grep -c '^\*\*' "$FLEETING" 2>/dev/null || echo 0)
-        BOLD_NEW_AFTER=$(grep '^\*\*' "$FLEETING" 2>/dev/null | grep -v '🔄' | grep -c '.' || echo 0)
-        log "Canary: $BOLD_AFTER bold total ($BOLD_NEW_AFTER new)"
-        NON_BOLD=$(grep -c '^[^*#>-]' "$FLEETING" 2>/dev/null || echo 0)
-        log "Non-bold content lines: $NON_BOLD"
-        if [ "$BOLD_NEW_AFTER" -ge "$BOLD_NEW_BEFORE" ] && [ "$BOLD_NEW_BEFORE" -gt 0 ]; then
-            log "WARN: Note-Review Step 10 may have failed — new bold notes did not decrease ($BOLD_NEW_BEFORE → $BOLD_NEW_AFTER)"
-        fi
-
-        # Deterministic cleanup: archive non-bold, non-🔄 notes (safety net for LLM Step 10)
-        log "Running deterministic cleanup..."
-        CLEANUP_OUTPUT=$(bash "$SCRIPT_DIR/cleanup-processed-notes.sh" 2>&1) || true
-        log "Cleanup: $CLEANUP_OUTPUT"
-
-        # If cleanup made changes, commit and push
-        if ! git -C "$WORKSPACE" diff --quiet -- inbox/fleeting-notes.md archive/notes/Notes-Archive.md 2>/dev/null; then
-            git -C "$WORKSPACE" add inbox/fleeting-notes.md archive/notes/Notes-Archive.md
-            git -C "$WORKSPACE" commit -m "chore: auto-cleanup processed notes from fleeting-notes.md" >> "$LOG_FILE" 2>&1 || true
-            git -C "$WORKSPACE" pull --rebase >> "$LOG_FILE" 2>&1 && log "Cleanup: pulled (rebase)" || log "WARN: cleanup pull --rebase failed"
-            git -C "$WORKSPACE" push >> "$LOG_FILE" 2>&1 && log "Cleanup: pushed" || log "WARN: cleanup push failed"
-        else
-            log "Cleanup: no changes to commit"
-        fi
-
-        # Alert if LLM failed AND cleanup was needed (only for NEW bold, not deferred 🔄)
-        if [ "$BOLD_NEW_AFTER" -ge "$BOLD_NEW_BEFORE" ] && [ "$BOLD_NEW_BEFORE" -gt 0 ]; then
-            ENV_FILE="$HOME/.config/aist/env"
-            if [ -f "$ENV_FILE" ]; then
-                set -a; source "$ENV_FILE"; set +a
-                ALERT_TEXT="⚠️ <b>Note-Review canary</b>: Step 10 не сработал ($BOLD_NEW_BEFORE → $BOLD_NEW_AFTER new bold). Deterministic cleanup applied."
-                ALERT_JSON=$(printf '%s' "$ALERT_TEXT" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))')
-                curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-                    -H "Content-Type: application/json" \
-                    -d "{\"chat_id\":\"${TELEGRAM_CHAT_ID}\",\"text\":${ALERT_JSON},\"parse_mode\":\"HTML\"}" >> "$LOG_FILE" 2>&1 || true
+            # Canary: count bold notes after — only NEW bold (without 🔄) should decrease
+            BOLD_AFTER=$(grep -c '^\*\*' "$FLEETING" 2>/dev/null || echo 0)
+            BOLD_NEW_AFTER=$(grep '^\*\*' "$FLEETING" 2>/dev/null | grep -v '🔄' | grep -c '.' || echo 0)
+            log "Canary: $BOLD_AFTER bold total ($BOLD_NEW_AFTER new)"
+            NON_BOLD=$(grep -c '^[^*#>-]' "$FLEETING" 2>/dev/null || echo 0)
+            log "Non-bold content lines: $NON_BOLD"
+            if [ "$BOLD_NEW_AFTER" -ge "$BOLD_NEW_BEFORE" ] && [ "$BOLD_NEW_BEFORE" -gt 0 ]; then
+                log "WARN: Note-Review Step 10 may have failed — new bold notes did not decrease ($BOLD_NEW_BEFORE → $BOLD_NEW_AFTER)"
             fi
-        fi
 
-        notify_telegram "note-review"
-        ;;
-    "day-close")
-        log "Manual: running day close"
-        run_claude "day-close"
-        notify_telegram "day-close"
-        ;;
-    "strategy-session")
-        log "Manual: running strategy session (interactive)"
-        run_claude "strategy-session"
-        ;;
-    *)
-        echo "Usage: $0 {morning|note-review|week-review|session-prep|strategy-session|day-plan|day-close}"
-        echo ""
-        echo "Scenarios:"
-        echo "  morning           - 4:00 EET daily (session-prep on Mon, day-plan others)"
-        echo "  note-review       - 23:00 EET daily (review fleeting notes + clean inbox)"
-        echo "  week-review       - Sunday 19:00 EET review for club"
-        echo "  session-prep      - Manual session prep (headless preparation)"
-        echo "  strategy-session  - Manual strategy session (interactive with user)"
-        echo "  day-plan          - Manual day plan"
-        echo "  day-close         - Manual day close (update WeekPlan + MEMORY + backup)"
-        exit 1
-        ;;
-esac
+            # Deterministic cleanup: archive non-bold, non-🔄 notes (safety net for LLM Step 10)
+            log "Running deterministic cleanup..."
+            CLEANUP_OUTPUT=$(bash "$SCRIPT_DIR/cleanup-processed-notes.sh" 2>&1) || true
+            log "Cleanup: $CLEANUP_OUTPUT"
 
-log "Done"
+            # If cleanup made changes, commit and push
+            if ! git -C "$WORKSPACE" diff --quiet -- inbox/fleeting-notes.md archive/notes/Notes-Archive.md 2>/dev/null; then
+                git -C "$WORKSPACE" add inbox/fleeting-notes.md archive/notes/Notes-Archive.md
+                git -C "$WORKSPACE" commit -m "chore: auto-cleanup processed notes from fleeting-notes.md" >> "$LOG_FILE" 2>&1 || true
+                git -C "$WORKSPACE" pull --rebase >> "$LOG_FILE" 2>&1 && log "Cleanup: pulled (rebase)" || log "WARN: cleanup pull --rebase failed"
+                git -C "$WORKSPACE" push >> "$LOG_FILE" 2>&1 && log "Cleanup: pushed" || log "WARN: cleanup push failed"
+            else
+                log "Cleanup: no changes to commit"
+            fi
+
+            # Alert if LLM failed AND cleanup was needed (only for NEW bold, not deferred 🔄)
+            if [ "$BOLD_NEW_AFTER" -ge "$BOLD_NEW_BEFORE" ] && [ "$BOLD_NEW_BEFORE" -gt 0 ]; then
+                local alert_env="$HOME/.config/aist/env"
+                if [ -f "$alert_env" ]; then
+                    set -a; source "$alert_env"; set +a
+                    ALERT_TEXT="⚠️ <b>Note-Review canary</b>: Step 10 не сработал ($BOLD_NEW_BEFORE → $BOLD_NEW_AFTER new bold). Deterministic cleanup applied."
+                    ALERT_JSON=$(printf '%s' "$ALERT_TEXT" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))')
+                    curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+                        -H "Content-Type: application/json" \
+                        -d "{\"chat_id\":\"${TELEGRAM_CHAT_ID}\",\"text\":${ALERT_JSON},\"parse_mode\":\"HTML\"}" \
+                        > /dev/null 2>&1 || true
+                fi
+            fi
+
+            notify_telegram "note-review"
+            ;;
+        "day-close")
+            log "Manual: running day close"
+            run_claude "day-close"
+            notify_telegram "day-close"
+            ;;
+        "strategy-session")
+            log "Manual: running strategy session (interactive)"
+            run_claude "strategy-session"
+            ;;
+        *)
+            echo "Usage: $0 {morning|note-review|week-review|session-prep|strategy-session|day-plan|day-close}"
+            echo ""
+            echo "Scenarios:"
+            echo "  morning           - 4:00 EET daily (session-prep on Mon, day-plan others)"
+            echo "  note-review       - 23:00 EET daily (review fleeting notes + clean inbox)"
+            echo "  week-review       - Sunday 19:00 EET review for club"
+            echo "  session-prep      - Manual session prep (headless preparation)"
+            echo "  strategy-session  - Manual strategy session (interactive with user)"
+            echo "  day-plan          - Manual day plan"
+            echo "  day-close         - Manual day close (update WeekPlan + MEMORY + backup)"
+            exit 1
+            ;;
+    esac
+
+    log "Done"
+}
+
+main "$@"
