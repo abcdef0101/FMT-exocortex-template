@@ -1,8 +1,16 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Strategist (Стратег) Agent Runner
 # Запускает Claude Code с заданным сценарием
+# Targets: Linux, macOS
+#
+# Exit codes:
+#   0 — успех
+#   1 — ошибка (файл не найден, неверный аргумент)
+#   2 — уже запущен (lock exists — для планировщика)
+#   3 — не удалось создать temp dir для lock
 
-set -e
+#
+set -euo pipefail
 
 # Конфигурация
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

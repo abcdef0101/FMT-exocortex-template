@@ -1,6 +1,7 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Install Strategist Agent launchd jobs
-set -e
+# Targets: macOS (launchd), Linux (systemd)
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 LAUNCHD_DIR="$SCRIPT_DIR/scripts/launchd"

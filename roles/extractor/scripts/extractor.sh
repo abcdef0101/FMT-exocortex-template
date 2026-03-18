@@ -1,14 +1,14 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Knowledge Extractor Agent Runner
 # Запускает Claude Code с заданным процессом KE
+# Targets: Linux, macOS
 #
-# Использование:
-#   extractor.sh inbox-check     # headless: обработка inbox (launchd)
-#   extractor.sh audit           # headless: аудит Pack'ов
-#   extractor.sh session-close   # convenience wrapper
-#   extractor.sh on-demand       # convenience wrapper
-
-set -e
+# Exit codes:
+#   0 — успех
+#   1 — ошибка (файл не найден, неверный аргумент)
+#   2 — нет pending captures
+#
+set -euo pipefail
 
 # Конфигурация
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

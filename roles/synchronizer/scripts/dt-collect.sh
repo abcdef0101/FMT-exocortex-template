@@ -1,5 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # dt-collect.sh — сбор данных активности для ЦД (WP-106)
+# Targets: Linux, macOS
 #
 # Собирает: WakaTime + git stats + Claude Code sessions + WP stats
 # Записывает в digital_twins.data JSONB (Neon) через dt-collect-neon.py

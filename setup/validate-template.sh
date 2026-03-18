@@ -1,5 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Validate Template — проверка целостности FMT-exocortex-template
+# Targets: Linux, macOS
 #
 # 5 проверок:
 # 1. Нет автор-специфичного контента

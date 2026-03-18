@@ -1,5 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # scheduler.sh — центральный диспетчер агентов экзокортекса
+# Targets: Linux, macOS
 #
 # Вызывается launchd (com.exocortex.scheduler) в нужные моменты.
 # Состояние: ~/.local/state/exocortex/ (маркеры запуска)

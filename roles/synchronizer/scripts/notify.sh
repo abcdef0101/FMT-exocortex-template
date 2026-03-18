@@ -1,16 +1,12 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # notify.sh — единый dispatch уведомлений экзокортекса
+# Targets: Linux, macOS
 #
-# Использование:
-#   notify.sh <agent> <scenario>
+# Exit codes:
+#   0 — успех
+#   1 — ошибка
 #
-# Примеры:
-#   notify.sh strategist day-plan
-#   notify.sh extractor inbox-check
-#
-# Шаблоны: templates/<agent>.sh
-
-set -e
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 TEMPLATES_DIR="$SCRIPT_DIR/templates"

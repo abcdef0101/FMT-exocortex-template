@@ -1,11 +1,12 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Exocortex Update — pull upstream changes from FMT-exocortex-template
+# Targets: Linux, macOS
 #
 # Использование:
 #   update.sh              # fetch + merge + reinstall platform-space
 #   update.sh --check      # только проверить, есть ли обновления
 #   update.sh --dry-run    # показать что изменится, не применять
-
+#
 set -euo pipefail
 
 # === Cross-platform sed -i ===

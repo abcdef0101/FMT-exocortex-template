@@ -1,12 +1,13 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Exocortex Setup Script
 # Configures a forked FMT-exocortex-template: placeholders, memory, launchd, DS-strategy
+# Targets: Linux, macOS
 #
 # Usage:
 #   bash setup.sh          # Полная установка (git + GitHub CLI + Claude Code + автоматизация)
 #   bash setup.sh --core   # Минимальная установка (только git, без сети)
 #
-set -e
+set -euo pipefail
 
 VERSION="0.4.1"
 DRY_RUN=false

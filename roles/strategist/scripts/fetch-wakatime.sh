@@ -1,10 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Fetch WakaTime stats for Strategist prompts
+# Targets: Linux, macOS
 # Usage: fetch-wakatime.sh <mode>
 #   mode: "day"  — yesterday's summary (for day-plan)
 #         "week" — current + previous week (for week-review)
 
-set -e
+set -euo pipefail
 
 # Cross-platform date offset: portable_date_offset <days_back> <format>
 # macOS: date -v-Nd, GNU/Linux: date -d "N days ago"

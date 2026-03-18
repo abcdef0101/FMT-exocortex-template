@@ -1,5 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # code-scan.sh — ночное сканирование Downstream-репо (статистика активности)
+# Targets: Linux, macOS
 #
 # Обходит downstream-репозитории, собирает коммиты за последние 24ч,
 # логирует активность.

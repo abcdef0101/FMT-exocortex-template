@@ -1,7 +1,7 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Synchronizer: установка центрального диспетчера (launchd)
-# Заменяет отдельные launchd-агенты Стратега единым scheduler
-set -e
+# Targets: macOS (launchd), Linux (systemd)
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PLIST_SRC="$SCRIPT_DIR/scripts/launchd/com.exocortex.scheduler.plist"

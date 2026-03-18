@@ -1,5 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # sync-files.sh — точечное обновление файлов из remote
+# Targets: Linux, macOS
 #
 # Использование:
 #   sync-files.sh <repo-path> <file1> [file2] ...

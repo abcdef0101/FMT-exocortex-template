@@ -1,5 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # daily-report.sh — ежедневный отчёт работы scheduler
+# Targets: Linux, macOS
 #
 # Формирует отчёт: что должно было сработать, что сработало, что нет.
 # Результат: DS-strategy/current/SchedulerReport YYYY-MM-DD.md
