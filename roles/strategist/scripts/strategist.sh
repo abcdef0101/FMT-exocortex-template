@@ -240,6 +240,16 @@ function run_week_review() {
   notify_telegram "week-review"
 }
 
+# File-based lock to prevent concurrent execution (RunAtLoad + CalendarInterval race)
+LOCK_DIR="$LOG_DIR/locks"
+mkdir -p "$LOCK_DIR"
+
+acquire_lock() {
+    local scenario="$1"
+    local lockfile="$LOCK_DIR/${scenario}.${DATE}.lock"
+    if ! mkdir "$lockfile" 2>/dev/null; then
+        log "SKIP: $scenario already running (lock exists: $lockfile)"
+        exit 2  # non-zero → scheduler won't mark_done
 function run_note_review() {
   acquire_lock "note-review"
   log "Evening: running note review"

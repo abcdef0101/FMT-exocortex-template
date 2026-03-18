@@ -5,6 +5,71 @@ All notable changes to FMT-exocortex-template will be documented in this file.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
+## [0.9.0] — 2026-03-18
+
+### Added
+- **Hooks enforcement** — три автоматических hook'а для надёжности агента: WP Gate (напоминание на каждый prompt), Protocol Completion (верификация после загрузки протокола), PreCompact Checkpoint (сохранение контекста перед компрессией). `.claude/hooks/` + `.claude/settings.json`
+- **Скилл `/run-protocol`** — пошаговое выполнение протокола ОРЗ через TodoWrite с обязательной верификацией. `.claude/skills/run-protocol/`
+- **Различение `settings.json` ≠ `settings.local.json`** — проектный (hooks, в git) vs персональный (permissions, gitignored). При клонировании hooks работают из коробки
+- **Compliance-метрика верификации** — строка «запускался ли /verify» в чеклисте Session Close
+
+## [0.8.8] — 2026-03-18
+
+### Added
+- **Google Calendar одной командой** — `bash setup/optional/setup-calendar.sh`: скачивает OAuth credentials с Gist, настраивает MCP, запускает авторизацию в браузере. Пользователю не нужен GCP Console (АрхГейт 61/70, Shared OAuth App)
+- **[SETUP-GUIDE](docs/SETUP-GUIDE.md) Этап 5** обновлён: `setup-calendar.sh` вместо ручной настройки GCP
+
+## [0.8.7] — 2026-03-17
+
+### Added
+- **Чеклист-верификация (Haiku R23)** — блокирующее правило в [CLAUDE.md](CLAUDE.md) §2: после любого протокола с чеклистом запускается sub-agent Haiku в роли R23 Верификатор для независимой проверки каждого пункта (VR.SOTA.002 context isolation). Добавлена в [Session Close](memory/protocol-close.md) (шаг 10) и Day Close (шаг 5)
+
+## [0.8.6] — 2026-03-17
+
+### Added
+- **Роли верификации (R23-R24)** — skill /verify + [hard-distinctions](memory/hard-distinctions.md) #38-40 (WP-122)
+- **Governance-синхронизация** в [Day Close](memory/protocol-close.md) — проверка REPOSITORY-REGISTRY, navigation.md, MAP.002↔PROCESSES.md (WP-124)
+- **Collapsible sections** в [LEARNING-PATH](LEARNING-PATH.md) и [SETUP-GUIDE](SETUP-GUIDE.md) (details/summary)
+- **Онбординг** переработан: пользователь в центре, принципы двусторонние
+
+## [0.8.5] — 2026-03-17
+
+### Added
+- **[USE-CASES.md](docs/use-cases/USE-CASES.md)** — каталог всех 15 сценариев использования IWE (WP-116):
+  - SC.001–SC.005: планирование, обучение, знания, публикации
+  - SC.006–SC.009: обслуживание, триаж, самовосстановление, аналитика
+  - SC.010–SC.015: ОРЗ-ритм, стратегирование, онбординг, рабочая сессия, формализация знаний, развитие системы
+
+## [0.8.4] — 2026-03-17
+
+### Added
+- **[docs/onboarding/](docs/onboarding/)** — руководство-онбординг IWE для новичков (WP-120):
+  - [onboarding-guide.md](docs/onboarding/onboarding-guide.md) — концептуальный обзор (7 разделов: карта IWE, компоненты, проблемы, решения, путь от нуля, «не бойся», системное мышление)
+  - [onboarding-slides.md](docs/onboarding/onboarding-slides.md) — Marp-презентация (22 слайда, self-paced, светлая тема)
+  - [onboarding-diagrams.md](docs/onboarding/onboarding-diagrams.md) — 6 Mermaid-схем (карта компонентов, путь пользователя, ОРЗ, тиры T1-T4, экзоскелет vs протез, проблема→решение)
+
+## [0.8.3] — 2026-03-17
+
+### Added
+- **[LEARNING-PATH.md](LEARNING-PATH.md) §11** — FAQ: cross-device workflow (ноут + десктоп, кросс-ОС)
+
+## [0.8.2] — 2026-03-17
+
+### Added
+- **[protocol-open.md](memory/protocol-open.md)** — 4-й класс верификации `trivial` (Haiku): результат очевиден, проверка не нужна
+- **[protocol-open.md](memory/protocol-open.md)** — два сценария переключения модели:
+  - Сценарий A: вся сессия — Claude рекомендует `/model`, пользователь переключает
+  - Сценарий B: отдельная задача внутри сессии — делегирование sub-agent'у (только вниз)
+- **[SETUP-GUIDE.md](SETUP-GUIDE.md) §0.5b** — класс верификации в таблице моделей + описание двух сценариев
+- **[LEARNING-PATH.md](LEARNING-PATH.md) §5.1b** — trivial в таблице классов + два сценария переключения
+
+## [0.8.1] — 2026-03-16
+
+### Added
+- **CLAUDE.md** — различение «Скилл ≠ Роль ≠ Протокол» (WP-104)
+- **hard-distinctions.md HD #11** — переработка: обещание (SC) ≠ описание метода ≠ сервис (WP-101, DP.D.039)
+- **protocol-open.md** — режим `interactive: false` для Day Open (вывод одним блоком, «Требует внимания» в конце)
+
 ## [0.8.0] — 2026-03-16
 
 ### Added

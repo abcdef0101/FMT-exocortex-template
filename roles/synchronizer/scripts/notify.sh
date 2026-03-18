@@ -1,16 +1,12 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # notify.sh — единый dispatch уведомлений экзокортекса
+# Targets: Linux, macOS
 #
-# Использование:
-#   notify.sh <agent> <scenario>
+# Exit codes:
+#   0 — успех
+#   1 — ошибка
 #
-# Примеры:
-#   notify.sh strategist day-plan
-#   notify.sh extractor inbox-check
-#
-# Шаблоны: templates/<agent>.sh
-
-set -e
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 TEMPLATES_DIR="$SCRIPT_DIR/templates"
@@ -24,6 +20,22 @@ unset _iwe_ws
 AVAILABLE=$(ls "$TEMPLATES_DIR"/*.sh 2>/dev/null | xargs -I{} basename {} .sh | tr '\n' '|' | sed 's/|$//')
 AGENT="${1:?Ошибка: укажи агента (${AVAILABLE:-нет шаблонов})}"
 SCENARIO="${2:?Ошибка: укажи сценарий}"
+
+# Загрузка env
+_validate_env_file() {
+    local filepath="${1}"
+    if grep -qE '^\s*(eval|source|\.)[ \t]' "${filepath}" 2>/dev/null; then
+        echo "ERROR: env file contains dangerous patterns: ${filepath}" >&2
+        exit 1
+    fi
+}
+
+if [ -f "$ENV_FILE" ]; then
+    _validate_env_file "$ENV_FILE"
+    set -a
+    source "$ENV_FILE"
+    set +a
+fi
 
 # Проверка env vars
 if [ -z "${TELEGRAM_BOT_TOKEN:-}" ] || [ -z "${TELEGRAM_CHAT_ID:-}" ]; then
@@ -51,7 +63,7 @@ send_telegram() {
     fi
 
     local response
-    response=$(curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+    response=$(curl --fail --max-time 10 --connect-timeout 5 -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
         -H "Content-Type: application/json" \
         -d "$json_body")
 

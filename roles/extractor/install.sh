@@ -1,8 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# Extractor: установка launchd-агента для inbox-check
+# Targets: macOS (launchd), Linux (systemd)
+set -euo pipefail
 # Extractor: установка агента обработки inbox (каждые 3 часа)
 # macOS: launchd (~/Library/LaunchAgents)
 # Linux: systemd user timer (~/.config/systemd/user)
-set -e
+
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PLIST_SRC="$SCRIPT_DIR/scripts/launchd/com.extractor.inbox-check.plist"

@@ -1,7 +1,12 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Claude Code → WakaTime heartbeat hook
 # Sends heartbeats to track AI coding time per project.
 # Events: UserPromptSubmit, PostToolUse, Stop
+#
+# Exit codes:
+#   0 — success (always, hook must never block)
+#
+set -euo pipefail
 
 INPUT=$(cat)
 CWD=$(echo "$INPUT" | jq -r '.cwd // empty')

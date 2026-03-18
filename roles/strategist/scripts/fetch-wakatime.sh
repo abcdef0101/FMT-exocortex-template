@@ -1,10 +1,19 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Fetch WakaTime stats for Strategist prompts
+# Targets: Linux, macOS
 # Usage: fetch-wakatime.sh <mode>
 #   mode: "day"  — yesterday's summary (for day-plan)
 #         "week" — current + previous week (for week-review)
 
-set -e
+set -euo pipefail
+
+# Cross-platform date offset: portable_date_offset <days_back> <format>
+# macOS: date -v-Nd, GNU/Linux: date -d "N days ago"
+portable_date_offset() {
+    local days="$1"
+    local fmt="${2:-%Y-%m-%d}"
+    date -v-${days}d +"$fmt" 2>/dev/null || date -d "$days days ago" +"$fmt" 2>/dev/null
+}
 
 ENV_FILE="$HOME/.config/aist/env"
 if [ -f "$ENV_FILE" ]; then
@@ -31,7 +40,7 @@ date_offset() {
 
 waka_fetch() {
     local url="$1"
-    curl -s -H "Authorization: Basic $ENCODED" "$url" 2>/dev/null
+    curl --fail --max-time 10 --connect-timeout 5 -s -H "Authorization: Basic $ENCODED" "$url" 2>/dev/null
 }
 
 format_projects() {

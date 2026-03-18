@@ -1,5 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # dt-collect.sh — сбор данных активности для ЦД (WP-106)
+# Targets: Linux, macOS
 #
 # Собирает: WakaTime + git stats + Claude Code sessions + WP stats
 # Записывает в digital_twins.data JSONB (Neon) через dt-collect-neon.py
@@ -41,8 +42,17 @@ DRY_RUN=false
 mkdir -p "$LOG_DIR"
 
 # Load env
+_validate_env_file() {
+    local filepath="${1}"
+    if grep -qE '^\s*(eval|source|\.)[ \t]' "${filepath}" 2>/dev/null; then
+        echo "ERROR: env file contains dangerous patterns: ${filepath}" >&2
+        exit 1
+    fi
+}
+
 ENV_FILE="$HOME/.config/aist/env"
 if [ -f "$ENV_FILE" ]; then
+    _validate_env_file "$ENV_FILE"
     set -a; source "$ENV_FILE"; set +a
 fi
 
@@ -81,17 +91,17 @@ collect_wakatime() {
 
     # Today
     local TODAY_RESP
-    TODAY_RESP=$(curl -s -H "Authorization: Basic $ENCODED" "$API/summaries?start=$DATE&end=$DATE" 2>/dev/null || echo "{}")
+    TODAY_RESP=$(curl --fail --max-time 10 --connect-timeout 5 -s -H "Authorization: Basic $ENCODED" "$API/summaries?start=$DATE&end=$DATE" 2>/dev/null || echo "{}")
 
     # Last 7 days
     local D7=$(portable_date_offset 7)
     local WEEK_RESP
-    WEEK_RESP=$(curl -s -H "Authorization: Basic $ENCODED" "$API/summaries?start=$D7&end=$DATE" 2>/dev/null || echo "{}")
+    WEEK_RESP=$(curl --fail --max-time 10 --connect-timeout 5 -s -H "Authorization: Basic $ENCODED" "$API/summaries?start=$D7&end=$DATE" 2>/dev/null || echo "{}")
 
     # Last 30 days
     local D30=$(portable_date_offset 30)
     local MONTH_RESP
-    MONTH_RESP=$(curl -s -H "Authorization: Basic $ENCODED" "$API/summaries?start=$D30&end=$DATE" 2>/dev/null || echo "{}")
+    MONTH_RESP=$(curl --fail --max-time 10 --connect-timeout 5 -s -H "Authorization: Basic $ENCODED" "$API/summaries?start=$D30&end=$DATE" 2>/dev/null || echo "{}")
 
     python3 -c "
 import sys, json
@@ -141,7 +151,7 @@ print(json.dumps(result))
 }
 
 # ============================================================
-# 2. Git Stats (все репо в $WORKSPACE_DIR/)
+# 2. Git Stats (все репо в {{WORKSPACE_DIR}}/)
 # ============================================================
 
 collect_git() {
@@ -149,7 +159,7 @@ collect_git() {
 import subprocess, json, os
 from datetime import datetime, timedelta
 
-workspace = os.environ.get('WORKSPACE_DIR', os.path.expanduser('~'))
+workspace = os.path.expanduser('{{WORKSPACE_DIR}}')
 repos = []
 for name in sorted(os.listdir(workspace)):
     path = os.path.join(workspace, name)
@@ -260,7 +270,7 @@ if os.path.exists(log_path):
 
 # Also count from git log (more reliable — sessions leave commits)
 import subprocess
-workspace = os.environ.get('WORKSPACE_DIR', os.path.expanduser('~'))
+workspace = os.path.expanduser('{{WORKSPACE_DIR}}')
 git_sessions_7d = 0
 for name in os.listdir(workspace):
     path = os.path.join(workspace, name)

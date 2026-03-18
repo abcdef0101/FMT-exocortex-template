@@ -1,14 +1,14 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Knowledge Extractor Agent Runner
 # Запускает Claude Code с заданным процессом KE
+# Targets: Linux, macOS
 #
-# Использование:
-#   extractor.sh inbox-check     # headless: обработка inbox (launchd)
-#   extractor.sh audit           # headless: аудит Pack'ов
-#   extractor.sh session-close   # convenience wrapper
-#   extractor.sh on-demand       # convenience wrapper
-
-set -e
+# Exit codes:
+#   0 — успех
+#   1 — ошибка (файл не найден, неверный аргумент)
+#   2 — нет pending captures
+#
+set -euo pipefail
 
 # Конфигурация
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -59,6 +59,23 @@ notify_telegram() {
 }
 
 # Загрузка переменных окружения
+_validate_env_file() {
+    local filepath="${1}"
+    if grep -qE '^\s*(eval|source|\.)[ \t]' "${filepath}" 2>/dev/null; then
+        echo "ERROR: env file contains dangerous patterns: ${filepath}" >&2
+        exit 1
+    fi
+}
+
+load_env() {
+    if [ -f "$ENV_FILE" ]; then
+        _validate_env_file "$ENV_FILE"
+        set -a
+        source "$ENV_FILE"
+        set +a
+    fi
+}
+
 run_claude() {
     local command_file="$1"
     local extra_args="$2"

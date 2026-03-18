@@ -1,5 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Детерминированная очистка обработанных заметок из fleeting-notes.md.
+# Targets: Linux, macOS
 #
 # Страховочная сеть для Note-Review Step 10: LLM часто копирует заметки в архив,
 # но забывает удалить из источника (галлюцинация tool-use).

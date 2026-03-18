@@ -1,8 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# Install Strategist Agent launchd jobs
+# Targets: macOS (launchd), Linux (systemd)
+#
 # Strategist: установка агента утреннего планирования
 # macOS: launchd (~/Library/LaunchAgents)
 # Linux: systemd user timer (~/.config/systemd/user)
-set -e
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 LAUNCHD_DIR="$SCRIPT_DIR/scripts/launchd"
