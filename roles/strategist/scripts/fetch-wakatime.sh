@@ -30,7 +30,7 @@ API="https://wakatime.com/api/v1/users/current"
 
 waka_fetch() {
     local url="$1"
-    curl -s -H "Authorization: Basic $ENCODED" "$url" 2>/dev/null
+    curl --fail --max-time 10 --connect-timeout 5 -s -H "Authorization: Basic $ENCODED" "$url" 2>/dev/null
 }
 
 format_projects() {

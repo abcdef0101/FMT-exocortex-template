@@ -36,8 +36,17 @@ DRY_RUN=false
 mkdir -p "$LOG_DIR"
 
 # Load env
+_validate_env_file() {
+    local filepath="${1}"
+    if grep -qE '^\s*(eval|source|\.)[ \t]' "${filepath}" 2>/dev/null; then
+        echo "ERROR: env file contains dangerous patterns: ${filepath}" >&2
+        exit 1
+    fi
+}
+
 ENV_FILE="$HOME/.config/aist/env"
 if [ -f "$ENV_FILE" ]; then
+    _validate_env_file "$ENV_FILE"
     set -a; source "$ENV_FILE"; set +a
 fi
 
@@ -76,17 +85,17 @@ collect_wakatime() {
 
     # Today
     local TODAY_RESP
-    TODAY_RESP=$(curl -s -H "Authorization: Basic $ENCODED" "$API/summaries?start=$DATE&end=$DATE" 2>/dev/null || echo "{}")
+    TODAY_RESP=$(curl --fail --max-time 10 --connect-timeout 5 -s -H "Authorization: Basic $ENCODED" "$API/summaries?start=$DATE&end=$DATE" 2>/dev/null || echo "{}")
 
     # Last 7 days
     local D7=$(portable_date_offset 7)
     local WEEK_RESP
-    WEEK_RESP=$(curl -s -H "Authorization: Basic $ENCODED" "$API/summaries?start=$D7&end=$DATE" 2>/dev/null || echo "{}")
+    WEEK_RESP=$(curl --fail --max-time 10 --connect-timeout 5 -s -H "Authorization: Basic $ENCODED" "$API/summaries?start=$D7&end=$DATE" 2>/dev/null || echo "{}")
 
     # Last 30 days
     local D30=$(portable_date_offset 30)
     local MONTH_RESP
-    MONTH_RESP=$(curl -s -H "Authorization: Basic $ENCODED" "$API/summaries?start=$D30&end=$DATE" 2>/dev/null || echo "{}")
+    MONTH_RESP=$(curl --fail --max-time 10 --connect-timeout 5 -s -H "Authorization: Basic $ENCODED" "$API/summaries?start=$D30&end=$DATE" 2>/dev/null || echo "{}")
 
     python3 -c "
 import sys, json
