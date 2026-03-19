@@ -15,10 +15,10 @@
     <integer>10800</integer>
 
     <key>StandardOutPath</key>
-    <string>{{HOME_DIR}}/logs/extractor/launchd-inbox-check.log</string>
+    <string>{{HOME_DIR}}/.local/state/logs/extractor/launchd-inbox-check.log</string>
 
     <key>StandardErrorPath</key>
-    <string>{{HOME_DIR}}/logs/extractor/launchd-inbox-check-error.log</string>
+    <string>{{HOME_DIR}}/.local/state/logs/extractor/launchd-inbox-check-error.log</string>
 
     <key>EnvironmentVariables</key>
     <dict>

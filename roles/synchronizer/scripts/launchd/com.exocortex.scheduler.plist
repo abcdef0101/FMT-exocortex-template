@@ -38,10 +38,10 @@
     </array>
 
     <key>StandardOutPath</key>
-    <string>{{HOME_DIR}}/logs/synchronizer/launchd-scheduler.log</string>
+    <string>{{HOME_DIR}}/.local/state/logs/synchronizer/launchd-scheduler.log</string>
 
     <key>StandardErrorPath</key>
-    <string>{{HOME_DIR}}/logs/synchronizer/launchd-scheduler-error.log</string>
+    <string>{{HOME_DIR}}/.local/state/logs/synchronizer/launchd-scheduler-error.log</string>
 
     <key>EnvironmentVariables</key>
     <dict>

@@ -22,10 +22,10 @@
     </dict>
 
     <key>StandardOutPath</key>
-    <string>{{HOME_DIR}}/logs/strategist/launchd-weekreview.log</string>
+    <string>{{HOME_DIR}}/.local/state/logs/strategist/launchd-weekreview.log</string>
 
     <key>StandardErrorPath</key>
-    <string>{{HOME_DIR}}/logs/strategist/launchd-weekreview-error.log</string>
+    <string>{{HOME_DIR}}/.local/state/logs/strategist/launchd-weekreview-error.log</string>
 
     <key>EnvironmentVariables</key>
     <dict>
