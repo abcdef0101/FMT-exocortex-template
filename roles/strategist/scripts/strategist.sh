@@ -51,7 +51,7 @@ fi
 
 readonly WORKSPACE="${WORKSPACE_DIR}/DS-strategy"
 readonly PROMPTS_DIR="${REPO_DIR}/prompts"
-readonly LOG_DIR="${HOME}/logs/strategist"
+readonly LOG_DIR="${HOME}/.local/state/logs/strategist"
 
 # Создаём папку для логов
 mkdir -p "${LOG_DIR}"

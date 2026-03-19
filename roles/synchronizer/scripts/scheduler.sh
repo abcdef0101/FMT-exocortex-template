@@ -27,7 +27,7 @@ ENV_FILE="$HOME/.$(basename "$_iwe_ws")/env"
     || { echo "IWE env not found: $ENV_FILE" >&2; exit 1; }
 unset _iwe_ws
 STATE_DIR="$HOME/.local/state/exocortex"
-LOG_DIR="$HOME/logs/synchronizer"
+LOG_DIR="$HOME/.local/state/logs/synchronizer"
 LOG_FILE="$LOG_DIR/scheduler-$(date +%Y-%m-%d).log"
 
 ROLES_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"

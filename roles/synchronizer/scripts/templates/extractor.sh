@@ -35,7 +35,7 @@ build_message() {
             ;;
 
         "audit")
-            printf "<b>🔍 Knowledge Audit завершён</b>\n\n📅 %s\n\nПроверьте лог: ~/logs/extractor/%s.log" "$DATE" "$DATE"
+            printf "<b>🔍 Knowledge Audit завершён</b>\n\n📅 %s\n\nПроверьте лог: ~/.local/state/logs/extractor/%s.log" "$DATE" "$DATE"
             ;;
 
         *)

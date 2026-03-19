@@ -21,7 +21,7 @@ ENV_FILE="$HOME/.$(basename "$_iwe_ws")/env"
     || { echo "IWE env not found: $ENV_FILE" >&2; exit 1; }
 unset _iwe_ws
 WORKSPACE="$WORKSPACE_DIR"
-LOG_DIR="$HOME/logs/synchronizer"
+LOG_DIR="$HOME/.local/state/logs/synchronizer"
 DATE=$(date +%Y-%m-%d)
 LOG_FILE="$LOG_DIR/code-scan-$DATE.log"
 

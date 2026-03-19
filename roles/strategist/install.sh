@@ -36,7 +36,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     launchctl list | grep strategist
 else
     # === Linux: systemd user timers ===
-    mkdir -p "$HOME/logs/strategist"
+    mkdir -p "$HOME/.local/state/logs/strategist"
     SYSTEMD_SRC="$SCRIPT_DIR/scripts/systemd"
     SYSTEMD_DIR="$HOME/.config/systemd/user"
     mkdir -p "$SYSTEMD_DIR"

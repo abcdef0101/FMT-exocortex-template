@@ -21,7 +21,7 @@ ENV_FILE="$HOME/.$(basename "$_iwe_ws")/env"
 unset _iwe_ws
 WORKSPACE="$WORKSPACE_DIR"
 PROMPTS_DIR="$REPO_DIR/prompts"
-LOG_DIR="$HOME/logs/extractor"
+LOG_DIR="$HOME/.local/state/logs/extractor"
 
 # AI CLI: переопределение через переменные окружения (см. strategist.sh)
 AI_CLI="${AI_CLI:-$CLAUDE_PATH}"

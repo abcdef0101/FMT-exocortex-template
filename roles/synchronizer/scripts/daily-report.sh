@@ -19,7 +19,7 @@ ENV_FILE="$HOME/.$(basename "$_iwe_ws")/env"
     || { echo "IWE env not found: $ENV_FILE" >&2; exit 1; }
 unset _iwe_ws
 STATE_DIR="$HOME/.local/state/exocortex"
-LOG_DIR="$HOME/logs/synchronizer"
+LOG_DIR="$HOME/.local/state/logs/synchronizer"
 STRATEGY_DIR="$WORKSPACE_DIR/DS-strategy"
 REPORT_DIR="$STRATEGY_DIR/current"
 ARCHIVE_DIR="$STRATEGY_DIR/archive/scheduler-reports"
@@ -34,7 +34,7 @@ DRY_RUN=false
 
 REPORT_FILE="$REPORT_DIR/SchedulerReport $DATE.md"
 SCHEDULER_LOG="$LOG_DIR/scheduler-$DATE.log"
-STRATEGIST_LOG="$HOME/logs/strategist/$DATE.log"
+STRATEGIST_LOG="$HOME/.local/state/logs/strategist/$DATE.log"
 
 mkdir -p "$ARCHIVE_DIR"
 

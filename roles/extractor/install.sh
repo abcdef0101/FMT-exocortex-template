@@ -34,13 +34,13 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 
     echo "  ✓ Installed: com.extractor.inbox-check (launchd)"
     echo "  ✓ Interval: every 3 hours"
-    echo "  ✓ Logs: ~/logs/extractor/"
+    echo "  ✓ Logs: ~/.local/state/logs/extractor/"
     echo ""
     echo "Verify: launchctl list | grep extractor"
     echo "Uninstall: launchctl unload $PLIST_DST && rm $PLIST_DST"
 else
     # === Linux: systemd user timer ===
-    mkdir -p "$HOME/logs/extractor"
+    mkdir -p "$HOME/.local/state/logs/extractor"
     SYSTEMD_SRC="$SCRIPT_DIR/scripts/systemd"
     SYSTEMD_DIR="$HOME/.config/systemd/user"
     mkdir -p "$SYSTEMD_DIR"
@@ -53,7 +53,7 @@ else
 
     echo "  ✓ Installed: exocortex-extractor.timer (systemd user)"
     echo "  ✓ Schedule: every 3h (07,10,13,16,19,22:00)"
-    echo "  ✓ Logs: ~/logs/extractor/systemd-inbox-check.log"
+    echo "  ✓ Logs: ~/.local/state/logs/extractor/systemd-inbox-check.log"
     echo ""
     echo "Verify: systemctl --user list-timers | grep exocortex"
     echo "Logs:   journalctl --user -u exocortex-extractor.service -f"
