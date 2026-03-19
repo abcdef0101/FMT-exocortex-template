@@ -78,7 +78,7 @@ load_env() {
 
 run_claude() {
     local command_file="$1"
-    local extra_args="$2"
+    local extra_args="${2:-}"
     local command_path="$PROMPTS_DIR/$command_file.md"
 
     if [ ! -f "$command_path" ]; then
@@ -144,7 +144,7 @@ is_work_hours() {
 }
 
 # Определяем процесс
-case "$1" in
+case "${1:-}" in
     "inbox-check")
         if ! is_work_hours; then
             log "SKIP: inbox-check outside work hours ($HOUR:00)"
