@@ -33,7 +33,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     launchctl load "$TARGET_DIR/com.strategist.weekreview.plist"
 
     echo "Done. Agents loaded:"
-    launchctl list | grep strategist
+    launchctl list | grep strategist || true
 else
     # === Linux: systemd user timers ===
     mkdir -p "$HOME/.local/state/logs/strategist"
@@ -51,5 +51,5 @@ else
     systemctl --user enable --now exocortex-strategist-weekreview.timer
 
     echo "Done. Timers installed:"
-    systemctl --user list-timers | grep exocortex-strategist
+    systemctl --user list-timers | grep exocortex-strategist || true
 fi
