@@ -134,11 +134,14 @@ if [ "$PLACEHOLDER_COUNT" -gt 0 ]; then
     else
         # Only process files that actually contain the placeholder (avoid no-op sed on all files)
         # Use grep -F (fixed string) to prevent {{ }} regex interpretation on BSD/macOS grep
-        grep -rFlZ '{{WORKSPACE_DIR}}' "$EXOCORTEX_DIR" \
-            --include="*.md" --include="*.sh" --include="*.json" \
-            --include="*.yaml" --include="*.yml" --include="*.plist" \
-            --include="*.service" --include="*.timer" 2>/dev/null \
-            | xargs -0 -I{} sed_inplace "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g" "{}"
+        while IFS= read -r -d '' file; do
+            sed_inplace "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g" "$file"
+        done < <(
+            grep -rFlZ '{{WORKSPACE_DIR}}' "$EXOCORTEX_DIR" \
+                --include="*.md" --include="*.sh" --include="*.json" \
+                --include="*.yaml" --include="*.yml" --include="*.plist" \
+                --include="*.service" --include="*.timer" 2>/dev/null
+        )
         echo "  Re-substituted {{WORKSPACE_DIR}} → $WORKSPACE_DIR"
 
         # Commit the re-substitution
