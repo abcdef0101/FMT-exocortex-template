@@ -158,7 +158,7 @@ done
 
 #### 5d. Контент (что можно опубликовать сегодня)
 
-- Прочитать backlog из [Стратегии маркетинга §7](../DS-ecosystem-development/B.Aisystant-Ecosystem/B1.Society/B1.1.Meaning/1.1.2.%20Marketing/Стратегия%20маркетинга%201.1.md)
+- Прочитать backlog из [Стратегии маркетинга §7](../../DS-ecosystem-development/B.Aisystant-Ecosystem/B1.Society/B1.1.Meaning/1.1.2.%20Marketing/Стратегия%20маркетинга%201.1.md)
 - Прочитать `DS-my-strategy/drafts/draft-list.md` → свежие Content ideas
 - Выбрать 1-3 темы, которые можно адаптировать сегодня (исходя из свободных блоков и запланированных РП)
 - Показать таблицу с рекомендацией
@@ -244,7 +244,7 @@ agent: Стратег
 
 ## Контент (что можно опубликовать сегодня)
 
-> Источник: backlog из [Стратегии маркетинга §7](../DS-ecosystem-development/B.Aisystant-Ecosystem/B1.Society/B1.1.Meaning/1.1.2.%20Marketing/Стратегия%20маркетинга%201.1.md) + Content ideas из draft-list.md
+> Источник: backlog из [Стратегии маркетинга §7](../../DS-ecosystem-development/B.Aisystant-Ecosystem/B1.Society/B1.1.Meaning/1.1.2.%20Marketing/Стратегия%20маркетинга%201.1.md) + Content ideas из draft-list.md
 
 | # | Тема | Сегмент | Канал | Источник | Действие |
 |---|------|---------|-------|----------|----------|
