@@ -39,7 +39,6 @@
 
 0. **Pull** → `cd DS-strategy && git pull --rebase`
 1. **Commit + Push** — все изменения зафиксированы
-1b. **CHANGELOG FMT** (если были коммиты в FMT-exocortex-template): обновить `FMT-exocortex-template/CHANGELOG.md` **сейчас**, пока контекст изменений свежий. На Day Close контекст потерян.
 2. **KE (Knowledge Extraction)** → прочитай и выполни `DS-IT-systems/DS-ai-systems/extractor/prompts/session-close.md`:
    - Собрать отложенные captures + проверить пропущенные
    - Классифицировать → маршрутизировать → формализовать → валидировать
@@ -64,7 +63,6 @@
 ### Чеклист Quick Close (агент проверяет сам)
 
 - [ ] Всё закоммичено и запушено
-- [ ] **CHANGELOG FMT:** коммиты в FMT → CHANGELOG обновлён (пока контекст свежий)
 - [ ] KE выполнен, captures применены
 - [ ] MEMORY.md: статус РП обновлён
 - [ ] WP Context: «Осталось» записано (или done помечен)
@@ -133,8 +131,6 @@ done
 **2d.** Обновить `DS-strategy/inbox/open-sessions.log`: удалить строки закрытых сессий.
 
 **2e.** Governance-синхронизация: новые репо/сервисы за день? → REPOSITORY-REGISTRY, navigation.md, MAP.002↔PROCESSES.md.
-
-**2f.** ~~CHANGELOG FMT~~ — перенесён в Quick Close (шаг 1b). На Day Close только проверить, что не пропущен.
 
 #### 3. Архивация
 
@@ -262,7 +258,6 @@ done
 - [ ] **WP context:** done → `mv inbox/ → archive/wp-contexts/`
 - [ ] **Draft-list:** Pack обогащён → черновик предложен?
 - [ ] **Видео:** обработанные помечены (если video.enabled)
-- [ ] **CHANGELOG FMT:** коммиты в FMT → CHANGELOG обновлён
 - [ ] **Governance:** REPOSITORY-REGISTRY, navigation.md, MAP.002
 - [ ] **Backup:** `day-close.sh` выполнен (backup + reindex + linear)
 - [ ] **Верификация compliance:** /verify запускался сегодня?
