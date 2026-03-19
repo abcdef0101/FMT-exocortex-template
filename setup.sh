@@ -13,14 +13,29 @@ VERSION="0.4.1"
 DRY_RUN=false
 CORE_ONLY=false
 
-# Cross-platform sed -i (macOS требует пустой суффикс, Linux — нет)
-sed_inplace() {
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        sed -i '' "$@"
-    else
-        sed -i "$@"
-    fi
-}
+# Cross-platform file editing utility
+# Subcommands:
+#   sed_inplace <sed-args> <file>  — in-place sed (cross-platform macOS/Linux)
+#   sed_inplace append <file> <text> — append text to end of file
+if sed --version >/dev/null 2>&1; then
+    # GNU sed (Linux)
+    sed_inplace() {
+        if [ "${1:-}" = "append" ]; then
+            printf '%s\n' "$3" >> "$2"
+        else
+            sed -i "$@"
+        fi
+    }
+else
+    # BSD sed (macOS)
+    sed_inplace() {
+        if [ "${1:-}" = "append" ]; then
+            printf '%s\n' "$3" >> "$2"
+        else
+            sed -i '' "$@"
+        fi
+    }
+fi
 
 # === Parse arguments ===
 for arg in "$@"; do
@@ -243,6 +258,7 @@ if $DRY_RUN; then
     echo "  [DRY RUN] Would substitute placeholders in $PLACEHOLDER_FILES files"
     echo "    {{GITHUB_USER}} → $GITHUB_USER"
     echo "    {{WORKSPACE_DIR}} → $WORKSPACE_DIR"
+    echo "    {{EXOCORTEX_REPO}} → $EXOCORTEX_REPO"
     echo "    {{CLAUDE_PATH}} → $CLAUDE_PATH"
     echo "    {{CLAUDE_PROJECT_SLUG}} → $CLAUDE_PROJECT_SLUG"
     echo "    {{TIMEZONE_HOUR}} → $TIMEZONE_HOUR"
@@ -253,6 +269,7 @@ else
         sed_inplace \
             -e "s|{{GITHUB_USER}}|$GITHUB_USER|g" \
             -e "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g" \
+            -e "s|{{EXOCORTEX_REPO}}|$EXOCORTEX_REPO|g" \
             -e "s|{{CLAUDE_PATH}}|$CLAUDE_PATH|g" \
             -e "s|{{CLAUDE_PROJECT_SLUG}}|$CLAUDE_PROJECT_SLUG|g" \
             -e "s|{{TIMEZONE_HOUR}}|$TIMEZONE_HOUR|g" \
@@ -260,7 +277,6 @@ else
             -e "s|{{HOME_DIR}}|$HOME_DIR|g" \
             "$file"
     done
-fi
 
     echo "  Placeholders substituted."
 

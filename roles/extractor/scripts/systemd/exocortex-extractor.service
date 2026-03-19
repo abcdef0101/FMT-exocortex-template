@@ -4,8 +4,8 @@ After=network.target
 
 [Service]
 Type=oneshot
-ExecStart={{WORKSPACE_DIR}}/FMT-exocortex-template/roles/extractor/scripts/extractor.sh inbox-check
-StandardOutput=append:{{HOME_DIR}}/logs/extractor/systemd-inbox-check.log
-StandardError=append:{{HOME_DIR}}/logs/extractor/systemd-inbox-check-error.log
+ExecStart={{WORKSPACE_DIR}}/{{EXOCORTEX_REPO}}/roles/extractor/scripts/extractor.sh inbox-check
+StandardOutput=append:{{HOME_DIR}}/.local/state/logs/extractor/systemd-inbox-check.log
+StandardError=append:{{HOME_DIR}}/.local/state/logs/extractor/systemd-inbox-check-error.log
 Environment=HOME={{HOME_DIR}}
 Environment=PATH=/usr/local/bin:/usr/bin:/bin:/usr/local/sbin

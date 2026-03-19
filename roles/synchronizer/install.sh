@@ -20,7 +20,7 @@ chmod +x "$SCRIPT_DIR/scripts/templates/"*.sh 2>/dev/null || true
 
 # Создаём директории состояния
 mkdir -p "$HOME/.local/state/exocortex"
-mkdir -p "$HOME/logs/synchronizer"
+mkdir -p "$HOME/.local/state/logs/synchronizer"
 
 SCHEDULER_SH="$SCRIPT_DIR/scripts/scheduler.sh"
 
@@ -44,7 +44,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     echo "  ✓ Schedule: 10 dispatch points per day"
     echo "  ✓ Manages: Strategist, Extractor, Code-Scan, Daily Report"
     echo "  ✓ State: ~/.local/state/exocortex/"
-    echo "  ✓ Logs: ~/logs/synchronizer/"
+    echo "  ✓ Logs: ~/.local/state/logs/synchronizer/"
     echo ""
     echo "Verify: launchctl list | grep exocortex"
     echo "Status: bash $SCHEDULER_SH status"
@@ -70,7 +70,7 @@ else
     echo "  ✓ Schedule: 10 dispatch points per day"
     echo "  ✓ Manages: Strategist, Extractor, Code-Scan, Daily Report"
     echo "  ✓ State: ~/.local/state/exocortex/"
-    echo "  ✓ Logs: ~/logs/synchronizer/systemd-scheduler.log"
+    echo "  ✓ Logs: ~/.local/state/logs/synchronizer/systemd-scheduler.log"
     echo ""
     echo "Verify: systemctl --user list-timers | grep exocortex"
     echo "Status: bash $SCHEDULER_SH status"

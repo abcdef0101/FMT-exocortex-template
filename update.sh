@@ -124,18 +124,22 @@ echo "[3/6] Re-substituting placeholders..."
 
 # After merge, new lines from upstream may contain {{WORKSPACE_DIR}} etc.
 # Detect values from the current environment
-PLACEHOLDER_COUNT=$(grep -r '{{WORKSPACE_DIR}}' "$EXOCORTEX_DIR" --include="*.md" --include="*.sh" --include="*.json" --include="*.yaml" --include="*.yml" --include="*.plist" -l 2>/dev/null | wc -l | tr -d ' ')
+# Use -F (fixed string) to avoid regex interpretation of {{ }}
+PLACEHOLDER_COUNT=$(grep -rF '{{WORKSPACE_DIR}}' "$EXOCORTEX_DIR" --include="*.md" --include="*.sh" --include="*.json" --include="*.yaml" --include="*.yml" --include="*.plist" -l 2>/dev/null | wc -l | tr -d ' ')
 
 if [ "$PLACEHOLDER_COUNT" -gt 0 ]; then
     echo "  Found $PLACEHOLDER_COUNT files with unsubstituted {{WORKSPACE_DIR}}"
     if $DRY_RUN; then
         echo "  [DRY RUN] Would re-substitute {{WORKSPACE_DIR}} → $WORKSPACE_DIR in $PLACEHOLDER_COUNT files"
     else
-        find "$EXOCORTEX_DIR" -type f \( -name "*.md" -o -name "*.json" -o -name "*.plist" -o -name "*.yaml" -o -name "*.yml" -o -name "*.service" -o -name "*.timer" \) | while read file; do
-            sed_inplace "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g" "$file"
-        done
+        # Only process files that actually contain the placeholder (avoid no-op sed on all files)
+        # Use grep -F (fixed string) to prevent {{ }} regex interpretation on BSD/macOS grep
+        grep -rFlZ '{{WORKSPACE_DIR}}' "$EXOCORTEX_DIR" \
+            --include="*.md" --include="*.sh" --include="*.json" \
+            --include="*.yaml" --include="*.yml" --include="*.plist" \
+            --include="*.service" --include="*.timer" 2>/dev/null \
+            | xargs -0 -I{} sed_inplace "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g" "{}"
         echo "  Re-substituted {{WORKSPACE_DIR}} → $WORKSPACE_DIR"
-    fi
 
         # Commit the re-substitution
         if ! git -C "$EXOCORTEX_DIR" diff --quiet; then
@@ -147,8 +151,8 @@ else
     echo "  No unsubstituted placeholders found"
 fi
 
-# Check for any remaining placeholders (other than WORKSPACE_DIR)
-REMAINING=$(grep -r '{{[A-Z_]*}}' "$EXOCORTEX_DIR" --include="*.md" --include="*.sh" --include="*.json" --include="*.yaml" -l 2>/dev/null | wc -l | tr -d ' ')
+# Check for any remaining placeholders (other than WORKSPACE_DIR) — use -F for fixed string
+REMAINING=$(grep -rF '{{' "$EXOCORTEX_DIR" --include="*.md" --include="*.sh" --include="*.json" --include="*.yaml" -l 2>/dev/null | xargs grep -lF '}}' 2>/dev/null | wc -l | tr -d ' ')
 if [ "$REMAINING" -gt 0 ]; then
     echo "  WARN: $REMAINING files still have unsubstituted placeholders."
     echo "  Run 'bash setup.sh' to re-substitute all placeholders."
@@ -163,7 +167,8 @@ if [ -f "$EXOCORTEX_DIR/CHANGELOG.md" ]; then
     echo "  │         What's New                   │"
     echo "  └──────────────────────────────────────┘"
     # Show entries between first and second ## headings (latest version)
-    sed -n '/^## \[/,/^## \[/{/^## \[/!{/^## \[/!p}}' "$EXOCORTEX_DIR/CHANGELOG.md" | head -30 | sed 's/^/  /'
+    # Cross-platform: awk instead of sed (BSD sed doesn't support /pat/,/pat/{/pat/!p})
+    awk '/^## \[/{if(found) exit; found=1; next} found{print}' "$EXOCORTEX_DIR/CHANGELOG.md" | head -30 | sed 's/^/  /'
     echo ""
 else
     echo "  No CHANGELOG.md found"
