@@ -2,20 +2,25 @@
 # Тесты для roles/synchronizer/scripts/notify.sh
 # Покрывает: _validate_env_file, send_telegram (mock curl), SKIP без токенов
 
-load 'test_helper/bats-support/load'
-load 'test_helper/bats-assert/load'
+load '../../../tests/test_helper/bats-support/load'
+load '../../../tests/test_helper/bats-assert/load'
 load 'test_helper/helpers'
 
-SCRIPT="${BATS_TEST_DIRNAME}/../scripts/notify.sh"
+REAL_SCRIPT="${BATS_TEST_DIRNAME}/../scripts/notify.sh"
 
 setup() {
     TEST_DIR="$BATS_TEST_TMPDIR"
     BIN_DIR="$TEST_DIR/bin"
-    TEMPLATES_DIR="${BATS_TEST_DIRNAME}/../scripts/templates"
+    SCRIPT_DIR_TMP="$TEST_DIR/scripts"
+    TEMPLATES_DIR="$SCRIPT_DIR_TMP/templates"
+    mkdir -p "$SCRIPT_DIR_TMP"
+    cp "$REAL_SCRIPT" "$SCRIPT_DIR_TMP/notify.sh"
+    cp -R "${BATS_TEST_DIRNAME}/../scripts/templates" "$TEMPLATES_DIR"
+    SCRIPT="$SCRIPT_DIR_TMP/notify.sh"
 
     # Вычисляем ENV_FILE путь как делает скрипт
     local script_dir
-    script_dir="$(cd "${BATS_TEST_DIRNAME}/../scripts" && pwd)"
+    script_dir="$SCRIPT_DIR_TMP"
     local iwe_ws
     iwe_ws="$(cd "$script_dir/../../../.." && pwd)"
     ENV_DIR="$TEST_DIR/.$(basename "$iwe_ws")"

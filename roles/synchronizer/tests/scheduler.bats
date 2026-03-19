@@ -4,9 +4,9 @@
 #            mark_done, mark_done_week, last_run_seconds_ago,
 #            mark_interval, cleanup_state, pre_archive_dayplan
 
-load 'test_helper/bats-support/load'
-load 'test_helper/bats-assert/load'
-load 'test_helper/bats-file/load'
+load '../../../tests/test_helper/bats-support/load'
+load '../../../tests/test_helper/bats-assert/load'
+load '../../../tests/test_helper/bats-file/load'
 load 'test_helper/helpers'
 
 setup() {

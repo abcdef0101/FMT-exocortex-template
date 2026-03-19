@@ -1,8 +1,8 @@
 #!/usr/bin/env bats
 
-load 'test_helper/bats-support/load'
-load 'test_helper/bats-assert/load'
-load 'test_helper/bats-file/load'
+load '../../../tests/test_helper/bats-support/load'
+load '../../../tests/test_helper/bats-assert/load'
+load '../../../tests/test_helper/bats-file/load'
 
 setup() {
   TEST_DIR="$BATS_TEST_TMPDIR"
@@ -159,8 +159,7 @@ EOF
 @test "template synchronizer: empty log returns empty message" {
   HOME="$TEST_DIR/home"
   mkdir -p "$HOME/.local/state/logs/synchronizer"
-  source "${BATS_TEST_DIRNAME}/../scripts/templates/synchronizer.sh"
-  run build_message code-scan
+  run env -i HOME="$HOME" PATH="$PATH" bash -c 'source "$1"; build_message code-scan' _ "${BATS_TEST_DIRNAME}/../scripts/templates/synchronizer.sh"
   assert_success
   assert_output ''
 }

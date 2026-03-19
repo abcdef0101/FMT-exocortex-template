@@ -2,9 +2,9 @@
 # Тесты для roles/synchronizer/scripts/code-scan.sh
 # Покрывает: discover_repos, scan_repos (mock git)
 
-load 'test_helper/bats-support/load'
-load 'test_helper/bats-assert/load'
-load 'test_helper/bats-file/load'
+load '../../../tests/test_helper/bats-support/load'
+load '../../../tests/test_helper/bats-assert/load'
+load '../../../tests/test_helper/bats-file/load'
 load 'test_helper/helpers'
 
 setup() {

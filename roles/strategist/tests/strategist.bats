@@ -2,9 +2,9 @@
 # Тесты для roles/strategist/scripts/strategist.sh
 # Покрывает: _validate_env_file(), acquire_lock(), log()
 
-load 'test_helper/bats-support/load'
-load 'test_helper/bats-assert/load'
-load 'test_helper/bats-file/load'
+load '../../../tests/test_helper/bats-support/load'
+load '../../../tests/test_helper/bats-assert/load'
+load '../../../tests/test_helper/bats-file/load'
 load 'test_helper/helpers'
 
 SCRIPT="${BATS_TEST_DIRNAME}/../scripts/strategist.sh"

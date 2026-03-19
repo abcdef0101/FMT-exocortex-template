@@ -3,9 +3,9 @@
 # Покрывает: check_ran, check_ran_week, check_interval,
 #            compute_traffic_light, archive_old_reports
 
-load 'test_helper/bats-support/load'
-load 'test_helper/bats-assert/load'
-load 'test_helper/bats-file/load'
+load '../../../tests/test_helper/bats-support/load'
+load '../../../tests/test_helper/bats-assert/load'
+load '../../../tests/test_helper/bats-file/load'
 load 'test_helper/helpers'
 
 setup() {

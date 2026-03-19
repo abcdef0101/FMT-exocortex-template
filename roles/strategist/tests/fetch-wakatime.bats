@@ -2,8 +2,8 @@
 # Тесты для roles/strategist/scripts/fetch-wakatime.sh
 # Покрывает: portable_date_offset(), date_offset(), waka_fetch(), format_projects()
 
-load 'test_helper/bats-support/load'
-load 'test_helper/bats-assert/load'
+load '../../../tests/test_helper/bats-support/load'
+load '../../../tests/test_helper/bats-assert/load'
 
 SCRIPT="${BATS_TEST_DIRNAME}/../scripts/fetch-wakatime.sh"
 

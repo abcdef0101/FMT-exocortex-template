@@ -1,8 +1,8 @@
 #!/usr/bin/env bats
 
-load 'test_helper/bats-support/load'
-load 'test_helper/bats-assert/load'
-load 'test_helper/bats-file/load'
+load '../../../tests/test_helper/bats-support/load'
+load '../../../tests/test_helper/bats-assert/load'
+load '../../../tests/test_helper/bats-file/load'
 
 ROLE_DIR="${BATS_TEST_DIRNAME}/.."
 INSTALL_SH="${ROLE_DIR}/install.sh"

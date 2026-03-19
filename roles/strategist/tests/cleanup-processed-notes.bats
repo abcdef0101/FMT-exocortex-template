@@ -2,9 +2,9 @@
 # Тесты для roles/strategist/scripts/cleanup-processed-notes.sh
 # Покрывает: process_block(), интеграционные тесты очистки
 
-load 'test_helper/bats-support/load'
-load 'test_helper/bats-assert/load'
-load 'test_helper/bats-file/load'
+load '../../../tests/test_helper/bats-support/load'
+load '../../../tests/test_helper/bats-assert/load'
+load '../../../tests/test_helper/bats-file/load'
 
 SCRIPT="${BATS_TEST_DIRNAME}/../scripts/cleanup-processed-notes.sh"
 

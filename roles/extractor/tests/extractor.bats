@@ -1,8 +1,8 @@
 #!/usr/bin/env bats
 
-load 'test_helper/bats-support/load'
-load 'test_helper/bats-assert/load'
-load 'test_helper/bats-file/load'
+load '../../../tests/test_helper/bats-support/load'
+load '../../../tests/test_helper/bats-assert/load'
+load '../../../tests/test_helper/bats-file/load'
 load 'test_helper/helpers'
 
 SCRIPT="${BATS_TEST_DIRNAME}/../scripts/extractor.sh"
