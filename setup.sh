@@ -194,8 +194,8 @@ echo "  Home dir:       $HOME_DIR"
 echo "  Project slug:   $CLAUDE_PROJECT_SLUG"
 echo ""
 
-# === Data Policy acceptance (skip in dry-run) ===
-if ! $DRY_RUN; then
+# === Data Policy acceptance (skip in dry-run or non-interactive/CI mode) ===
+if ! $DRY_RUN && [ -z "${CI:-}" ] && [ -z "${BATS_TEST_TMPDIR:-}" ]; then
     echo "Data Policy"
     echo "  IWE collects and processes data as described in docs/DATA-POLICY.md"
     echo "  Summary: profile, sessions, and learning data are stored on the platform (Neon DB)."
@@ -481,7 +481,7 @@ else
         cd "$MY_STRATEGY_DIR"
         git init
         git add -A
-        git commit -m "Initial exocortex: DS-strategy governance hub (minimal)"
+        git commit -m "Initial exocortex: DS-strategy governance hub (minimal)" 2>/dev/null || true
 
         if ! $CORE_ONLY; then
             gh repo create "$GITHUB_USER/DS-strategy" --private --source=. --push 2>/dev/null || \
