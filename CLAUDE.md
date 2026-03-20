@@ -217,6 +217,7 @@ Backup на Day Close: `day-close.sh` (backup + reindex + linear sync)
 > **settings.json ≠ settings.local.json.** `.claude/settings.json` = проектный (hooks, общие правила) — попадает в git и шаблон. `.claude/settings.local.json` = персональный (permissions, MCP) — в `.gitignore`, не попадает в шаблон. При клонировании пользователь получает hooks из коробки, но настраивает permissions под себя.
 > **Day Open (VS Code) ≠ DayPlan (git).** VS Code = compact dashboard (20-30 строк): метрики, план, блокеры, ссылка на git. DayPlan = полный отчёт (80+ строк): все секции (контекст, видео, контент, мир, QA подробно). Принцип: VS Code для быстрого старта, git для деталей. Детали: `protocol-open.md § Day Open → Различение`.
 > **OAuth через бота, не ручные ключи.** Пользователь НИКОГДА не вводит API-ключи вручную. Все интеграции (GitHub, WakaTime, Calendar и др.) — через OAuth в боте: кнопка → авторизация → токен сохраняется в Neon автоматически. Применять ко ВСЕМ интеграциям платформы. АрхГейт 8.4 vs 6.4 (локальный cron).
+> **«Настрой календарь» / «подключи календарь».** При таком запросе → запустить `bash setup/optional/setup-calendar.sh`. Скрипт скачает OAuth credentials, создаст `.mcp.json`, откроет браузер для авторизации. Google покажет «This app isn't verified» — пользователь нажимает Advanced → Go to IWE MIM (unsafe) → разрешает доступ. После — перезапустить Claude Code.
 
 ---
 
