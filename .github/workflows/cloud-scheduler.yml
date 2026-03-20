@@ -1,0 +1,158 @@
+name: IWE Cloud Scheduler (базовый)
+
+# Облачный планировщик IWE — базовый уровень (без LLM).
+# Выполняет задачи, которые не требуют Claude API:
+# - Backup memory/ и CLAUDE.md в exocortex/
+# - Health check ночной автоматики
+#
+# Для пользователей шаблона FMT-exocortex-template.
+# Подробности: DP.SC.019 (PACK-digital-platform/08-use-cases/)
+#
+# Настройка:
+# 1. Создайте GitHub Secret: STRATEGY_REPO_TOKEN (PAT с доступом к DS-strategy)
+# 2. Укажите STRATEGY_REPO в env ниже (ваш DS-strategy репо)
+
+on:
+  schedule:
+    # 01:00 UTC (04:00 MSK) — ночной цикл
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+    inputs:
+      task:
+        description: 'Задача для запуска'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - backup
+          - health-check
+
+env:
+  # Пользователь должен указать свой DS-strategy репо
+  STRATEGY_REPO: ${{ vars.STRATEGY_REPO || '' }}
+  TZ: Europe/Moscow
+
+permissions:
+  contents: read
+
+jobs:
+  backup-memory:
+    name: Backup memory → exocortex
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'schedule' ||
+      github.event.inputs.task == 'all' ||
+      github.event.inputs.task == 'backup'
+    steps:
+      - name: Checkout strategy repo
+        if: env.STRATEGY_REPO != ''
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.STRATEGY_REPO }}
+          token: ${{ secrets.STRATEGY_REPO_TOKEN }}
+          fetch-depth: 1
+
+      - name: Backup memory files
+        if: env.STRATEGY_REPO != ''
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          BACKUP_DIR="exocortex"
+
+          mkdir -p "$BACKUP_DIR"
+
+          # Копируем memory/ файлы если есть
+          if [ -d "memory" ]; then
+            echo "Backing up memory/ files..."
+            for f in memory/*.md; do
+              [ -f "$f" ] && cp "$f" "$BACKUP_DIR/$(basename "$f")"
+            done
+            echo "✓ Memory files backed up"
+          fi
+
+          # Копируем CLAUDE.md из корня workspace если есть
+          if [ -f "CLAUDE.md" ]; then
+            cp "CLAUDE.md" "$BACKUP_DIR/CLAUDE.md"
+            echo "✓ CLAUDE.md backed up"
+          fi
+
+          # Проверяем, есть ли изменения
+          if git diff --quiet -- "$BACKUP_DIR/"; then
+            echo "No changes to backup"
+          else
+            git config user.name "IWE Cloud Scheduler"
+            git config user.email "cloud-scheduler@iwe.local"
+            git add "$BACKUP_DIR/"
+            git commit -m "backup: memory → exocortex ($DATE)"
+            git push
+            echo "✓ Backup committed and pushed"
+          fi
+
+      - name: Skip (no strategy repo configured)
+        if: env.STRATEGY_REPO == ''
+        run: |
+          echo "⚠️ STRATEGY_REPO не настроен. Укажите в Settings → Variables → STRATEGY_REPO"
+          echo "Формат: username/repo-name"
+
+  health-check:
+    name: Health check (ночная автоматика)
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'schedule' ||
+      github.event.inputs.task == 'all' ||
+      github.event.inputs.task == 'health-check'
+    steps:
+      - name: Check strategy repo activity
+        if: env.STRATEGY_REPO != ''
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.STRATEGY_REPO }}
+          token: ${{ secrets.STRATEGY_REPO_TOKEN }}
+          fetch-depth: 50
+
+      - name: Analyze recent activity
+        if: env.STRATEGY_REPO != ''
+        run: |
+          echo "## IWE Health Check — $(date +%Y-%m-%d)"
+          echo ""
+
+          # Проверяем коммиты за последние 24 часа
+          COMMITS_24H=$(git log --since="24 hours ago" --oneline 2>/dev/null | wc -l | tr -d ' ')
+          echo "Коммитов за 24ч: $COMMITS_24H"
+
+          # Проверяем наличие DayPlan
+          TODAY=$(date +%Y-%m-%d)
+          if ls current/DayPlan*${TODAY}* 2>/dev/null; then
+            echo "✓ DayPlan на сегодня найден"
+          else
+            echo "⚠️ DayPlan на сегодня не найден"
+          fi
+
+          # Проверяем свежесть memory backup
+          if [ -d "exocortex" ]; then
+            LATEST_BACKUP=$(git log -1 --format="%ar" -- exocortex/ 2>/dev/null || echo "never")
+            echo "Последний backup exocortex: $LATEST_BACKUP"
+          fi
+
+          # Проверяем наличие WeekPlan
+          WEEKPLAN=$(ls current/WeekPlan* 2>/dev/null | head -1)
+          if [ -n "$WEEKPLAN" ]; then
+            echo "✓ WeekPlan найден: $(basename "$WEEKPLAN")"
+          else
+            echo "⚠️ WeekPlan не найден"
+          fi
+
+      - name: Notify via Telegram (optional)
+        if: env.STRATEGY_REPO != '' && env.TELEGRAM_BOT_TOKEN != ''
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          # Отправить результат health check в Telegram (если настроен)
+          MESSAGE="🏥 IWE Health Check $(date +%Y-%m-%d)%0A"
+          MESSAGE+="Коммитов за 24ч: $(git log --since='24 hours ago' --oneline 2>/dev/null | wc -l | tr -d ' ')"
+
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d "chat_id=${TELEGRAM_CHAT_ID}" \
+            -d "text=${MESSAGE}" \
+            -d "parse_mode=HTML" > /dev/null 2>&1 || true
