@@ -115,3 +115,31 @@ bash setup/optional/setup-cloud-scheduler.sh
 |------|---------|
 | `cloud-scheduler.yml` | GitHub Actions workflow (backup + health check) |
 | `setup-cloud-scheduler.sh` | Скрипт настройки (gh secrets + тест) |
+
+---
+
+## Cover Images (S48)
+
+Автоматическая генерация обложек для постов через OpenAI GPT Image API. Каждая обложка уникальна и отражает содержание статьи.
+
+Подробная инструкция: [COVER-IMAGES.md](COVER-IMAGES.md)
+
+### Quick start
+
+```bash
+# 1. Положите API key
+echo "sk-proj-ВАШ_КЛЮЧ" > .secrets/openai-api-key
+
+# 2. Установите зависимости
+pip install httpx pyyaml
+
+# 3. Сгенерируйте обложку
+python setup/optional/generate-post-image.py path/to/post.md
+```
+
+### Files
+
+| File | Purpose |
+|------|---------|
+| `generate-post-image.py` | Python-скрипт генерации (GPT Image 1) |
+| `COVER-IMAGES.md` | Подробная инструкция: промпты, параметры, стоимость |
