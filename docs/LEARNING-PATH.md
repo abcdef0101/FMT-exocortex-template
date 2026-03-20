@@ -359,6 +359,9 @@ PACK-{область}/             ← Твои доменные знания
 | systemsworld.club | Экосистема | Регистрация | Сообщество, семинары | Доступ к материалам |
 | Git + GitHub | Инфраструктура | `setup.sh` (авто) | Версионирование, агенты | Репозитории, CI |
 | Marp | Инструмент | VS Code extension + CLI | Markdown → слайды | Слайдоменты (PDF/HTML) |
+| Cloud Scheduler | Автоматика | `setup/optional/setup-cloud-scheduler.sh` | IWE работает 24/7 при выключенном Mac | Backup, health check, уведомления |
+
+**Cloud Scheduler — облачная автоматика IWE:** GitHub Actions workflow запускает backup и health check ежедневно в 04:00 MSK — даже если Mac выключен. Базовый уровень ($0/мес, без LLM). Опционально: Telegram-уведомления с отчётом. Установка: `bash setup/optional/setup-cloud-scheduler.sh`. Подробности: `setup/optional/README.md`, сценарий [DP.SC.019](../../PACK-digital-platform/pack/digital-platform/08-use-cases/DP.SC.019-autonomous-cloud-runtime.md).
 
 **Marp — подготовка презентаций:** Marp превращает Markdown-файлы в слайды (PDF, HTML, PPTX). Workflow: пишешь `.md` с разделителем `---` → предпросмотр в VS Code (Marp extension) → экспорт `marp --pdf slides.md`. Слайдоменты (MIM.WP.001) — текстовые, поэтому Markdown + Git = версии, диффы, правки через Claude Code. Установка: `npm install -g @marp-team/marp-cli` + VS Code → Extensions → «Marp for VS Code».
 
