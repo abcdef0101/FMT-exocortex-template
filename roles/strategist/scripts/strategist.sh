@@ -17,7 +17,8 @@ readonly SCRIPT_DIR
 REPO_DIR="$(dirname "${SCRIPT_DIR}")"
 readonly REPO_DIR
 # IWE env (scripts/ → role/ → roles/ → repo/ → workspace)
-_iwe_ws="$(cd "${SCRIPT_DIR}/../../../.." && pwd)"
+_iwe_ws="$(cd "${SCRIPT_DIR}/../../../.." && pwd)" \
+  || { echo "ERROR: Cannot resolve workspace dir from ${SCRIPT_DIR}" >&2; exit 1; }
 ENV_FILE="${HOME}/.$(basename "${_iwe_ws}")/env"
 readonly ENV_FILE
 _ws_slug="${_iwe_ws//\//-}"
@@ -28,7 +29,7 @@ unset _iwe_ws _ws_slug
 # Content-validate env file before sourcing (guard against shell injection)
 function _validate_env_file() {
   local filepath="${1}"
-  if grep -qE '^\s*(eval|source|\.)[ \t]' "${filepath}" 2>/dev/null; then
+  if grep -qE '^[[:blank:]]*(eval|source|\.)[[:blank:]]' "${filepath}" 2>/dev/null; then
     echo "ERROR: env file contains dangerous patterns: ${filepath}" >&2
     exit 1
   fi
@@ -48,6 +49,9 @@ fi
 # Guard: required env vars must be set (fail-fast after sourcing)
 : "${WORKSPACE_DIR:?WORKSPACE_DIR is not set — check ENV_FILE}"
 : "${CLAUDE_PATH:?CLAUDE_PATH is not set — check ENV_FILE}"
+
+# Guard: python3 required for date localisation and JSON encoding
+command -v python3 >/dev/null 2>&1 || { echo "ERROR: python3 is required but not found" >&2; exit 1; }
 
 readonly WORKSPACE="${WORKSPACE_DIR}/DS-strategy"
 readonly PROMPTS_DIR="${REPO_DIR}/prompts"
@@ -154,7 +158,8 @@ ${prompt}"
 
   # macOS notification
   local summary
-  summary=$(tail -5 "${LOG_FILE}" | grep -v '^\[' | head -3)
+  # [BASH-SAFE-009, BASH-SAFE-016] grep no-match + SIGPIPE from head
+  summary=$(tail -5 "${LOG_FILE}" | grep -v '^\[' | head -3) || true
   notify "Стратег: ${command_file}" "${summary}"
 }
 
@@ -240,16 +245,6 @@ function run_week_review() {
   notify_telegram "week-review"
 }
 
-# File-based lock to prevent concurrent execution (RunAtLoad + CalendarInterval race)
-LOCK_DIR="$LOG_DIR/locks"
-mkdir -p "$LOCK_DIR"
-
-acquire_lock() {
-    local scenario="$1"
-    local lockfile="$LOCK_DIR/${scenario}.${DATE}.lock"
-    if ! mkdir "$lockfile" 2>/dev/null; then
-        log "SKIP: $scenario already running (lock exists: $lockfile)"
-        exit 2  # non-zero → scheduler won't mark_done
 function run_note_review() {
   acquire_lock "note-review"
   log "Evening: running note review"

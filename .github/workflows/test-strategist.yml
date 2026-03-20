@@ -25,6 +25,12 @@ jobs:
           git clone --depth=1 https://github.com/bats-core/bats-assert  roles/strategist/tests/test_helper/bats-assert
           git clone --depth=1 https://github.com/bats-core/bats-file    roles/strategist/tests/test_helper/bats-file
 
+      - name: Syntax check
+        run: |
+          for f in roles/strategist/scripts/*.sh; do
+            bash -n "$f" || { echo "SYNTAX ERROR: $f" >&2; exit 1; }
+          done
+
       - name: Lint scripts
         run: |
           sudo apt-get install -y shellcheck
