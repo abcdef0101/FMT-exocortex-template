@@ -416,7 +416,7 @@ else
           echo "  [DRY RUN] Would install role: $role_name (auto)"
         else
           chmod +x "$role_dir/install.sh"
-          runner=$(grep '^runner:' "$role_yaml" | sed 's/runner: *//' | tr -d '"' | tr -d "'")
+          runner=$(grep '^runner:' "$role_yaml" | sed 's/runner: *//' | tr -d '"' | tr -d "'") || true
           [ -n "$runner" ] && chmod +x "$role_dir/$runner" 2>/dev/null || true
           bash "$role_dir/install.sh"
           echo "  ✓ $role_name installed"
@@ -425,7 +425,7 @@ else
         echo "  WARN: $role_name/install.sh not found, skipping."
       fi
     else
-      display=$(grep 'display_name:' "$role_yaml" 2>/dev/null | sed 's/display_name: *//' | tr -d '"')
+      display=$(grep 'display_name:' "$role_yaml" 2>/dev/null | sed 's/display_name: *//' | tr -d '"') || true
       MANUAL_ROLES+=("  - ${display:-$role_name}: bash $role_dir/install.sh")
     fi
   done
