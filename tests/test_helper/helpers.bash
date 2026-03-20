@@ -78,5 +78,62 @@ exit 0
 EOF
     chmod +x "$bin_dir/claude"
 
+    # node mock
+    printf '#!/usr/bin/env bash\necho "node mock"\n' > "$bin_dir/node"
+    chmod +x "$bin_dir/node"
+
+    # npm mock
+    printf '#!/usr/bin/env bash\necho "npm mock"\n' > "$bin_dir/npm"
+    chmod +x "$bin_dir/npm"
+
     export PATH="$bin_dir:$PATH"
+}
+
+# Создать auto-install роль с role.yaml и install.sh
+make_auto_role() {
+    local template_dir="$1"
+    local name="$2"
+    local dir="$template_dir/roles/$name"
+    mkdir -p "$dir"
+    cat > "$dir/role.yaml" <<EOF
+name: $name
+display_name: "$name"
+auto: true
+runner: "$name.sh"
+EOF
+    cat > "$dir/install.sh" <<'SCRIPT'
+#!/usr/bin/env bash
+echo "installed"
+SCRIPT
+    chmod +x "$dir/install.sh"
+    printf '#!/usr/bin/env bash\necho "runner"\n' > "$dir/$name.sh"
+}
+
+# Создать manual роль (не auto-install)
+make_manual_role() {
+    local template_dir="$1"
+    local name="$2"
+    local display="${3:-$name}"
+    local dir="$template_dir/roles/$name"
+    mkdir -p "$dir"
+    cat > "$dir/role.yaml" <<EOF
+name: $name
+display_name: "$display"
+auto: false
+EOF
+    cat > "$dir/install.sh" <<'SCRIPT'
+#!/usr/bin/env bash
+echo "installed"
+SCRIPT
+    chmod +x "$dir/install.sh"
+}
+
+# Создать seed/strategy для DS-strategy тестов
+make_seed_strategy() {
+    local template_dir="$1"
+    local seed="$template_dir/seed/strategy"
+    mkdir -p "$seed"/{inbox,current,archive,docs,exocortex}
+    echo "# Strategy" > "$seed/CLAUDE.md"
+    echo "# WP Registry" > "$seed/docs/WP-REGISTRY.md"
+    touch "$seed/inbox/.gitkeep"
 }

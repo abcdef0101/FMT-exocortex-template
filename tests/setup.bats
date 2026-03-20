@@ -1,373 +1,388 @@
 #!/usr/bin/env bats
 # Тесты для setup.sh
-# Покрывает: флаги CLI, sed_inplace(), check_command(),
-#            подстановку плейсхолдеров, запись env-файла, проверку template dir
+#
+# Покрытие: синтаксис, CLI-флаги, валидация template dir, prerequisites,
+#           env-файл (включая injection safety), подстановка плейсхолдеров,
+#           memory, roles, DS-strategy, dry-run, data policy skip
+#
+# Подход: subprocess с подменой зависимостей через PATH и HOME isolation.
+# Все тесты запускают реальный setup.sh — без heredoc-копий функций.
 
 load 'test_helper/bats-support/load'
 load 'test_helper/bats-assert/load'
 load 'test_helper/bats-file/load'
 load 'test_helper/helpers'
 
-SCRIPT="${BATS_TEST_DIRNAME}/../setup.sh"
+ORIG_SCRIPT="${BATS_TEST_DIRNAME}/../setup.sh"
 
 setup() {
-    TEST_DIR="$BATS_TEST_TMPDIR"
-    TEMPLATE_DIR="$TEST_DIR/FMT-exocortex-template"
-    make_template_dir "$TEMPLATE_DIR"
-    # Копируем реальный setup.sh в тестовый template dir (скрипт должен быть рядом с CLAUDE.md)
-    cp "$SCRIPT" "$TEMPLATE_DIR/setup.sh"
-    SCRIPT="$TEMPLATE_DIR/setup.sh"
-    setup_mocks "$TEST_DIR/bin"
+  TEST_DIR="$BATS_TEST_TMPDIR"
+
+  # Isolate HOME — prevent writes to real ~/.claude/, ~/.<ws>/, etc.
+  export HOME="$TEST_DIR/home"
+  mkdir -p "$HOME"
+
+  # Git identity for DS-strategy commits (no git config dependency)
+  export GIT_AUTHOR_NAME="Test"
+  export GIT_AUTHOR_EMAIL="test@test.com"
+  export GIT_COMMITTER_NAME="Test"
+  export GIT_COMMITTER_EMAIL="test@test.com"
+
+  # Template dir with placeholder files
+  TEMPLATE_DIR="$TEST_DIR/template"
+  make_template_dir "$TEMPLATE_DIR"
+  cp "$ORIG_SCRIPT" "$TEMPLATE_DIR/setup.sh"
+  SCRIPT="$TEMPLATE_DIR/setup.sh"
+
+  # Mock external commands (gh, claude, node, npm; git passes through)
+  setup_mocks "$TEST_DIR/bin"
+
+  # Default workspace path
+  WORKSPACE="$TEST_DIR/workspace"
 }
 
-# ---------------------------------------------------------------------------
-# Флаги CLI
-# ---------------------------------------------------------------------------
+# ── Helpers ───────────────────────────────────────────
 
-@test "--version выводит версию и завершается с 0" {
-    run bash "$SCRIPT" --version
-    assert_success
-    assert_output --partial "exocortex-setup v"
+# Run setup.sh --core with piped stdin answers
+# Prompts: GITHUB_USER, EXOCORTEX_REPO, WORKSPACE_DIR (3 reads)
+_run_core() {
+  local ws="${1:-$WORKSPACE}"
+  local user="${2:-testuser}"
+  local repo="${3:-$(basename "$TEMPLATE_DIR")}"
+  printf '%s\n%s\n%s\n' "$user" "$repo" "$ws" \
+    | bash "$SCRIPT" --core
 }
 
-@test "--help выводит справку и завершается с 0" {
-    run bash "$SCRIPT" --help
-    assert_success
-    assert_output --partial "Usage:"
-    assert_output --partial "--dry-run"
-    assert_output --partial "--core"
+# Run setup.sh full mode with piped stdin answers
+# Prompts: GITHUB_USER, EXOCORTEX_REPO, WORKSPACE_DIR,
+#          CLAUDE_PATH, TIMEZONE_HOUR, TIMEZONE_DESC (6 reads)
+# Data policy skipped (BATS_TEST_TMPDIR is set)
+_run_full() {
+  local ws="${1:-$WORKSPACE}"
+  local user="${2:-testuser}"
+  local repo="${3:-$(basename "$TEMPLATE_DIR")}"
+  printf '%s\n%s\n%s\n%s\n%s\n%s\n' \
+    "$user" "$repo" "$ws" \
+    "/tmp/mock/claude" "4" "4:00 UTC" \
+    | bash "$SCRIPT"
 }
 
-@test "-h выводит справку" {
-    run bash "$SCRIPT" -h
-    assert_success
-    assert_output --partial "Usage:"
+# ── 1. Syntax ─────────────────────────────────────────
+
+@test "bash -n: setup.sh имеет валидный синтаксис" {
+  run bash -n "$ORIG_SCRIPT"
+  assert_success
 }
 
-# ---------------------------------------------------------------------------
-# sed_inplace — cross-platform editing
-# ---------------------------------------------------------------------------
+# ── 2. CLI flags ──────────────────────────────────────
 
-# Загружаем sed_inplace в изоляции
-_load_sed_inplace() {
-    source /dev/stdin <<'EOF'
-if sed --version >/dev/null 2>&1; then
-    sed_inplace() {
-        if [ "${1:-}" = "append" ]; then
-            printf '%s\n' "$3" >> "$2"
-        else
-            sed -i "$@"
-        fi
-    }
-else
-    sed_inplace() {
-        if [ "${1:-}" = "append" ]; then
-            printf '%s\n' "$3" >> "$2"
-        else
-            sed -i '' "$@"
-        fi
-    }
-fi
-EOF
+@test "--version: выводит версию и завершается с 0" {
+  run bash "$SCRIPT" --version
+  assert_success
+  assert_output --partial "exocortex-setup v"
 }
 
-@test "sed_inplace: заменяет строку в файле" {
-    _load_sed_inplace
-    echo "hello world" > "$TEST_DIR/test.txt"
-
-    sed_inplace "s|world|bats|g" "$TEST_DIR/test.txt"
-
-    run cat "$TEST_DIR/test.txt"
-    assert_output "hello bats"
+@test "--help: показывает справку со всеми опциями" {
+  run bash "$SCRIPT" --help
+  assert_success
+  assert_output --partial "Usage:"
+  assert_output --partial "--core"
+  assert_output --partial "--dry-run"
+  assert_output --partial "--version"
 }
 
-@test "sed_inplace: множественные замены в одном вызове" {
-    _load_sed_inplace
-    echo "{{USER}} at {{HOST}}" > "$TEST_DIR/test.txt"
-
-    sed_inplace \
-        -e "s|{{USER}}|alice|g" \
-        -e "s|{{HOST}}|example.com|g" \
-        "$TEST_DIR/test.txt"
-
-    run cat "$TEST_DIR/test.txt"
-    assert_output "alice at example.com"
+@test "-h: алиас для --help" {
+  run bash "$SCRIPT" -h
+  assert_success
+  assert_output --partial "Usage:"
 }
 
-@test "sed_inplace append: добавляет строку в конец файла" {
-    _load_sed_inplace
-    echo "line one" > "$TEST_DIR/test.txt"
+# ── 3. Template dir validation ────────────────────────
 
-    sed_inplace append "$TEST_DIR/test.txt" "line two"
-
-    run cat "$TEST_DIR/test.txt"
-    assert_line --index 0 "line one"
-    assert_line --index 1 "line two"
+@test "ошибка если CLAUDE.md отсутствует" {
+  rm "$TEMPLATE_DIR/CLAUDE.md"
+  run _run_core
+  assert_failure
+  assert_output --partial "ERROR"
+  assert_output --partial "must be run from the root"
 }
 
-@test "sed_inplace append: работает с пустым файлом" {
-    _load_sed_inplace
-    touch "$TEST_DIR/empty.txt"
-
-    sed_inplace append "$TEST_DIR/empty.txt" "first line"
-
-    run cat "$TEST_DIR/empty.txt"
-    assert_output "first line"
+@test "ошибка если memory/ отсутствует" {
+  rm -rf "$TEMPLATE_DIR/memory"
+  run _run_core
+  assert_failure
+  assert_output --partial "ERROR"
 }
 
-@test "sed_inplace: не затрагивает другие файлы" {
-    _load_sed_inplace
-    echo "{{PLACEHOLDER}}" > "$TEST_DIR/target.txt"
-    echo "{{PLACEHOLDER}}" > "$TEST_DIR/other.txt"
+# ── 4. Prerequisites ─────────────────────────────────
 
-    sed_inplace "s|{{PLACEHOLDER}}|replaced|g" "$TEST_DIR/target.txt"
-
-    run cat "$TEST_DIR/other.txt"
-    assert_output "{{PLACEHOLDER}}"
+@test "--core: успех при наличии только git" {
+  run _run_core
+  assert_success
 }
 
-# ---------------------------------------------------------------------------
-# check_command — проверка зависимостей
-# ---------------------------------------------------------------------------
-
-_load_check_command() {
-    source /dev/stdin <<'EOF'
-PREREQ_FAIL=0
-check_command() {
-    local cmd="$1"
-    local name="$2"
-    local install_hint="$3"
-    local required="${4:-true}"
-    if command -v "$cmd" >/dev/null 2>&1; then
-        echo "  ✓ $name: $(command -v "$cmd")"
-    else
-        if [ "$required" = "true" ]; then
-            echo "  ✗ $name: NOT FOUND"
-            echo "    Install: $install_hint"
-            PREREQ_FAIL=1
-        else
-            echo "  ○ $name: не установлен (опционально)"
-            echo "    Install: $install_hint"
-        fi
-    fi
-}
-EOF
+@test "--core: не проверяет gh, node, npm, claude" {
+  rm -f "$TEST_DIR/bin/gh" "$TEST_DIR/bin/node" \
+    "$TEST_DIR/bin/npm" "$TEST_DIR/bin/claude"
+  run _run_core
+  assert_success
+  refute_output --partial "✗"
 }
 
-@test "check_command: ✓ для существующей команды" {
-    _load_check_command
-    run check_command "bash" "Bash" "already installed"
-    assert_success
-    assert_output --partial "✓ Bash"
-    assert_equal "$PREREQ_FAIL" 0
+@test "full: проверяет наличие gh, node, npm, claude" {
+  run _run_full
+  assert_success
+  assert_output --partial "GitHub CLI"
+  assert_output --partial "Node.js"
+  assert_output --partial "Claude Code"
 }
 
-@test "check_command: ✗ и PREREQ_FAIL=1 для обязательной отсутствующей команды" {
-    _load_check_command
-    run check_command "nonexistent_cmd_xyz" "FakeTool" "install hint" "true"
-    assert_success
-    assert_output --partial "✗ FakeTool: NOT FOUND"
+@test "--core: баннер отображает режим core" {
+  run _run_core
+  assert_success
+  assert_output --partial "(core)"
 }
 
-@test "check_command: ○ для опциональной отсутствующей команды" {
-    _load_check_command
-    run check_command "nonexistent_cmd_xyz" "OptTool" "install hint" "false"
-    assert_success
-    assert_output --partial "○ OptTool: не установлен"
-}
+# ── 5. Dry-run ────────────────────────────────────────
 
-@test "check_command: PREREQ_FAIL не меняется для опциональной" {
-    _load_check_command
-    PREREQ_FAIL=0
-    check_command "nonexistent_cmd_xyz" "OptTool" "hint" "false"
-    assert_equal "$PREREQ_FAIL" 0
-}
-
-# ---------------------------------------------------------------------------
-# Проверка template directory
-# ---------------------------------------------------------------------------
-
-@test "setup.sh: ошибка если нет CLAUDE.md" {
-    local broken_dir="$TEST_DIR/broken"
-    mkdir -p "$broken_dir/memory"
-    # CLAUDE.md отсутствует
-
-    run bash "$SCRIPT" --version  # просто проверяем что скрипт читается
-    assert_success
-}
-
-@test "setup.sh: --dry-run не требует реального запуска template" {
-    # --version работает без template dir
-    run bash "$SCRIPT" --version
-    assert_success
-}
-
-# ---------------------------------------------------------------------------
-# Подстановка плейсхолдеров (--dry-run из template dir)
-# ---------------------------------------------------------------------------
-
-@test "--dry-run: выводит список плейсхолдеров" {
-    cd "$TEMPLATE_DIR"
-    run bash "$SCRIPT" --dry-run --core <<'INPUT'
+@test "--dry-run --core: перечисляет все плейсхолдеры" {
+  run bash "$SCRIPT" --dry-run --core <<'INPUT'
 myuser
 DS-test
 /tmp/ws
 INPUT
-    # dry-run всегда выводит что будет заменено
-    assert_output --partial "{{GITHUB_USER}}"
-    assert_output --partial "{{WORKSPACE_DIR}}"
-    assert_output --partial "{{EXOCORTEX_REPO}}"
+  assert_success
+  assert_output --partial "{{GITHUB_USER}}"
+  assert_output --partial "{{WORKSPACE_DIR}}"
+  assert_output --partial "{{EXOCORTEX_REPO}}"
 }
 
-@test "--dry-run: не изменяет файлы с плейсхолдерами" {
-    cd "$TEMPLATE_DIR"
-    bash "$SCRIPT" --dry-run --core <<'INPUT'
+@test "--dry-run: не изменяет файлы шаблона" {
+  bash "$SCRIPT" --dry-run --core <<'INPUT'
 myuser
 DS-test
 /tmp/ws
 INPUT
-    # Плейсхолдеры должны остаться нетронутыми
-    run grep "{{WORKSPACE_DIR}}" "$TEMPLATE_DIR/memory/test.md"
-    assert_success
+  # Плейсхолдеры должны остаться на месте
+  run grep "{{WORKSPACE_DIR}}" "$TEMPLATE_DIR/memory/test.md"
+  assert_success
 }
 
-@test "--dry-run: сообщает [DRY RUN] для каждого шага" {
-    cd "$TEMPLATE_DIR"
-    run bash "$SCRIPT" --dry-run --core <<'INPUT'
+@test "--dry-run: помечает каждый шаг [DRY RUN]" {
+  run bash "$SCRIPT" --dry-run --core <<'INPUT'
 myuser
 DS-test
 /tmp/ws
 INPUT
-    assert_output --partial "[DRY RUN]"
+  assert_output --partial "[DRY RUN]"
 }
 
-# ---------------------------------------------------------------------------
-# Подстановка плейсхолдеров (реальная, без dry-run)
-# ---------------------------------------------------------------------------
+# ── 6. Env file ──────────────────────────────────────
 
-# Хелпер: запустить setup.sh из тестового template dir с автоответами
-# read -n 1 требует одиночные символы без буферизации — используем printf через pipe
-_run_setup_core() {
-    local template_dir="$1"
-    local ws="$2"
-    local github_user="${3:-testuser}"
-    # ВАЖНО: exo_repo должен совпадать с basename template_dir
-    # иначе скрипт переименует директорию и $TEMPLATE_DIR станет невалидным
-    local exo_repo="${4:-$(basename "$template_dir")}"
-
-    cd "$template_dir"
-    printf '%s\n%s\n%s\n' \
-        "$github_user" "$exo_repo" "$ws" \
-        | bash "$SCRIPT" --core
+@test "env-файл: создаётся в HOME/.<workspace-basename>/env" {
+  _run_core "$WORKSPACE" "envuser"
+  local ws_base
+  ws_base="$(basename "$WORKSPACE")"
+  assert_file_exist "$HOME/.$ws_base/env"
 }
 
-@test "реальная установка: плейсхолдеры заменяются в .md файлах" {
-    local ws="$TEST_DIR/ws"
-    mkdir -p "$ws"
-
-    _run_setup_core "$TEMPLATE_DIR" "$ws" "myuser"
-
-    run grep "{{WORKSPACE_DIR}}" "$TEMPLATE_DIR/memory/test.md"
-    assert_failure  # плейсхолдер должен быть заменён
-
-    run grep "$ws" "$TEMPLATE_DIR/memory/test.md"
-    assert_success
+@test "env-файл: содержит все конфигурационные переменные" {
+  _run_core "$WORKSPACE" "fulluser"
+  local ws_base env_file
+  ws_base="$(basename "$WORKSPACE")"
+  env_file="$HOME/.$ws_base/env"
+  run cat "$env_file"
+  assert_output --partial "GITHUB_USER="
+  assert_output --partial "EXOCORTEX_REPO="
+  assert_output --partial "WORKSPACE_DIR="
+  assert_output --partial "CLAUDE_PATH="
+  assert_output --partial "TIMEZONE_HOUR="
+  assert_output --partial "HOME_DIR="
+  assert_output --partial "CLAUDE_PROJECT_SLUG="
 }
 
-@test "реальная установка: {{GITHUB_USER}} заменяется" {
-    local ws="$TEST_DIR/ws2"
-    mkdir -p "$ws"
-
-    _run_setup_core "$TEMPLATE_DIR" "$ws" "replaced_user"
-
-    run grep "replaced_user" "$TEMPLATE_DIR/memory/test.md"
-    assert_success
+@test "env-файл: права 600" {
+  _run_core "$WORKSPACE" "permuser"
+  local ws_base
+  ws_base="$(basename "$WORKSPACE")"
+  run stat -c "%a" "$HOME/.$ws_base/env"
+  assert_output "600"
 }
 
-@test "реальная установка: {{EXOCORTEX_REPO}} заменяется" {
-    local ws="$TEST_DIR/ws3"
-    mkdir -p "$ws"
-
-    # exo_repo = basename TEMPLATE_DIR = FMT-exocortex-template
-    _run_setup_core "$TEMPLATE_DIR" "$ws" "myuser"
-
-    run grep "FMT-exocortex-template" "$TEMPLATE_DIR/memory/test.md"
-    assert_success
+@test "env-файл: printf %q предотвращает injection при source" {
+  # Передаём значение с командной подстановкой
+  _run_core "$WORKSPACE" 'user$(whoami)'
+  local ws_base env_file
+  ws_base="$(basename "$WORKSPACE")"
+  env_file="$HOME/.$ws_base/env"
+  # Source env и проверить: значение — литерал, $(whoami) не раскрылась
+  run bash -c "source \"$env_file\" && printf '%s' \"\$GITHUB_USER\""
+  assert_output 'user$(whoami)'
 }
 
-@test "реальная установка: {{EXOCORTEX_REPO}} заменяется в .yaml файлах" {
-    local ws="$TEST_DIR/ws4"
-    mkdir -p "$ws"
+# ── 7. Placeholder substitution ──────────────────────
 
-    _run_setup_core "$TEMPLATE_DIR" "$ws" "myuser"
-
-    run grep "FMT-exocortex-template" "$TEMPLATE_DIR/test.yaml"
-    assert_success
+@test "плейсхолдеры: заменяются в .md файлах" {
+  _run_core "$WORKSPACE" "mduser"
+  # {{WORKSPACE_DIR}} должен исчезнуть
+  run grep "{{WORKSPACE_DIR}}" "$TEMPLATE_DIR/memory/test.md"
+  assert_failure
+  # Реальное значение должно присутствовать
+  run grep "$WORKSPACE" "$TEMPLATE_DIR/memory/test.md"
+  assert_success
 }
 
-# ---------------------------------------------------------------------------
-# Запись env-файла
-# ---------------------------------------------------------------------------
-
-@test "реальная установка: env-файл создаётся" {
-    local ws="$TEST_DIR/ws-env"
-    mkdir -p "$ws"
-
-    _run_setup_core "$TEMPLATE_DIR" "$ws" "envuser" "DS-env-test"
-
-    local ws_basename
-    ws_basename="$(basename "$ws")"
-    assert_file_exist "$HOME/.${ws_basename}/env"
+@test "плейсхолдеры: заменяются в .yaml файлах" {
+  _run_core "$WORKSPACE" "yamluser"
+  run grep "{{WORKSPACE_DIR}}" "$TEMPLATE_DIR/test.yaml"
+  assert_failure
+  run grep "$WORKSPACE" "$TEMPLATE_DIR/test.yaml"
+  assert_success
 }
 
-@test "реальная установка: env-файл содержит WORKSPACE_DIR" {
-    local ws="$TEST_DIR/ws-env2"
-    mkdir -p "$ws"
-
-    _run_setup_core "$TEMPLATE_DIR" "$ws" "envuser2" "DS-env-test2"
-
-    local ws_basename
-    ws_basename="$(basename "$ws")"
-    run grep "WORKSPACE_DIR" "$HOME/.${ws_basename}/env"
-    assert_success
-    assert_output --partial "$ws"
+@test "плейсхолдеры: .sh файлы не затрагиваются" {
+  printf '#!/bin/bash\necho "{{WORKSPACE_DIR}}"\n' \
+    > "$TEMPLATE_DIR/test-script.sh"
+  _run_core "$WORKSPACE"
+  # Плейсхолдер в .sh должен остаться — скрипт не обрабатывает .sh файлы
+  run grep "{{WORKSPACE_DIR}}" "$TEMPLATE_DIR/test-script.sh"
+  assert_success
 }
 
-@test "реальная установка: env-файл содержит EXOCORTEX_REPO" {
-    local ws="$TEST_DIR/ws-env3"
-    mkdir -p "$ws"
-
-    _run_setup_core "$TEMPLATE_DIR" "$ws" "envuser3" "my-special-repo"
-
-    local ws_basename
-    ws_basename="$(basename "$ws")"
-    run grep "EXOCORTEX_REPO" "$HOME/.${ws_basename}/env"
-    assert_success
-    assert_output --partial "my-special-repo"
+@test "плейсхолдеры: корректно обрабатывают имена файлов с пробелами" {
+  echo "{{GITHUB_USER}}" > "$TEMPLATE_DIR/memory/file with spaces.md"
+  _run_core "$WORKSPACE" "spaceuser"
+  run grep "spaceuser" "$TEMPLATE_DIR/memory/file with spaces.md"
+  assert_success
 }
 
-@test "реальная установка: env-файл имеет права 600" {
-    local ws="$TEST_DIR/ws-perms"
-    mkdir -p "$ws"
+# ── 8. CLAUDE.md ──────────────────────────────────────
 
-    _run_setup_core "$TEMPLATE_DIR" "$ws" "permuser" "DS-perm-test"
-
-    local ws_basename
-    ws_basename="$(basename "$ws")"
-    local env_file="$HOME/.${ws_basename}/env"
-    run stat -c "%a" "$env_file"
-    assert_output "600"
+@test "CLAUDE.md: копируется в workspace" {
+  _run_core "$WORKSPACE"
+  assert_file_exist "$WORKSPACE/CLAUDE.md"
 }
 
-# ---------------------------------------------------------------------------
-# CLAUDE.md копируется в workspace
-# ---------------------------------------------------------------------------
+# ── 9. Memory ────────────────────────────────────────
 
-@test "реальная установка: CLAUDE.md копируется в workspace" {
-    local ws="$TEST_DIR/ws-claude"
-    mkdir -p "$ws"
+@test "memory: файлы копируются в Claude projects dir" {
+  _run_core "$WORKSPACE" "memuser"
+  local slug mem_dir
+  slug="$(echo "$WORKSPACE" | tr '/' '-')"
+  mem_dir="$HOME/.claude/projects/$slug/memory"
+  assert_file_exist "$mem_dir/MEMORY.md"
+  assert_file_exist "$mem_dir/test.md"
+}
 
-    _run_setup_core "$TEMPLATE_DIR" "$ws" "claudeuser" "DS-claude-test"
+@test "memory: symlink создаётся в workspace" {
+  _run_core "$WORKSPACE" "symuser"
+  assert_link_exist "$WORKSPACE/memory"
+}
 
-    assert_file_exist "$ws/CLAUDE.md"
+@test "memory: существующий путь не перезаписывается" {
+  mkdir -p "$WORKSPACE/memory"
+  echo "existing" > "$WORKSPACE/memory/keep.md"
+  run _run_core "$WORKSPACE" "keepuser"
+  assert_success
+  assert_output --partial "WARN"
+  assert_output --partial "already exists"
+  # Оригинальный контент сохранён
+  run cat "$WORKSPACE/memory/keep.md"
+  assert_output "existing"
+}
+
+# ── 10. Roles ─────────────────────────────────────────
+
+@test "roles: auto-install выполняет install.sh" {
+  make_auto_role "$TEMPLATE_DIR" "testrole"
+  run _run_full "$WORKSPACE" "roleuser"
+  assert_success
+  assert_output --partial "testrole installed"
+}
+
+@test "roles: manual — перечисляется, но не устанавливается" {
+  make_manual_role "$TEMPLATE_DIR" "manrole" "Manual Role"
+  run _run_full "$WORKSPACE" "manuser"
+  assert_success
+  assert_output --partial "Manual Role"
+  assert_output --partial "install later"
+  refute_output --partial "manrole installed"
+}
+
+@test "roles: предупреждение при отсутствии install.sh у auto-роли" {
+  make_auto_role "$TEMPLATE_DIR" "broken"
+  rm "$TEMPLATE_DIR/roles/broken/install.sh"
+  run _run_full "$WORKSPACE" "brkuser"
+  assert_success
+  assert_output --partial "WARN"
+  assert_output --partial "install.sh not found"
+}
+
+@test "roles: пропускаются в --core режиме" {
+  make_auto_role "$TEMPLATE_DIR" "skipme"
+  run _run_core "$WORKSPACE"
+  assert_success
+  assert_output --partial "пропущена (--core)"
+  refute_output --partial "skipme installed"
+}
+
+# ── 11. DS-strategy ──────────────────────────────────
+
+@test "DS-strategy: создаётся из seed с git init" {
+  make_seed_strategy "$TEMPLATE_DIR"
+  _run_core "$WORKSPACE" "seeduser"
+  assert_dir_exist "$WORKSPACE/DS-strategy"
+  assert_dir_exist "$WORKSPACE/DS-strategy/.git"
+  assert_file_exist "$WORKSPACE/DS-strategy/CLAUDE.md"
+}
+
+@test "DS-strategy: пропускается если .git уже существует" {
+  mkdir -p "$WORKSPACE/DS-strategy/.git"
+  run _run_core "$WORKSPACE"
+  assert_success
+  assert_output --partial "already exists"
+}
+
+@test "DS-strategy: fallback-структура при отсутствии seed/" {
+  _run_core "$WORKSPACE" "fbuser"
+  assert_dir_exist "$WORKSPACE/DS-strategy"
+  assert_dir_exist "$WORKSPACE/DS-strategy/inbox"
+  assert_dir_exist "$WORKSPACE/DS-strategy/docs"
+}
+
+# ── 12. Repo rename ──────────────────────────────────
+
+@test "rename: не переименовывает если имя совпадает с basename" {
+  run _run_core "$WORKSPACE" "norenuser" "$(basename "$TEMPLATE_DIR")"
+  assert_success
+  assert_output --partial "unchanged"
+}
+
+@test "rename: пропускается если целевая директория существует" {
+  local target_name="DS-existing"
+  local target_dir
+  target_dir="$(dirname "$TEMPLATE_DIR")/$target_name"
+  mkdir -p "$target_dir"
+  run _run_core "$WORKSPACE" "existuser" "$target_name"
+  assert_success
+  assert_output --partial "WARN"
+  assert_output --partial "already exists"
+}
+
+# ── 13. Data policy ──────────────────────────────────
+
+@test "data policy: пропускается в тестовом окружении (BATS_TEST_TMPDIR)" {
+  # BATS_TEST_TMPDIR всегда установлен в bats — data policy block пропускается
+  run _run_core "$WORKSPACE"
+  assert_success
+  refute_output --partial "Data Policy"
+}
+
+# ── 14. Completion ────────────────────────────────────
+
+@test "завершение: выводит Setup Complete и инструкции" {
+  run _run_core "$WORKSPACE"
+  assert_success
+  assert_output --partial "Setup Complete"
+  assert_output --partial "Verify installation"
 }
