@@ -9,6 +9,13 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ### Added
 - **cloud-scheduler.yml** — GitHub Actions workflow для облачной автоматики IWE. Базовый уровень (без LLM, $0/мес): backup memory → exocortex, health check ночной автоматики, опциональные Telegram-уведомления. DP.SC.019, S61
+- **setup-cloud-scheduler.sh** — скрипт настройки: проверка gh CLI, установка GitHub Secrets, тестовый запуск workflow
+- **LEARNING-PATH §2.6** — Cloud Scheduler добавлен в таблицу опциональных сервисов
+- **README FAQ** — вопрос про работу IWE при выключенном Mac
+
+### Changed
+- **CLAUDE.md** — 3-слойная структура: L1 (§1-§7 платформа), L2 (§8 staging), L3 (§9 авторское). `update.sh` обновляет только L1. UC Gate добавлен в Pre-action Gates
+- **cloud-scheduler Telegram** — HTML-формат вместо markdown (корректное отображение bold)
 
 ## [0.11.1] — 2026-03-20
 
