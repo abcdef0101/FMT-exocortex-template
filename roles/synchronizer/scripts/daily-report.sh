@@ -12,12 +12,18 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-# IWE env (scripts/ → role/ → roles/ → repo/ → workspace)
-_iwe_ws="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
-ENV_FILE="$HOME/.$(basename "$_iwe_ws")/env"
-[ -f "$ENV_FILE" ] && { set -a; source "$ENV_FILE"; set +a; } \
-    || { echo "IWE env not found: $ENV_FILE" >&2; exit 1; }
-unset _iwe_ws
+
+# shellcheck source=lib/lib-env.sh
+source "${SCRIPT_DIR}/../../../lib/lib-env.sh"
+
+_repo_root="$(iwe_find_repo_root "${SCRIPT_DIR}")" \
+  || { echo "ERROR: Cannot resolve repo root from ${SCRIPT_DIR}" >&2; exit 1; }
+ENV_FILE="$(iwe_env_file_from_repo_root "${_repo_root}")"
+unset _repo_root
+
+iwe_load_env_file "${ENV_FILE}" || exit 1
+iwe_require_env_vars WORKSPACE_DIR || exit 1
+
 STATE_DIR="$HOME/.local/state/exocortex"
 LOG_DIR="$HOME/.local/state/logs/synchronizer"
 STRATEGY_DIR="$WORKSPACE_DIR/DS-strategy"

@@ -9,33 +9,16 @@
 #
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+readonly SCRIPT_DIR
+TEMPLATE_DIR="$SCRIPT_DIR"
+
+# shellcheck source=lib/lib-platform.sh
+source "${SCRIPT_DIR}/lib/lib-platform.sh"
+
 VERSION="0.4.1"
 DRY_RUN=false
 CORE_ONLY=false
-
-# Cross-platform file editing utility
-# Subcommands:
-#   sed_inplace <sed-args> <file>  — in-place sed (cross-platform macOS/Linux)
-#   sed_inplace append <file> <text> — append text to end of file
-if sed --version >/dev/null 2>&1; then
-  # GNU sed (Linux)
-  sed_inplace() {
-    if [ "${1:-}" = "append" ]; then
-      printf '%s\n' "$3" >>"$2"
-    else
-      sed -i "$@"
-    fi
-  }
-else
-  # BSD sed (macOS)
-  sed_inplace() {
-    if [ "${1:-}" = "append" ]; then
-      printf '%s\n' "$3" >>"$2"
-    else
-      sed -i '' "$@"
-    fi
-  }
-fi
 
 # === Parse arguments ===
 for arg in "$@"; do
@@ -73,10 +56,6 @@ else
   echo "=========================================="
 fi
 echo ""
-
-# === Detect template directory ===
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-TEMPLATE_DIR="$SCRIPT_DIR"
 
 # Verify we're inside the template
 if [ ! -f "$TEMPLATE_DIR/CLAUDE.md" ] || [ ! -d "$TEMPLATE_DIR/memory" ]; then
@@ -269,7 +248,7 @@ if [[ "${DRY_RUN}" == "true" ]]; then
   echo "    {{HOME_DIR}} → $HOME_DIR"
 else
   while IFS= read -r -d '' file; do
-    sed_inplace \
+    iwe_sed_inplace \
       -e "s|{{GITHUB_USER}}|$GITHUB_USER|g" \
       -e "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g" \
       -e "s|{{EXOCORTEX_REPO}}|$EXOCORTEX_REPO|g" \
@@ -307,7 +286,7 @@ if [ "$EXOCORTEX_REPO" != "$CURRENT_DIR_NAME" ]; then
   else
     # Replace references in all text files
     while IFS= read -r -d '' file; do
-      sed_inplace "s|$CURRENT_DIR_NAME|$EXOCORTEX_REPO|g" "$file"
+      iwe_sed_inplace "s|$CURRENT_DIR_NAME|$EXOCORTEX_REPO|g" "$file"
     done < <(find "$TEMPLATE_DIR" -type f \( -name "*.md" -o -name "*.json" -o -name "*.plist" -o -name "*.yaml" -o -name "*.yml" -o -name "*.service" -o -name "*.timer" \) -print0)
 
     # Rename GitHub repo (if gh is available and not core mode)

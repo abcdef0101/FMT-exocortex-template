@@ -9,27 +9,31 @@
 #
 set -euo pipefail
 
-# Cross-platform sed -i
-sed_inplace() {
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        sed -i '' "$@"
-    else
-        sed -i "$@"
-    fi
-}
-
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+readonly SCRIPT_DIR
+
+# shellcheck source=lib/lib-env.sh
+source "${SCRIPT_DIR}/lib/lib-env.sh"
+
+# shellcheck source=lib/lib-platform.sh
+source "${SCRIPT_DIR}/lib/lib-platform.sh"
+
+REPO_ROOT="$(iwe_find_repo_root "${SCRIPT_DIR}")" || {
+    echo "ERROR: Cannot find repo root from ${SCRIPT_DIR}" >&2
+    exit 1
+}
+readonly REPO_ROOT
+
+ENV_FILE="$(iwe_env_file_from_repo_root "${REPO_ROOT}")"
+readonly ENV_FILE
 
 # Load IWE env
-WORKSPACE_DIR_TMP="$(dirname "$SCRIPT_DIR")"
-ENV_FILE="$HOME/.$(basename "$WORKSPACE_DIR_TMP")/env"
-[ -f "$ENV_FILE" ] && { set -a; source "$ENV_FILE"; set +a; }
-unset WORKSPACE_DIR_TMP
+iwe_load_env_file "${ENV_FILE}" || exit 1
 
 # --- Определить рабочую директорию ---
 # Скрипт должен запускаться из корня форка экзокортекса
-if [ -f "$SCRIPT_DIR/CLAUDE.md" ] && [ -d "$SCRIPT_DIR/memory" ]; then
-    EXOCORTEX_DIR="$SCRIPT_DIR"
+if [ -f "$REPO_ROOT/CLAUDE.md" ] && [ -d "$REPO_ROOT/memory" ]; then
+    EXOCORTEX_DIR="$REPO_ROOT"
 else
     echo "ERROR: Cannot find exocortex directory."
     echo "Run this script from your exocortex fork root:"
@@ -135,7 +139,7 @@ if [ "$PLACEHOLDER_COUNT" -gt 0 ]; then
         # Only process files that actually contain the placeholder (avoid no-op sed on all files)
         # Use grep -F (fixed string) to prevent {{ }} regex interpretation on BSD/macOS grep
         while IFS= read -r -d '' file; do
-            sed_inplace "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g" "$file"
+            iwe_sed_inplace "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g" "$file"
         done < <(
             grep -rFlZ '{{WORKSPACE_DIR}}' "$EXOCORTEX_DIR" \
                 --include="*.md" --include="*.sh" --include="*.json" \

@@ -17,20 +17,22 @@
 
 set -euo pipefail
 
-# Cross-platform date offset: portable_date_offset <days_back> <format>
-portable_date_offset() {
-    local days="$1"
-    local fmt="${2:-%Y-%m-%d}"
-    date -v-${days}d +"$fmt" 2>/dev/null || date -d "$days days ago" +"$fmt" 2>/dev/null
-}
-
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-# IWE env (scripts/ → role/ → roles/ → repo/ → workspace)
-_iwe_ws="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
-ENV_FILE="$HOME/.$(basename "$_iwe_ws")/env"
-[ -f "$ENV_FILE" ] && { set -a; source "$ENV_FILE"; set +a; } \
-    || { echo "IWE env not found: $ENV_FILE" >&2; exit 1; }
-unset _iwe_ws
+
+# shellcheck source=lib/lib-env.sh
+source "${SCRIPT_DIR}/../../../lib/lib-env.sh"
+
+# shellcheck source=lib/lib-platform.sh
+source "${SCRIPT_DIR}/../../../lib/lib-platform.sh"
+
+_repo_root="$(iwe_find_repo_root "${SCRIPT_DIR}")" \
+  || { echo "ERROR: Cannot resolve repo root from ${SCRIPT_DIR}" >&2; exit 1; }
+ENV_FILE="$(iwe_env_file_from_repo_root "${_repo_root}")"
+unset _repo_root
+
+iwe_load_env_file "${ENV_FILE}" || exit 1
+iwe_require_env_vars WORKSPACE_DIR || exit 1
+
 WORKSPACE="$WORKSPACE_DIR"
 LOG_DIR="$HOME/.local/state/logs/synchronizer"
 DATE=$(date +%Y-%m-%d)
@@ -41,18 +43,9 @@ DRY_RUN=false
 
 mkdir -p "$LOG_DIR"
 
-# Load env
-_validate_env_file() {
-    local filepath="${1}"
-    if grep -qE '^\s*(eval|source|\.)[ \t]' "${filepath}" 2>/dev/null; then
-        echo "ERROR: env file contains dangerous patterns: ${filepath}" >&2
-        exit 1
-    fi
-}
-
 ENV_FILE="$HOME/.config/aist/env"
 if [ -f "$ENV_FILE" ]; then
-    _validate_env_file "$ENV_FILE"
+    iwe_validate_env_file "$ENV_FILE" || exit 1
     set -a; source "$ENV_FILE"; set +a
 fi
 
@@ -94,12 +87,12 @@ collect_wakatime() {
     TODAY_RESP=$(curl --fail --max-time 10 --connect-timeout 5 -s -H "Authorization: Basic $ENCODED" "$API/summaries?start=$DATE&end=$DATE" 2>/dev/null || echo "{}")
 
     # Last 7 days
-    local D7=$(portable_date_offset 7)
+    local D7=$(iwe_date_days_ago 7)
     local WEEK_RESP
     WEEK_RESP=$(curl --fail --max-time 10 --connect-timeout 5 -s -H "Authorization: Basic $ENCODED" "$API/summaries?start=$D7&end=$DATE" 2>/dev/null || echo "{}")
 
     # Last 30 days
-    local D30=$(portable_date_offset 30)
+    local D30=$(iwe_date_days_ago 30)
     local MONTH_RESP
     MONTH_RESP=$(curl --fail --max-time 10 --connect-timeout 5 -s -H "Authorization: Basic $ENCODED" "$API/summaries?start=$D30&end=$DATE" 2>/dev/null || echo "{}")
 

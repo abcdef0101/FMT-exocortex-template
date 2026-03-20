@@ -11,21 +11,24 @@
 
 set -euo pipefail
 
-# Cross-platform date offset: portable_date_offset <days_back> <format>
-portable_date_offset() {
-    local days="$1"
-    local fmt="${2:-%Y-%m-%d}"
-    date -v-${days}d +"$fmt" 2>/dev/null || date -d "$days days ago" +"$fmt" 2>/dev/null
-}
-
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# shellcheck source=lib/lib-env.sh
+source "${SCRIPT_DIR}/../../../lib/lib-env.sh"
+
+# shellcheck source=lib/lib-platform.sh
+source "${SCRIPT_DIR}/../../../lib/lib-platform.sh"
+
+REPO_ROOT="$(iwe_find_repo_root "${SCRIPT_DIR}")" || {
+    echo "ERROR: Cannot resolve repo root from ${SCRIPT_DIR}" >&2
+    exit 1
+}
+ENV_FILE="$(iwe_env_file_from_repo_root "${REPO_ROOT}")"
+
+iwe_load_env_file "${ENV_FILE}" || exit 1
+iwe_require_env_vars WORKSPACE_DIR || exit 1
+
 SYNC_DIR="$(dirname "$SCRIPT_DIR")"
-# IWE env (scripts/ → role/ → roles/ → repo/ → workspace)
-_iwe_ws="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
-ENV_FILE="$HOME/.$(basename "$_iwe_ws")/env"
-[ -f "$ENV_FILE" ] && { set -a; source "$ENV_FILE"; set +a; } \
-    || { echo "IWE env not found: $ENV_FILE" >&2; exit 1; }
-unset _iwe_ws
 STATE_DIR="$HOME/.local/state/exocortex"
 LOG_DIR="$HOME/.local/state/logs/synchronizer"
 LOG_FILE="$LOG_DIR/scheduler-$(date +%Y-%m-%d).log"
@@ -174,7 +177,7 @@ dispatch() {
         ran=1
     elif (( 10#$HOUR < 12 )); then
         local yesterday
-        yesterday=$(portable_date_offset 1)
+        yesterday=$(iwe_date_days_ago 1)
         if [ -n "$yesterday" ] && [ ! -f "$STATE_DIR/strategist-note-review-$yesterday" ]; then
             log "→ strategist note-review (catch-up for yesterday $yesterday)"
             if "$STRATEGIST_SH" note-review >> "$LOG_FILE" 2>&1; then
