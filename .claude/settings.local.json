@@ -29,7 +29,25 @@
       "mcp__knowledge-mcp__list_sources",
       "mcp__ddt__describe_by_path",
       "mcp__ddt__read_digital_twin",
-      "mcp__ddt__write_digital_twin"
+      "mcp__ddt__write_digital_twin",
+      "Bash(git push:*)",
+      "Bash(bats:*)",
+      "Bash(bash -n /home/iwe/IWE2/DS-exocortex-template/FMT-exocortex-template/roles/strategist/scripts/strategist.sh 2>&1)",
+      "Bash(bash -n /home/iwe/IWE2/DS-exocortex-template/FMT-exocortex-template/roles/strategist/scripts/strategist.sh)",
+      "Bash(grep -E '\\\\.bats$')",
+      "Bash(done)",
+      "Bash(wc:*)",
+      "Bash(grep -n \"http\" /home/iwe/IWE2/DS-bash-agent-policy/policy/*.md)",
+      "Bash(grep:*)",
+      "Bash(uniq done:*)",
+      "Bash(uniq ls:*)",
+      "Bash(echo \"=== Checking templates referenced in policy/prompts ===\" grep -r \"lib-.*\\\\.sh\\\\|cli-skeleton\\\\|golden-script\\\\|architecture-review-report\" /home/iwe/IWE2/DS-bash-agent-policy/policy /home/iwe/IWE2/DS-bash-agent-policy/prompts --include=\"*.md\")",
+      "Bash(xargs basename:*)",
+      "Bash(do echo:*)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "knowledge-mcp",
+    "ddt"
+  ]
 }

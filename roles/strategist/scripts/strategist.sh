@@ -16,39 +16,24 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly SCRIPT_DIR
 REPO_DIR="$(dirname "${SCRIPT_DIR}")"
 readonly REPO_DIR
-# IWE env (scripts/ → role/ → roles/ → repo/ → workspace)
-_iwe_ws="$(cd "${SCRIPT_DIR}/../../../.." && pwd)" \
-  || { echo "ERROR: Cannot resolve workspace dir from ${SCRIPT_DIR}" >&2; exit 1; }
-ENV_FILE="${HOME}/.$(basename "${_iwe_ws}")/env"
+
+# shellcheck source=lib/lib-env.sh
+source "${SCRIPT_DIR}/../../../lib/lib-env.sh"
+
+_repo_root="$(iwe_find_repo_root "${SCRIPT_DIR}")" \
+  || { echo "ERROR: Cannot resolve repo root from ${SCRIPT_DIR}" >&2; exit 1; }
+_iwe_ws="$(iwe_workspace_dir_from_repo_root "${_repo_root}")"
+ENV_FILE="$(iwe_env_file_from_repo_root "${_repo_root}")"
 readonly ENV_FILE
-_ws_slug="${_iwe_ws//\//-}"
+_ws_slug="$(iwe_project_slug_from_workspace "${_iwe_ws}")"
 RHYTHM_CONFIG="${HOME}/.claude/projects/${_ws_slug}/memory/day-rhythm-config.yaml"
 readonly RHYTHM_CONFIG
-unset _iwe_ws _ws_slug
+unset _repo_root _iwe_ws _ws_slug
 
-# Content-validate env file before sourcing (guard against shell injection)
-function _validate_env_file() {
-  local filepath="${1}"
-  if grep -qE '^[[:blank:]]*(eval|source|\.)[[:blank:]]' "${filepath}" 2>/dev/null; then
-    echo "ERROR: env file contains dangerous patterns: ${filepath}" >&2
-    exit 1
-  fi
-}
-
-if [[ -f "${ENV_FILE}" ]]; then
-  _validate_env_file "${ENV_FILE}"
-  set -a
-  # shellcheck source=/dev/null
-  source "${ENV_FILE}"
-  set +a
-else
-  echo "IWE env not found: ${ENV_FILE}" >&2
-  exit 1
-fi
+iwe_load_env_file "${ENV_FILE}" || exit 1
 
 # Guard: required env vars must be set (fail-fast after sourcing)
-: "${WORKSPACE_DIR:?WORKSPACE_DIR is not set — check ENV_FILE}"
-: "${CLAUDE_PATH:?CLAUDE_PATH is not set — check ENV_FILE}"
+iwe_require_env_vars WORKSPACE_DIR CLAUDE_PATH || exit 1
 
 # Guard: python3 required for date localisation and JSON encoding
 command -v python3 >/dev/null 2>&1 || { echo "ERROR: python3 is required but not found" >&2; exit 1; }
