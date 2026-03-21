@@ -102,64 +102,168 @@ jobs:
       github.event.inputs.task == 'all' ||
       github.event.inputs.task == 'health-check'
     steps:
-      - name: Check strategy repo activity
+      - name: Checkout strategy repo
         if: env.STRATEGY_REPO != ''
         uses: actions/checkout@v4
         with:
           repository: ${{ env.STRATEGY_REPO }}
           token: ${{ secrets.STRATEGY_REPO_TOKEN }}
-          fetch-depth: 50
+          fetch-depth: 100
 
-      - name: Analyze recent activity
+      - name: Checkout additional repos
         if: env.STRATEGY_REPO != ''
+        env:
+          GH_TOKEN: ${{ secrets.STRATEGY_REPO_TOKEN }}
+          # Через запятую: owner/repo. Пользователь указывает свои репо.
+          HEALTH_CHECK_REPOS: ${{ vars.HEALTH_CHECK_REPOS || '' }}
         run: |
-          echo "## IWE Health Check — $(date +%Y-%m-%d)"
-          echo ""
+          mkdir -p /tmp/repos
+          # Копируем текущий (strategy) репо
+          cp -r . /tmp/repos/$(basename "$STRATEGY_REPO")
 
-          # Проверяем коммиты за последние 24 часа
-          COMMITS_24H=$(git log --since="24 hours ago" --oneline 2>/dev/null | wc -l | tr -d ' ')
-          echo "Коммитов за 24ч: $COMMITS_24H"
+          # Дополнительные репо (если указаны)
+          if [ -n "$HEALTH_CHECK_REPOS" ]; then
+            IFS=',' read -ra REPOS <<< "$HEALTH_CHECK_REPOS"
+            for REPO in "${REPOS[@]}"; do
+              REPO=$(echo "$REPO" | tr -d ' ')
+              NAME=$(basename "$REPO")
+              git clone --depth 50 --single-branch "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" "/tmp/repos/$NAME" 2>/dev/null || echo "SKIP: $REPO"
+            done
+          fi
 
-          # Проверяем наличие DayPlan
+      - name: Generate health report
+        if: env.STRATEGY_REPO != ''
+        id: health
+        env:
+          BOT_HEALTH_URL: ${{ vars.BOT_HEALTH_URL || '' }}
+        run: |
           TODAY=$(date +%Y-%m-%d)
-          if ls current/DayPlan*${TODAY}* 2>/dev/null; then
-            echo "✓ DayPlan на сегодня найден"
+          WARNINGS=0
+
+          echo "🏥 <b>IWE Health Check</b> — $(date +'%d %b %Y (%A)')" > /tmp/health.txt
+          echo "" >> /tmp/health.txt
+
+          # ── 1. Git: коммиты за 24ч по всем репо ──
+          TOTAL_COMMITS=0
+          TOP_REPOS=""
+          for REPO_DIR in /tmp/repos/*/; do
+            [ -d "$REPO_DIR/.git" ] || continue
+            NAME=$(basename "$REPO_DIR")
+            COUNT=$(git -C "$REPO_DIR" log --since="24 hours ago" --oneline --no-merges 2>/dev/null | wc -l | tr -d ' ')
+            TOTAL_COMMITS=$((TOTAL_COMMITS + COUNT))
+            if [ "$COUNT" -gt 0 ]; then
+              TOP_REPOS="${TOP_REPOS}${NAME}:${COUNT} "
+            fi
+          done
+
+          echo "📊 Коммитов за 24ч: <b>$TOTAL_COMMITS</b>" >> /tmp/health.txt
+          if [ -n "$TOP_REPOS" ]; then
+            SORTED=$(echo "$TOP_REPOS" | tr ' ' '\n' | sort -t: -k2 -rn | head -5 | sed 's/:/ (/;s/$/)/' | tr '\n' ', ' | sed 's/, $//')
+            echo "   └ топ: $SORTED" >> /tmp/health.txt
+          fi
+
+          # ── 2. Governance: DayPlan + WeekPlan ──
+          DAYPLAN=$(ls current/DayPlan*${TODAY}* 2>/dev/null | head -1)
+          if [ -n "$DAYPLAN" ]; then
+            echo "✅ DayPlan: $(basename "$DAYPLAN")" >> /tmp/health.txt
           else
-            echo "⚠️ DayPlan на сегодня не найден"
+            echo "⚠️ DayPlan на сегодня не найден" >> /tmp/health.txt
+            echo "dayplan_missing=true" >> "$GITHUB_OUTPUT"
+            WARNINGS=$((WARNINGS + 1))
           fi
 
-          # Проверяем свежесть memory backup
-          if [ -d "exocortex" ]; then
-            LATEST_BACKUP=$(git log -1 --format="%ar" -- exocortex/ 2>/dev/null || echo "never")
-            echo "Последний backup exocortex: $LATEST_BACKUP"
-          fi
-
-          # Проверяем наличие WeekPlan
           WEEKPLAN=$(ls current/WeekPlan* 2>/dev/null | head -1)
           if [ -n "$WEEKPLAN" ]; then
-            echo "✓ WeekPlan найден: $(basename "$WEEKPLAN")"
+            echo "✅ WeekPlan: $(basename "$WEEKPLAN")" >> /tmp/health.txt
           else
-            echo "⚠️ WeekPlan не найден"
+            echo "⚠️ WeekPlan не найден" >> /tmp/health.txt
+            WARNINGS=$((WARNINGS + 1))
           fi
 
-      - name: Notify via Telegram (optional)
-        if: env.STRATEGY_REPO != '' && env.TELEGRAM_BOT_TOKEN != ''
+          # ── 3. Backup: exocortex ──
+          if [ -d "exocortex" ]; then
+            LAST_BACKUP=$(git log -1 --format="%ar" -- exocortex/ 2>/dev/null || echo "никогда")
+            BACKUP_EPOCH=$(git log -1 --format="%at" -- exocortex/ 2>/dev/null || echo "0")
+            NOW_EPOCH=$(date +%s)
+            BACKUP_AGE_H=$(( (NOW_EPOCH - BACKUP_EPOCH) / 3600 ))
+            if [ "$BACKUP_AGE_H" -gt 48 ]; then
+              echo "⚠️ Backup: $LAST_BACKUP (>48ч!)" >> /tmp/health.txt
+              WARNINGS=$((WARNINGS + 1))
+            else
+              echo "✅ Backup: $LAST_BACKUP" >> /tmp/health.txt
+            fi
+          fi
+
+          # ── 4. Сессии: незакрытые ──
+          if [ -f "inbox/open-sessions.log" ]; then
+            OPEN_SESSIONS=$(grep -c "^[0-9]" inbox/open-sessions.log 2>/dev/null || echo "0")
+            if [ "$OPEN_SESSIONS" -gt 0 ]; then
+              echo "⚠️ Незакрытых сессий: $OPEN_SESSIONS" >> /tmp/health.txt
+              WARNINGS=$((WARNINGS + 1))
+            else
+              echo "✅ Незакрытых сессий: 0" >> /tmp/health.txt
+            fi
+          fi
+
+          # ── 5. Бот: health endpoint (опционально) ──
+          if [ -n "$BOT_HEALTH_URL" ]; then
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$BOT_HEALTH_URL" 2>/dev/null || echo "000")
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "✅ Бот: online ($HTTP_CODE)" >> /tmp/health.txt
+            else
+              echo "🔴 Бот: недоступен ($HTTP_CODE)" >> /tmp/health.txt
+              WARNINGS=$((WARNINGS + 1))
+            fi
+          fi
+
+          # ── 6. WP-статистика (из MEMORY.md backup) ──
+          if [ -f "exocortex/MEMORY.md" ]; then
+            WP_IN_PROGRESS=$(grep -c "in_progress" exocortex/MEMORY.md 2>/dev/null || echo "0")
+            WP_PENDING=$(grep -c "| pending" exocortex/MEMORY.md 2>/dev/null || echo "0")
+            echo "📋 РП: <b>${WP_IN_PROGRESS}</b> в работе, <b>${WP_PENDING}</b> ожидают" >> /tmp/health.txt
+          fi
+
+          # ── 7. Активность по репо за 7 дней ──
+          echo "" >> /tmp/health.txt
+          echo "📈 <b>Активность за 7 дней:</b>" >> /tmp/health.txt
+          for REPO_DIR in /tmp/repos/*/; do
+            [ -d "$REPO_DIR/.git" ] || continue
+            NAME=$(basename "$REPO_DIR")
+            COUNT_7D=$(git -C "$REPO_DIR" log --since="7 days ago" --oneline --no-merges 2>/dev/null | wc -l | tr -d ' ')
+            if [ "$COUNT_7D" -gt 0 ]; then
+              echo "   $NAME: $COUNT_7D" >> /tmp/health.txt
+            fi
+          done
+
+          # ── Светофор ──
+          echo "" >> /tmp/health.txt
+          if [ "$WARNINGS" -eq 0 ]; then
+            echo "🟢 Всё в порядке" >> /tmp/health.txt
+          elif [ "$WARNINGS" -le 2 ]; then
+            echo "🟡 Требует внимания ($WARNINGS)" >> /tmp/health.txt
+          else
+            echo "🔴 Проблемы ($WARNINGS)" >> /tmp/health.txt
+          fi
+
+          cat /tmp/health.txt
+          echo "report<<EOF" >> "$GITHUB_OUTPUT"
+          cat /tmp/health.txt >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Notify Telegram
+        if: always() && env.TELEGRAM_BOT_TOKEN != ''
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          # Собираем отчёт в HTML-формате для Telegram
-          COMMITS=$(git log --since='24 hours ago' --oneline 2>/dev/null | wc -l | tr -d ' ')
-          TODAY=$(date +%Y-%m-%d)
-          DAYPLAN=$(ls current/DayPlan*${TODAY}* 2>/dev/null | head -1)
-          WEEKPLAN=$(ls current/WeekPlan* 2>/dev/null | head -1)
-
-          MSG="🏥 <b>IWE Health Check</b> — $(date +'%d %b %Y')"
-          MSG+="%0A📊 Коммитов за 24ч: <b>$COMMITS</b>"
-          [ -n "$DAYPLAN" ] && MSG+="%0A✅ DayPlan: $(basename "$DAYPLAN")" || MSG+="%0A⚠️ DayPlan не найден"
-          [ -n "$WEEKPLAN" ] && MSG+="%0A✅ WeekPlan: $(basename "$WEEKPLAN")" || MSG+="%0A⚠️ WeekPlan не найден"
+          REPORT=$(cat /tmp/health.txt | head -30)
 
           curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-            -d "chat_id=${TELEGRAM_CHAT_ID}" \
-            -d "text=${MSG}" \
-            -d "parse_mode=HTML" > /dev/null 2>&1 || true
+            -H "Content-Type: application/json" \
+            -d "$(jq -n --arg text "$REPORT" --arg chat "$TELEGRAM_CHAT_ID" \
+              '{chat_id: $chat, text: $text, parse_mode: "HTML"}')" > /dev/null 2>&1 || true
+
+      - name: Skip (no strategy repo configured)
+        if: env.STRATEGY_REPO == ''
+        run: |
+          echo "⚠️ STRATEGY_REPO не настроен. Укажите в Settings → Variables → STRATEGY_REPO"
