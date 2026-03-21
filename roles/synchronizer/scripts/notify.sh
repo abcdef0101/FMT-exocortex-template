@@ -1,88 +1,38 @@
 #!/usr/bin/env bash
 # notify.sh — единый dispatch уведомлений экзокортекса
 # Targets: Linux, macOS
-#
-# Exit codes:
-#   0 — успех
-#   1 — ошибка
-#
+
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 TEMPLATES_DIR="$SCRIPT_DIR/templates"
-# IWE env (scripts/ → role/ → roles/ → repo/ → workspace)
-_iwe_ws="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
-ENV_FILE="$HOME/.$(basename "$_iwe_ws")/env"
-[ -f "$ENV_FILE" ] && { set -a; source "$ENV_FILE"; set +a; } \
-    || { echo "IWE env not found: $ENV_FILE" >&2; exit 1; }
-unset _iwe_ws
 
-AVAILABLE=$(ls "$TEMPLATES_DIR"/*.sh 2>/dev/null | xargs -I{} basename {} .sh | tr '\n' '|' | sed 's/|$//')
+# shellcheck source=lib/lib-env.sh
+source "${SCRIPT_DIR}/../../../lib/lib-env.sh"
+
+# shellcheck source=roles/synchronizer/lib/lib-sync-notify.sh
+source "${SCRIPT_DIR}/../lib/lib-sync-notify.sh"
+
+_repo_root="$(iwe_find_repo_root "${SCRIPT_DIR}")" \
+  || { echo "ERROR: Cannot resolve repo root from ${SCRIPT_DIR}" >&2; exit 1; }
+ENV_FILE="$(iwe_env_file_from_repo_root "${_repo_root}")"
+unset _repo_root
+
+AVAILABLE=$(sync_notify_available_templates "$TEMPLATES_DIR")
 AGENT="${1:?Ошибка: укажи агента (${AVAILABLE:-нет шаблонов})}"
 SCENARIO="${2:?Ошибка: укажи сценарий}"
 
-# Загрузка env
-_validate_env_file() {
-    local filepath="${1}"
-    if grep -qE '^\s*(eval|source|\.)[ \t]' "${filepath}" 2>/dev/null; then
-        echo "ERROR: env file contains dangerous patterns: ${filepath}" >&2
-        exit 1
-    fi
-}
+sync_notify_load_env "$ENV_FILE" || exit 1
 
-if [ -f "$ENV_FILE" ]; then
-    _validate_env_file "$ENV_FILE"
-    set -a
-    source "$ENV_FILE"
-    set +a
+if [[ -z "${TELEGRAM_BOT_TOKEN:-}" ]] || [[ -z "${TELEGRAM_CHAT_ID:-}" ]]; then
+  echo "SKIP: TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not set (configure ~/.config/aist/env)"
+  exit 0
 fi
 
-# Проверка env vars
-if [ -z "${TELEGRAM_BOT_TOKEN:-}" ] || [ -z "${TELEGRAM_CHAT_ID:-}" ]; then
-    echo "SKIP: TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not set (configure ~/.config/aist/env)"
-    exit 0
-fi
-
-# Отправка в Telegram
-send_telegram() {
-    local text="$1"
-    local buttons="${2:-[]}"
-
-    text="${text:0:4000}"
-
-    local escaped_text
-    escaped_text=$(printf '%s' "$text" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))')
-
-    local json_body
-    if [ "$buttons" = "[]" ]; then
-        json_body=$(printf '{"chat_id":"%s","text":%s,"parse_mode":"HTML","disable_web_page_preview":true}' \
-            "$TELEGRAM_CHAT_ID" "$escaped_text")
-    else
-        json_body=$(printf '{"chat_id":"%s","text":%s,"parse_mode":"HTML","disable_web_page_preview":true,"reply_markup":{"inline_keyboard":%s}}' \
-            "$TELEGRAM_CHAT_ID" "$escaped_text" "$buttons")
-    fi
-
-    local response
-    response=$(curl --fail --max-time 10 --connect-timeout 5 -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-        -H "Content-Type: application/json" \
-        -d "$json_body")
-
-    local ok
-    ok=$(echo "$response" | python3 -c 'import sys,json; print(json.loads(sys.stdin.read()).get("ok",""))' 2>/dev/null || echo "")
-
-    if [ "$ok" = "True" ]; then
-        echo "Telegram notification sent: $AGENT/$SCENARIO"
-    else
-        echo "Telegram send FAILED: $AGENT/$SCENARIO"
-        echo "Response: $response"
-    fi
-}
-
-# Загружаем шаблон агента
 TEMPLATE="$TEMPLATES_DIR/$AGENT.sh"
-if [ ! -f "$TEMPLATE" ]; then
-    echo "ERROR: Template not found: $TEMPLATE" >&2
-    exit 1
+if [[ ! -f "$TEMPLATE" ]]; then
+  echo "ERROR: Template not found: $TEMPLATE" >&2
+  exit 1
 fi
 
 source "$TEMPLATE"
@@ -90,8 +40,12 @@ source "$TEMPLATE"
 MESSAGE=$(build_message "$SCENARIO")
 BUTTONS=$(build_buttons "$SCENARIO" 2>/dev/null || echo "[]")
 
-if [ -n "$MESSAGE" ]; then
-    send_telegram "$MESSAGE" "$BUTTONS"
+if [[ -n "$MESSAGE" ]]; then
+  if sync_notify_send_telegram "$TELEGRAM_BOT_TOKEN" "$TELEGRAM_CHAT_ID" "$MESSAGE" "$BUTTONS"; then
+    echo "Telegram notification sent: $AGENT/$SCENARIO"
+  else
+    echo "Telegram send FAILED: $AGENT/$SCENARIO"
+  fi
 else
-    echo "Empty message for $AGENT/$SCENARIO, skip"
+  echo "Empty message for $AGENT/$SCENARIO, skip"
 fi

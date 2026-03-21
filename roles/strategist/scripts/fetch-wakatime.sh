@@ -10,52 +10,18 @@ set -euo pipefail
 # shellcheck source=lib/lib-platform.sh
 source "$(cd "$(dirname "$0")/../../../" && pwd)/lib/lib-platform.sh"
 
-ENV_FILE="$HOME/.config/aist/env"
-if [ -f "$ENV_FILE" ]; then
-    set -a; source "$ENV_FILE"; set +a
-fi
+# shellcheck source=roles/strategist/lib/lib-wakatime.sh
+source "$(cd "$(dirname "$0")/../" && pwd)/lib/lib-wakatime.sh"
 
-if [ -z "$WAKATIME_API_KEY" ]; then
+strategist_wakatime_load_env
+
+if ! strategist_wakatime_required; then
     echo "WAKATIME_API_KEY not set"
     exit 0  # graceful — don't break strategist if no key
 fi
 
-ENCODED=$(echo -n "$WAKATIME_API_KEY" | base64)
-API="https://wakatime.com/api/v1/users/current"
-
-waka_fetch() {
-    local url="$1"
-    curl --fail --max-time 10 --connect-timeout 5 -s -H "Authorization: Basic $ENCODED" "$url" 2>/dev/null
-}
-
-format_projects() {
-    # stdin: JSON array of project objects → markdown table rows
-    python3 -c "
-import sys, json
-data = json.load(sys.stdin)
-if not data:
-    print('| (нет данных) | — |')
-else:
-    for p in sorted(data, key=lambda x: x.get('total_seconds', 0), reverse=True)[:10]:
-        name = p.get('name', '?')
-        text = p.get('text', '0 secs')
-        print(f'| {name} | {text} |')
-" 2>/dev/null || echo "| (ошибка парсинга) | — |"
-}
-
-format_languages() {
-    python3 -c "
-import sys, json
-data = json.load(sys.stdin)
-if not data:
-    print('| (нет данных) | — |')
-else:
-    for l in sorted(data, key=lambda x: x.get('total_seconds', 0), reverse=True)[:5]:
-        name = l.get('name', '?')
-        text = l.get('text', '0 secs')
-        print(f'| {name} | {text} |')
-" 2>/dev/null || echo "| (ошибка парсинга) | — |"
-}
+ENCODED=$(strategist_wakatime_auth_header)
+API=$(strategist_wakatime_api_base)
 
 mode="${1:-day}"
 
@@ -63,11 +29,11 @@ case "$mode" in
     "day")
         # Yesterday's summary
         YESTERDAY=$(iwe_date_shift -1)
-        RESPONSE=$(waka_fetch "$API/summaries?start=$YESTERDAY&end=$YESTERDAY")
+        RESPONSE=$(strategist_wakatime_fetch "$ENCODED" "$API/summaries?start=$YESTERDAY&end=$YESTERDAY")
 
-        TOTAL=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['cumulative_total']['text'])" 2>/dev/null || echo "н/д")
-        PROJECTS_JSON=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); json.dump(d['data'][0].get('projects',[]), sys.stdout)" 2>/dev/null || echo "[]")
-        LANGS_JSON=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); json.dump(d['data'][0].get('languages',[]), sys.stdout)" 2>/dev/null || echo "[]")
+        TOTAL=$(strategist_wakatime_extract_total "$RESPONSE")
+        PROJECTS_JSON=$(strategist_wakatime_extract_day_items "$RESPONSE" projects)
+        LANGS_JSON=$(strategist_wakatime_extract_day_items "$RESPONSE" languages)
 
         cat <<EOF
 ## WakaTime: вчера ($YESTERDAY)
@@ -78,13 +44,13 @@ case "$mode" in
 
 | Проект | Время |
 |--------|-------|
-$(echo "$PROJECTS_JSON" | format_projects)
+$(echo "$PROJECTS_JSON" | strategist_wakatime_format_projects)
 
 **По языкам:**
 
 | Язык | Время |
 |------|-------|
-$(echo "$LANGS_JSON" | format_languages)
+$(echo "$LANGS_JSON" | strategist_wakatime_format_languages)
 EOF
         ;;
 
@@ -100,48 +66,14 @@ EOF
         MON_PREV=$(iwe_date_shift -$((DAYS_SINCE_MON + 7)))
         SUN_PREV=$(iwe_date_shift -$((DAYS_SINCE_MON + 1)))
 
-        RESP_THIS=$(waka_fetch "$API/summaries?start=$MON_THIS&end=$TODAY")
-        RESP_PREV=$(waka_fetch "$API/summaries?start=$MON_PREV&end=$SUN_PREV")
+        RESP_THIS=$(strategist_wakatime_fetch "$ENCODED" "$API/summaries?start=$MON_THIS&end=$TODAY")
+        RESP_PREV=$(strategist_wakatime_fetch "$ENCODED" "$API/summaries?start=$MON_PREV&end=$SUN_PREV")
 
-        TOTAL_THIS=$(echo "$RESP_THIS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['cumulative_total']['text'])" 2>/dev/null || echo "н/д")
-        TOTAL_PREV=$(echo "$RESP_PREV" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['cumulative_total']['text'])" 2>/dev/null || echo "н/д")
-
-        # Aggregate projects across days for current week
-        PROJECTS_THIS=$(echo "$RESP_THIS" | python3 -c "
-import sys, json
-d = json.load(sys.stdin)
-agg = {}
-for day in d.get('data', []):
-    for p in day.get('projects', []):
-        name = p['name']
-        agg[name] = agg.get(name, 0) + p.get('total_seconds', 0)
-result = [{'name': k, 'total_seconds': v, 'text': f'{int(v//3600)}h {int((v%3600)//60)}m'} for k,v in agg.items()]
-json.dump(result, sys.stdout)
-" 2>/dev/null || echo "[]")
-
-        PROJECTS_PREV=$(echo "$RESP_PREV" | python3 -c "
-import sys, json
-d = json.load(sys.stdin)
-agg = {}
-for day in d.get('data', []):
-    for p in day.get('projects', []):
-        name = p['name']
-        agg[name] = agg.get(name, 0) + p.get('total_seconds', 0)
-result = [{'name': k, 'total_seconds': v, 'text': f'{int(v//3600)}h {int((v%3600)//60)}m'} for k,v in agg.items()]
-json.dump(result, sys.stdout)
-" 2>/dev/null || echo "[]")
-
-        LANGS_THIS=$(echo "$RESP_THIS" | python3 -c "
-import sys, json
-d = json.load(sys.stdin)
-agg = {}
-for day in d.get('data', []):
-    for l in day.get('languages', []):
-        name = l['name']
-        agg[name] = agg.get(name, 0) + l.get('total_seconds', 0)
-result = [{'name': k, 'total_seconds': v, 'text': f'{int(v//3600)}h {int((v%3600)//60)}m'} for k,v in agg.items()]
-json.dump(result, sys.stdout)
-" 2>/dev/null || echo "[]")
+        TOTAL_THIS=$(strategist_wakatime_extract_total "$RESP_THIS")
+        TOTAL_PREV=$(strategist_wakatime_extract_total "$RESP_PREV")
+        PROJECTS_THIS=$(strategist_wakatime_aggregate_items "$RESP_THIS" projects)
+        PROJECTS_PREV=$(strategist_wakatime_aggregate_items "$RESP_PREV" projects)
+        LANGS_THIS=$(strategist_wakatime_aggregate_items "$RESP_THIS" languages)
 
         cat <<EOF
 ## WakaTime: статистика рабочего времени
@@ -154,13 +86,13 @@ json.dump(result, sys.stdout)
 
 | Проект | Время |
 |--------|-------|
-$(echo "$PROJECTS_THIS" | format_projects)
+$(echo "$PROJECTS_THIS" | strategist_wakatime_format_projects)
 
 **По языкам:**
 
 | Язык | Время |
 |------|-------|
-$(echo "$LANGS_THIS" | format_languages)
+$(echo "$LANGS_THIS" | strategist_wakatime_format_languages)
 
 ### Предыдущая неделя ($MON_PREV — $SUN_PREV)
 
@@ -170,7 +102,7 @@ $(echo "$LANGS_THIS" | format_languages)
 
 | Проект | Время |
 |--------|-------|
-$(echo "$PROJECTS_PREV" | format_projects)
+$(echo "$PROJECTS_PREV" | strategist_wakatime_format_projects)
 
 **Сравнение:** текущая $TOTAL_THIS vs предыдущая $TOTAL_PREV
 EOF

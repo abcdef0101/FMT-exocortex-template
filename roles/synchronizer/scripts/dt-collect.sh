@@ -25,6 +25,12 @@ source "${SCRIPT_DIR}/../../../lib/lib-env.sh"
 # shellcheck source=lib/lib-platform.sh
 source "${SCRIPT_DIR}/../../../lib/lib-platform.sh"
 
+# shellcheck source=roles/synchronizer/lib/lib-dt-runtime.sh
+source "${SCRIPT_DIR}/../lib/lib-dt-runtime.sh"
+
+# shellcheck source=roles/synchronizer/lib/lib-dt-merge.sh
+source "${SCRIPT_DIR}/../lib/lib-dt-merge.sh"
+
 _repo_root="$(iwe_find_repo_root "${SCRIPT_DIR}")" \
   || { echo "ERROR: Cannot resolve repo root from ${SCRIPT_DIR}" >&2; exit 1; }
 ENV_FILE="$(iwe_env_file_from_repo_root "${_repo_root}")"
@@ -44,28 +50,18 @@ DRY_RUN=false
 mkdir -p "$LOG_DIR"
 
 ENV_FILE="$HOME/.config/aist/env"
-if [ -f "$ENV_FILE" ]; then
-    iwe_validate_env_file "$ENV_FILE" || exit 1
-    set -a; source "$ENV_FILE"; set +a
-fi
+dt_load_optional_aist_env || exit 1
 
-log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [dt-collect] $1" | tee -a "$LOG_FILE"
-}
-
-log "=== DT Collect Started ==="
+dt_log "$LOG_FILE" "=== DT Collect Started ==="
 
 # Проверка обязательных env vars (skip при --dry-run)
-if [ "$DRY_RUN" = false ]; then
-    if [ -z "${NEON_URL:-}" ]; then
-        log "NEON_URL not set — skipping"
+dt_check_write_prereqs "$DRY_RUN" "$LOG_FILE" || {
+    status=$?
+    if [[ "$status" -eq 10 || "$status" -eq 11 ]]; then
         exit 0
     fi
-    if [ -z "${DT_USER_ID:-}" ]; then
-        log "DT_USER_ID not set — skipping"
-        exit 0
-    fi
-fi
+    exit "$status"
+}
 
 # ============================================================
 # 1. WakaTime
@@ -378,56 +374,40 @@ print(json.dumps(result))
 # Merge & Write
 # ============================================================
 
-log "Collecting WakaTime..."
+dt_log "$LOG_FILE" "Collecting WakaTime..."
 WAKA_JSON=$(collect_wakatime)
-log "Collecting git stats..."
+dt_log "$LOG_FILE" "Collecting git stats..."
 GIT_JSON=$(collect_git)
-log "Collecting Claude sessions..."
+dt_log "$LOG_FILE" "Collecting Claude sessions..."
 SESSIONS_JSON=$(collect_sessions)
-log "Collecting WP stats..."
+dt_log "$LOG_FILE" "Collecting WP stats..."
 WP_JSON=$(collect_wp)
-log "Collecting scheduler health..."
+dt_log "$LOG_FILE" "Collecting scheduler health..."
 HEALTH_JSON=$(collect_health)
 
 # Merge all into 2_6_coding + 2_7_iwe
-MERGED=$(python3 -c "
-import json, sys
-
-waka = json.loads('''$WAKA_JSON''')
-git = json.loads('''$GIT_JSON''')
-sessions = json.loads('''$SESSIONS_JSON''')
-wp = json.loads('''$WP_JSON''')
-health = json.loads('''$HEALTH_JSON''')
-
-result = {
-    '2_6_coding': waka,
-    '2_7_iwe': {**git, **sessions, **wp, **health},
-}
-print(json.dumps(result, indent=2, ensure_ascii=False))
-" 2>/dev/null)
+MERGED=$(dt_merge_json_payload "$WAKA_JSON" "$GIT_JSON" "$SESSIONS_JSON" "$WP_JSON" "$HEALTH_JSON")
 
 if [ -z "$MERGED" ] || [ "$MERGED" = "{}" ]; then
-    log "ERROR: empty merge result"
+    dt_log "$LOG_FILE" "ERROR: empty merge result"
     exit 1
 fi
 
-log "Merged JSON:"
+dt_log "$LOG_FILE" "Merged JSON:"
 echo "$MERGED" >> "$LOG_FILE"
 
 if [ "$DRY_RUN" = true ]; then
     echo "$MERGED"
-    log "DRY RUN — not writing to Neon"
+    dt_log "$LOG_FILE" "DRY RUN — not writing to Neon"
     exit 0
 fi
 
 # Write to Neon
-log "Writing to Neon (user_id=$DT_USER_ID)..."
-python3 "$SCRIPT_DIR/dt-collect-neon.py" "$DT_USER_ID" "$MERGED" 2>>"$LOG_FILE"
-EXIT_CODE=$?
-
-if [ $EXIT_CODE -eq 0 ]; then
-    log "=== DT Collect Completed Successfully ==="
+if dt_write_payload "$SCRIPT_DIR" "$DT_USER_ID" "$MERGED" "$LOG_FILE"; then
+    dt_log "$LOG_FILE" "=== DT Collect Completed Successfully ==="
     "$SCRIPT_DIR/notify.sh" synchronizer dt-collect 2>/dev/null || true
 else
-    log "ERROR: dt-collect-neon.py exited with $EXIT_CODE"
+    EXIT_CODE=$?
+    dt_log "$LOG_FILE" "ERROR: dt-collect-neon.py exited with $EXIT_CODE"
+    exit "$EXIT_CODE"
 fi
