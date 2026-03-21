@@ -363,6 +363,14 @@ PACK-{область}/             ← Твои доменные знания
 
 **Cloud Scheduler — облачная автоматика IWE:** GitHub Actions workflow запускает backup и health check ежедневно в 04:00 MSK — даже если Mac выключен. Базовый уровень ($0/мес, без LLM). Опционально: Telegram-уведомления с отчётом. Установка: `bash setup/optional/setup-cloud-scheduler.sh`. Подробности: `setup/optional/README.md`, сценарий [DP.SC.019](../../PACK-digital-platform/pack/digital-platform/08-use-cases/DP.SC.019-autonomous-cloud-runtime.md).
 
+**Настройка Health Check (расширенный):** По умолчанию health check проверяет только strategy-репо. Для мульти-репо мониторинга:
+1. GitHub → Settings → Variables → Actions → добавьте `HEALTH_CHECK_REPOS` — список ваших репо через запятую (`owner/repo, owner/repo2`)
+2. (Опционально) Добавьте `BOT_HEALTH_URL` — URL health endpoint бота для проверки доступности
+3. (Опционально) Добавьте Secrets: `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` для уведомлений в Telegram
+4. PAT (`STRATEGY_REPO_TOKEN`) должен иметь доступ ко всем указанным репо
+
+Ручной запуск: `gh workflow run cloud-scheduler.yml --field task=health-check`. Отчёт: коммиты (24ч + 7д по репо), DayPlan, WeekPlan, backup (<48ч), сессии, статус бота, WP-статистика, светофор.
+
 **Marp — подготовка презентаций:** Marp превращает Markdown-файлы в слайды (PDF, HTML, PPTX). Workflow: пишешь `.md` с разделителем `---` → предпросмотр в VS Code (Marp extension) → экспорт `marp --pdf slides.md`. Слайдоменты (MIM.WP.001) — текстовые, поэтому Markdown + Git = версии, диффы, правки через Claude Code. Установка: `npm install -g @marp-team/marp-cli` + VS Code → Extensions → «Marp for VS Code».
 
 **Правило IntegrationGate:** Перед добавлением нового инструмента в свой IWE: (1) тип, (2) контур (L2/L3/L4), (3) роли, (4) продукты, (5) процессы.
