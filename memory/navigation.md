@@ -39,6 +39,7 @@
 | PACK-education | Методика обучения |
 | PACK-personal | Личностное развитие |
 | PACK-verification | Верификация и приёмка (трансдоменный) |
+| PACK-autonomous-agents | Автономные агенты (BC, различения, методы) |
 
 ## Ключевые документы (Pack DP)
 
@@ -59,6 +60,7 @@
 | guides-mcp (исходники) | `DS-MCP/guides-mcp/src/index.ts` |
 | fsm-mcp (исходники) | `DS-MCP/fsm-mcp/src/index.ts` |
 | Activity Hub | `DS-IT-systems/activity-hub/` |
+| Автономные агенты (DS) | `DS-autonomous-agents/` |
 
 ## Стратегия
 

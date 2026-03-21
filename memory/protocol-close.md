@@ -54,6 +54,12 @@
      - **problem-framing:** полная проверка + пометка «требует приёмки человеком»
    - Если РП done → verdict обязателен. Если in_progress → skip
    - Verdict НЕ блокирует Close — записывается в отчёт для решения человека
+3b. **Code Verification** (автотриггер — S56):
+   - Проверить `git diff --name-only` по затронутым репо
+   - Если среди изменённых файлов есть **код** (`.py`, `.ts`, `.sh`, `.sql`, `.yaml`, `.json`) → запустить `/verify code` (sub-agent Верификатор с context isolation)
+   - Если только `.md` файлы → пропустить (верификация кода не нужна)
+   - Если в сессии был **АрхГейт** и после него менялся код → запустить `/verify archgate` вместо `/verify code`
+   - Verdict → в секцию «Что проверить» отчёта
 4. **MEMORY.md** — обновить статус РП (одна строка: `in_progress` / `done`)
 4b. **DayPlan** — обновить строку РП в `DS-strategy/current/DayPlan YYYY-MM-DD.md`: done → зачеркнуть, partial → обновить статус. Day Close = safety net, но DayPlan должен быть актуален между сессиями.
 5. **WP Context File:**

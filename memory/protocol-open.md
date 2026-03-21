@@ -135,6 +135,7 @@ done
 | update.sh | :green_circle: / :red_circle: | [drift report: `update.sh --check`] |
 | template-sync | :green_circle: / :red_circle: | [статус] |
 | MCP reindex | :green_circle: / :red_circle: | [статус] |
+| Scout | :green_circle: / :yellow_circle: / :red_circle: | [N находок / fallback / не запустился] |
 
 **Вывод:** [1-2 предложения — общая оценка + действия по красным]
 ```
@@ -157,6 +158,36 @@ done
 - Прочитать `DS-my-strategy/drafts/draft-list.md` → свежие Content ideas
 - Выбрать 1-3 темы, которые можно адаптировать сегодня (исходя из свободных блоков и запланированных РП)
 - Показать таблицу с рекомендацией
+
+#### 5d. Scout (ночной разведчик)
+
+- Проверить наличие результатов: `DS-autonomous-agents/night-results/YYYY-MM-DD/`
+- Если директория есть:
+  - Прочитать `meta.yaml` → статистика запуска
+  - Прочитать `morning-ideas.md` → ТОП находок
+  - Показать сводку:
+
+```markdown
+## Scout (ночной разведчик)
+
+**Запуск:** [дата], модель: [модель], бюджет: $[X]
+**Находок:** N | **Capture-candidates:** M
+
+### ТОП находки
+| # | Находка | Релевантность | Связь с РП |
+|---|---------|---------------|------------|
+| 1 | [название] | высокая/средняя | WP-N |
+
+*Подробно: DS-autonomous-agents/night-results/YYYY-MM-DD/morning-ideas.md*
+```
+
+- Если есть `capture-candidates.md` → упомянуть: «M кандидатов для Экстрактора (уже в inbox)»
+- Если директории нет → `*Scout: не запускался или результатов нет.*`
+- **Feedback:** Если находки есть, добавить в «Требует внимания»: «Scout: N находок ждут ревью. Запустить `scout-review.sh` для feedback.»
+- **Светофор:** Добавить строку Scout в таблицу IWE за ночь:
+  - :green_circle: = запустился, есть находки
+  - :yellow_circle: = запустился, но 0 находок или парсер сработал в fallback
+  - :red_circle: = не запустился или ошибка
 
 #### 6. Мир
 
@@ -282,9 +313,22 @@ agent: Стратег
 | update.sh | :green_circle: / :red_circle: | [drift report: `update.sh --check`] |
 | template-sync | :green_circle: / :red_circle: | [статус] |
 | MCP reindex | :green_circle: / :red_circle: | [статус] |
-| ... | ... | ... |
+| Scout | :green_circle: / :yellow_circle: / :red_circle: | [N находок / M captures] |
 
 **Вывод:** [1-2 предложения — общая оценка + действия по красным]
+
+## Scout (ночной разведчик)
+
+**Запуск:** [дата], модель: [модель], бюджет: $[X]
+**Находок:** N | **Capture-candidates:** M
+
+### ТОП находки
+| # | Находка | Релевантность | Связь с РП |
+|---|---------|---------------|------------|
+| 1 | [название] | высокая/средняя | WP-N |
+
+*Подробно: DS-autonomous-agents/night-results/YYYY-MM-DD/morning-ideas.md*
+*Feedback: `scout-review.sh` → `overnight-scout.sh --review`*
 
 ## Итоги вчера (DD мес)
 
