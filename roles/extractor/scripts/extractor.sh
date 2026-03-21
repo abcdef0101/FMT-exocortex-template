@@ -17,6 +17,18 @@ REPO_DIR="$(dirname "$SCRIPT_DIR")"
 # shellcheck source=lib/lib-env.sh
 source "${SCRIPT_DIR}/../../../lib/lib-env.sh"
 
+# shellcheck source=roles/shared/lib/lib-notify.sh
+source "${SCRIPT_DIR}/../../shared/lib/lib-notify.sh"
+
+# shellcheck source=roles/shared/lib/lib-git-sync.sh
+source "${SCRIPT_DIR}/../../shared/lib/lib-git-sync.sh"
+
+# shellcheck source=roles/extractor/lib/lib-extractor-state.sh
+source "${SCRIPT_DIR}/../lib/lib-extractor-state.sh"
+
+# shellcheck source=roles/extractor/lib/lib-extractor-runner.sh
+source "${SCRIPT_DIR}/../lib/lib-extractor-runner.sh"
+
 _repo_root="$(iwe_find_repo_root "${SCRIPT_DIR}")" \
   || { echo "ERROR: Cannot resolve repo root from ${SCRIPT_DIR}" >&2; exit 1; }
 ENV_FILE="$(iwe_env_file_from_repo_root "${_repo_root}")"
@@ -41,140 +53,73 @@ DATE=$(date +%Y-%m-%d)
 HOUR=$(date +%H)
 LOG_FILE="$LOG_DIR/$DATE.log"
 
-log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> "$LOG_FILE"
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
-}
-
-notify() {
-    local title="$1"
-    local message="$2"
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        printf 'display notification "%s" with title "%s"' "$message" "$title" | osascript 2>/dev/null || true
-    elif command -v notify-send &>/dev/null; then
-        notify-send "$title" "$message" 2>/dev/null || true
-    fi
-}
-
 notify_telegram() {
     local scenario="$1"
     local notify_script="$WORKSPACE/FMT-exocortex-template/roles/synchronizer/scripts/notify.sh"
-    if [ -f "$notify_script" ]; then
-        "$notify_script" extractor "$scenario" >> "$LOG_FILE" 2>&1 || true
-    fi
+    iwe_notify_via_script "$notify_script" extractor "$scenario" "$LOG_FILE"
 }
 
-run_claude() {
-    local command_file="$1"
-    local extra_args="${2:-}"
-    local command_path="$PROMPTS_DIR/$command_file.md"
+run_extractor_process() {
+    local process_name="$1"
+    local scenario="$2"
 
-    if [ ! -f "$command_path" ]; then
-        log "ERROR: Command file not found: $command_path"
-        exit 1
+    extractor_run_process \
+      "$process_name" \
+      "$PROMPTS_DIR" \
+      "$WORKSPACE" \
+      "$AI_CLI" \
+      "$AI_CLI_PROMPT_FLAG" \
+      "$AI_CLI_EXTRA_FLAGS" \
+      "$LOG_FILE"
+
+    if iwe_sync_strategy_extraction_report "$WORKSPACE/DS-strategy" "$LOG_FILE" "$DATE"; then
+        extractor_log "$LOG_FILE" "Synced DS-strategy extraction report"
+    else
+        extractor_log "$LOG_FILE" "WARN: DS-strategy sync failed"
     fi
 
-    local prompt
-    prompt=$(cat "$command_path")
-
-    # Добавить extra args к промпту
-    if [ -n "$extra_args" ]; then
-        prompt="$prompt
-
-## Дополнительный контекст
-
-$extra_args"
-    fi
-
-    log "Starting process: $command_file"
-    log "Command file: $command_path"
-
-    cd "$WORKSPACE"
-
-    # Запуск AI CLI с промптом
-    "$AI_CLI" $AI_CLI_EXTRA_FLAGS \
-        $AI_CLI_PROMPT_FLAG "$prompt" \
-        >> "$LOG_FILE" 2>&1
-
-    log "Completed process: $command_file"
-
-    # Commit + push changes (отчёты, помеченные captures)
-    local strategy_dir="$WORKSPACE/DS-strategy"
-
-    if [ -d "$strategy_dir/.git" ]; then
-        # Очистить staging area
-        git -C "$strategy_dir" reset --quiet 2>/dev/null || true
-
-        # Стейджим ТОЛЬКО наши файлы
-        git -C "$strategy_dir" add inbox/captures.md inbox/extraction-reports/ >> "$LOG_FILE" 2>&1 || true
-        if ! git -C "$strategy_dir" diff --cached --quiet 2>/dev/null; then
-            git -C "$strategy_dir" commit -m "inbox-check: extraction report $DATE" >> "$LOG_FILE" 2>&1 \
-                && log "Committed DS-strategy" \
-                || log "WARN: git commit failed"
-        else
-            log "No new changes to commit in DS-strategy"
-        fi
-
-        if ! git -C "$strategy_dir" diff --quiet origin/main..HEAD 2>/dev/null; then
-            git -C "$strategy_dir" push >> "$LOG_FILE" 2>&1 && log "Pushed DS-strategy" || log "WARN: git push failed"
-        fi
-    fi
-
-    # macOS notification
-    notify "KE: $command_file" "Процесс завершён"
-}
-
-# Проверка рабочих часов
-is_work_hours() {
-    local hour
-    hour=$(date +%H)
-    [ "$hour" -ge 7 ] && [ "$hour" -le 23 ]
+    iwe_notify_local "KE: ${process_name}" "Процесс завершён"
+    notify_telegram "$scenario"
 }
 
 # Определяем процесс
 case "${1:-}" in
     "inbox-check")
-        if ! is_work_hours; then
-            log "SKIP: inbox-check outside work hours ($HOUR:00)"
+        if ! extractor_is_work_hours; then
+            extractor_log "$LOG_FILE" "SKIP: inbox-check outside work hours ($HOUR:00)"
             exit 0
         fi
 
         # Быстрая проверка: есть ли captures в inbox
         CAPTURES_FILE="$WORKSPACE/DS-strategy/inbox/captures.md"
-        if [ -f "$CAPTURES_FILE" ]; then
-            PENDING=$(grep -c '^### ' "$CAPTURES_FILE" 2>/dev/null) || PENDING=0
-            PROCESSED=$(grep -c '\[processed' "$CAPTURES_FILE" 2>/dev/null) || PROCESSED=0
-            ACTUAL_PENDING=$((PENDING - PROCESSED))
-
-            if [ "$ACTUAL_PENDING" -le 0 ]; then
-                log "SKIP: No pending captures in inbox (total=$PENDING, processed=$PROCESSED)"
-                exit 0
-            fi
-
-            log "Found $ACTUAL_PENDING pending captures in inbox"
-        else
-            log "SKIP: captures.md not found"
+        ACTUAL_PENDING="$(extractor_pending_captures_count "$CAPTURES_FILE")"
+        if [ "$ACTUAL_PENDING" -lt 0 ]; then
+            extractor_log "$LOG_FILE" "SKIP: captures.md not found"
             exit 0
         fi
 
-        run_claude "inbox-check"
-        notify_telegram "inbox-check"
+        if [ "$ACTUAL_PENDING" -le 0 ]; then
+            extractor_log "$LOG_FILE" "SKIP: No pending captures in inbox"
+            exit 0
+        fi
+
+        extractor_log "$LOG_FILE" "Found $ACTUAL_PENDING pending captures in inbox"
+        run_extractor_process "inbox-check" "inbox-check"
         ;;
 
     "audit")
-        log "Running knowledge audit"
-        run_claude "knowledge-audit"
-        notify_telegram "audit"
+        extractor_log "$LOG_FILE" "Running knowledge audit"
+        run_extractor_process "knowledge-audit" "audit"
         ;;
 
     "session-close")
-        log "Running session-close extraction"
-        run_claude "session-close"
+        extractor_log "$LOG_FILE" "Running session-close extraction"
+        run_extractor_process "session-close" "session-close"
         ;;
 
     "on-demand")
-        log "Running on-demand extraction"
-        run_claude "on-demand"
+        extractor_log "$LOG_FILE" "Running on-demand extraction"
+        run_extractor_process "on-demand" "on-demand"
         ;;
 
     *)
@@ -191,4 +136,4 @@ case "${1:-}" in
         ;;
 esac
 
-log "Done"
+extractor_log "$LOG_FILE" "Done"

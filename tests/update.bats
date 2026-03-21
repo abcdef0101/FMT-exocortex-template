@@ -13,9 +13,12 @@ setup() {
   GIT_LOG="$TEST_DIR/git.log"
   export HOME="$HOME_DIR"
   mkdir -p "$HOME_DIR" "$EXO_DIR/memory" "$EXO_DIR/roles/strategist" "$EXO_DIR/.claude" "$BIN_DIR"
+  mkdir -p "$EXO_DIR/lib" "$EXO_DIR/update/lib"
   mkdir -p "$HOME_DIR/.workspace"
 
   cp "${BATS_TEST_DIRNAME}/../update.sh" "$EXO_DIR/update.sh"
+  cp -R "${BATS_TEST_DIRNAME}/../lib/." "$EXO_DIR/lib/"
+  cp -R "${BATS_TEST_DIRNAME}/../update/lib/." "$EXO_DIR/update/lib/"
   cat > "$EXO_DIR/CLAUDE.md" <<'EOF'
 # test
 EOF
@@ -136,8 +139,10 @@ EOF
 
 @test "update.sh: ошибка вне корня экзокортекса" {
   local bad_dir="$TEST_DIR/bad"
-  mkdir -p "$bad_dir"
+  mkdir -p "$bad_dir/lib" "$bad_dir/update/lib"
   cp "${BATS_TEST_DIRNAME}/../update.sh" "$bad_dir/update.sh"
+  cp -R "${BATS_TEST_DIRNAME}/../lib/." "$bad_dir/lib/"
+  cp -R "${BATS_TEST_DIRNAME}/../update/lib/." "$bad_dir/update/lib/"
   run env HOME="$HOME_DIR" PATH="$PATH" bash "$bad_dir/update.sh"
   assert_failure
   assert_output --partial 'Cannot find exocortex directory'

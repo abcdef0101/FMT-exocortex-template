@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Library-Class: entrypoint-helper
+
+if [[ -n "${_ROLES_SHARED_LIB_NOTIFY_LOADED:-}" ]]; then
+  return 0
+fi
+readonly _ROLES_SHARED_LIB_NOTIFY_LOADED=1
+
+function iwe_notify_local() {
+  local title="${1}"
+  local message="${2}"
+
+  if [[ "${OSTYPE}" == "darwin"* ]]; then
+    printf 'display notification "%s" with title "%s"' "${message}" "${title}" | osascript 2>/dev/null || true
+  elif command -v notify-send >/dev/null 2>&1; then
+    notify-send "${title}" "${message}" 2>/dev/null || true
+  fi
+}
+
+function iwe_notify_via_script() {
+  local notify_script="${1}"
+  local agent_name="${2}"
+  local scenario="${3}"
+  local log_file="${4}"
+
+  if [[ -f "${notify_script}" ]]; then
+    "${notify_script}" "${agent_name}" "${scenario}" >> "${log_file}" 2>&1 || true
+  fi
+}
