@@ -96,9 +96,20 @@ case "${1:-}" in
 
         # Быстрая проверка: есть ли captures в inbox
         CAPTURES_FILE="$WORKSPACE/DS-strategy/inbox/captures.md"
-        ACTUAL_PENDING="$(extractor_pending_captures_count "$CAPTURES_FILE")"
-        if [ "$ACTUAL_PENDING" -lt 0 ]; then
-            extractor_log "$LOG_FILE" "SKIP: captures.md not found"
+        if [ -f "$CAPTURES_FILE" ]; then
+            PENDING=$(grep -c '^### ' "$CAPTURES_FILE" 2>/dev/null) || PENDING=0
+            PROCESSED=$(grep -c '\[processed' "$CAPTURES_FILE" 2>/dev/null) || PROCESSED=0
+            ANALYZED=$(grep -c '\[analyzed' "$CAPTURES_FILE" 2>/dev/null) || ANALYZED=0
+            ACTUAL_PENDING=$((PENDING - PROCESSED - ANALYZED))
+
+            if [ "$ACTUAL_PENDING" -le 0 ]; then
+                log "SKIP: No pending captures in inbox (total=$PENDING, processed=$PROCESSED)"
+                exit 0
+            fi
+
+            log "Found $ACTUAL_PENDING pending captures in inbox"
+        else
+            log "SKIP: captures.md not found"
             exit 0
         fi
 
