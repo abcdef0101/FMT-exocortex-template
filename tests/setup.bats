@@ -14,6 +14,8 @@ load 'test_helper/bats-file/load'
 load 'test_helper/helpers'
 
 ORIG_SCRIPT="${BATS_TEST_DIRNAME}/../setup.sh"
+ORIG_LIB_DIR="${BATS_TEST_DIRNAME}/../lib"
+ORIG_SETUP_LIB_DIR="${BATS_TEST_DIRNAME}/../setup/lib"
 
 setup() {
   TEST_DIR="$BATS_TEST_TMPDIR"
@@ -32,6 +34,9 @@ setup() {
   TEMPLATE_DIR="$TEST_DIR/template"
   make_template_dir "$TEMPLATE_DIR"
   cp "$ORIG_SCRIPT" "$TEMPLATE_DIR/setup.sh"
+  cp -R "$ORIG_LIB_DIR" "$TEMPLATE_DIR/lib"
+  mkdir -p "$TEMPLATE_DIR/setup"
+  cp -R "$ORIG_SETUP_LIB_DIR" "$TEMPLATE_DIR/setup/lib"
   SCRIPT="$TEMPLATE_DIR/setup.sh"
 
   # Mock external commands (gh, claude, node, npm; git passes through)
