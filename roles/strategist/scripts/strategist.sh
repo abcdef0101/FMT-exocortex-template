@@ -20,6 +20,18 @@ readonly REPO_DIR
 # shellcheck source=lib/lib-env.sh
 source "${SCRIPT_DIR}/../../../lib/lib-env.sh"
 
+# shellcheck source=roles/shared/lib/lib-notify.sh
+source "${SCRIPT_DIR}/../../shared/lib/lib-notify.sh"
+
+# shellcheck source=roles/shared/lib/lib-lock.sh
+source "${SCRIPT_DIR}/../../shared/lib/lib-lock.sh"
+
+# shellcheck source=roles/strategist/lib/lib-strategist-context.sh
+source "${SCRIPT_DIR}/../lib/lib-strategist-context.sh"
+
+# shellcheck source=roles/strategist/lib/lib-strategist-runner.sh
+source "${SCRIPT_DIR}/../lib/lib-strategist-runner.sh"
+
 _repo_root="$(iwe_find_repo_root "${SCRIPT_DIR}")" \
   || { echo "ERROR: Cannot resolve repo root from ${SCRIPT_DIR}" >&2; exit 1; }
 _iwe_ws="$(iwe_workspace_dir_from_repo_root "${_repo_root}")"
@@ -36,7 +48,7 @@ iwe_load_env_file "${ENV_FILE}" || exit 1
 iwe_require_env_vars WORKSPACE_DIR CLAUDE_PATH || exit 1
 
 # Guard: python3 required for date localisation and JSON encoding
-command -v python3 >/dev/null 2>&1 || { echo "ERROR: python3 is required but not found" >&2; exit 1; }
+strategist_python_required || { echo "ERROR: python3 is required but not found" >&2; exit 1; }
 
 readonly WORKSPACE="${WORKSPACE_DIR}/DS-strategy"
 readonly PROMPTS_DIR="${REPO_DIR}/prompts"
@@ -65,13 +77,7 @@ function log() {
 }
 
 function notify() {
-  local title="${1}"
-  local message="${2}"
-  if [[ "${OSTYPE}" == "darwin"* ]]; then
-    printf 'display notification "%s" with title "%s"' "${message}" "${title}" | osascript 2>/dev/null || true
-  elif command -v notify-send &>/dev/null; then
-    notify-send "${title}" "${message}" 2>/dev/null || true
-  fi
+  iwe_notify_local "${1}" "${2}"
 }
 
 function notify_telegram() {
@@ -80,138 +86,28 @@ function notify_telegram() {
 }
 
 function run_claude() {
-  local command_file="${1}"
-  local command_path="${PROMPTS_DIR}/${command_file}.md"
-
-  # Traversal validation: command_file must not contain path separators or ..
-  case "${command_file}" in
-    */* | *..*  )
-      log "ERROR: Invalid command_file (traversal): ${command_file}"
-      exit 1
-      ;;
-  esac
-
-  if [[ ! -f "${command_path}" ]]; then
-    log "ERROR: Command file not found: ${command_path}"
-    exit 1
-  fi
-
-  # Читаем содержимое команды
-  local prompt
-  prompt=$(cat "${command_path}")
-
-  # Inject current date + day of week (prevents LLM calendar arithmetic errors)
-  local ru_date_context
-  ru_date_context=$(python3 -c "
-import datetime
-days = ['Понедельник','Вторник','Среда','Четверг','Пятница','Суббота','Воскресенье']
-months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря']
-d = datetime.date.today()
-print(f'{d.day} {months[d.month-1]} {d.year}, {days[d.weekday()]}')
-")
-  prompt="[Системный контекст] Сегодня: ${ru_date_context}. ISO: ${DATE}. День недели №${DAY_OF_WEEK} (1=Пн..7=Вс).
-
-${prompt}"
-
-  log "Starting scenario: ${command_file}"
-  log "Command file: ${command_path}"
-  log "Date context: ${ru_date_context}"
-
-  # Wrap cd + Claude in subshell to avoid mutating parent's working directory (AP-AR2)
-  (
-    cd "${WORKSPACE}" || { log "ERROR: Cannot cd to WORKSPACE: ${WORKSPACE}"; exit 1; }
-    "${CLAUDE_PATH}" --dangerously-skip-permissions \
-      --allowedTools "Read,Write,Edit,Glob,Grep,Bash" \
-      -p "${prompt}" \
-      >> "${LOG_FILE}" 2>&1
-  )
-
-  log "Completed scenario: ${command_file}"
-
-  # Push changes to GitHub (чтобы бот мог читать через API)
-  if git -C "${WORKSPACE}" diff --quiet origin/main..HEAD 2>/dev/null; then
-    log "No unpushed commits"
-  else
-    git -C "${WORKSPACE}" pull --rebase >> "${LOG_FILE}" 2>&1 && log "Pulled (rebase)" || log "WARN: pull --rebase failed"
-    git -C "${WORKSPACE}" push >> "${LOG_FILE}" 2>&1 && log "Pushed to GitHub" || log "WARN: git push failed"
-  fi
-
-  # Очистить staging area после Claude сессии (предотвращает staging leak в следующие скрипты)
-  # НЕ трогаем working tree — только unstage orphaned changes
-  git -C "${WORKSPACE}" reset --quiet 2>/dev/null || true
-  log "Cleared staging area after Claude session"
-
-  # macOS notification
-  local summary
-  # [BASH-SAFE-009, BASH-SAFE-016] grep no-match + SIGPIPE from head
-  summary=$(tail -5 "${LOG_FILE}" | grep -v '^\[' | head -3) || true
-  notify "Стратег: ${command_file}" "${summary}"
+  strategist_run_scenario "${1}" "${PROMPTS_DIR}" "${WORKSPACE}" "${CLAUDE_PATH}" "${LOG_FILE}" "${DATE}" "${DAY_OF_WEEK}" log notify
 }
 
 # Проверка: уже запускался ли сценарий сегодня
 function already_ran_today() {
-  local scenario="${1}"
-  [[ -f "${LOG_FILE}" ]] && grep -q "Completed scenario: ${scenario}" "${LOG_FILE}"
+  strategist_already_ran_today "${LOG_FILE}" "${1}"
 }
-
-# Global lock registry — populated by acquire_lock(), cleaned by _cleanup_locks()
-_LOCK_FILES=()
-_LOCK_DIRS=()
-
-function _cleanup_locks() {
-  local _exit_code
-  _exit_code=$?
-  local f d
-  if [[ ${#_LOCK_FILES[@]} -gt 0 ]]; then
-    for f in "${_LOCK_FILES[@]}"; do rm -f "${f}"; done
-  fi
-  if [[ ${#_LOCK_DIRS[@]} -gt 0 ]]; then
-    for d in "${_LOCK_DIRS[@]}"; do rm -rf "${d}"; done
-  fi
-  exit "${_exit_code}"
-}
-
-trap _cleanup_locks EXIT INT TERM
 
 # File-based lock to prevent concurrent execution (RunAtLoad + CalendarInterval race)
 readonly LOCK_DIR="${LOG_DIR}/locks"
 mkdir -p "${LOCK_DIR}"
+iwe_register_lock_cleanup_trap
 
 function acquire_lock() {
   local scenario="${1}"
-  local lockfile="${LOCK_DIR}/${scenario}.${DATE}.lock"
-  local tempdir
-
-  if ! tempdir=$(mktemp -d "${LOCK_DIR}/.lock.XXXXXX"); then
-    log "ERROR: Cannot create temp dir for lock (scenario: ${scenario})"
-    exit 3
-  fi
-
-  if ! ln -s "${tempdir}" "${lockfile}" 2>/dev/null; then
-    rm -rf "${tempdir}"
-    log "SKIP: ${scenario} already running (lock exists: ${lockfile})"
-    exit 2  # non-zero → scheduler won't mark_done
-  fi
-
-  # Register lock artifacts for cleanup by _cleanup_locks()
-  _LOCK_FILES+=("${lockfile}")
-  _LOCK_DIRS+=("${tempdir}")
+  iwe_acquire_symlink_lock "${LOCK_DIR}" "${scenario}.${DATE}" log || exit "$?"
 }
 
 # Читаем strategy_day из конфига (L4 Personal)
-STRATEGY_DAY_NAME=$(grep 'strategy_day:' "${RHYTHM_CONFIG}" 2>/dev/null | awk '{print $2}' || echo "monday")
+STRATEGY_DAY_NAME=$(strategist_read_strategy_day_name "${RHYTHM_CONFIG}")
 readonly STRATEGY_DAY_NAME
-# Конвертируем имя дня в номер (1=Mon..7=Sun)
-case "${STRATEGY_DAY_NAME}" in
-  monday)    STRATEGY_DAY_NUM=1 ;;
-  tuesday)   STRATEGY_DAY_NUM=2 ;;
-  wednesday) STRATEGY_DAY_NUM=3 ;;
-  thursday)  STRATEGY_DAY_NUM=4 ;;
-  friday)    STRATEGY_DAY_NUM=5 ;;
-  saturday)  STRATEGY_DAY_NUM=6 ;;
-  sunday)    STRATEGY_DAY_NUM=7 ;;
-  *)         STRATEGY_DAY_NUM=1 ;; # fallback: monday
-esac
+STRATEGY_DAY_NUM=$(strategist_day_name_to_num "${STRATEGY_DAY_NAME}")
 readonly STRATEGY_DAY_NUM
 
 function run_week_review() {
@@ -271,7 +167,7 @@ function run_note_review() {
   if [[ "${bold_new_after}" -ge "${bold_new_before}" ]] && [[ "${bold_new_before}" -gt 0 ]]; then
     local alert_env="${HOME}/.config/aist/env"
     if [[ -f "${alert_env}" ]]; then
-      _validate_env_file "${alert_env}"
+      iwe_validate_env_file "${alert_env}"
       set -a
       # shellcheck source=/dev/null
       source "${alert_env}"
@@ -294,12 +190,7 @@ function main() {
   local scenario
   case "${1:-}" in
     "morning")
-      # Определяем нужный сценарий: strategy_day → session-prep, иначе → day-plan
-      if [[ "${DAY_OF_WEEK}" -eq "${STRATEGY_DAY_NUM}" ]]; then
-        scenario="session-prep"
-      else
-        scenario="day-plan"
-      fi
+      scenario="$(strategist_resolve_morning_scenario "${DAY_OF_WEEK}" "${STRATEGY_DAY_NUM}")"
 
       # Защита от повторного запуска (RunAtLoad + CalendarInterval race condition)
       acquire_lock "${scenario}"
