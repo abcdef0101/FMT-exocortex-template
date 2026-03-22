@@ -170,22 +170,10 @@ function run_note_review() {
 
   # Alert if LLM failed AND cleanup was needed (only for NEW bold, not deferred 🔄)
   if [[ "${bold_new_after}" -ge "${bold_new_before}" ]] && [[ "${bold_new_before}" -gt 0 ]]; then
-    local alert_env="${HOME}/.config/aist/env"
-    if [[ -f "${alert_env}" ]]; then
-      iwe_validate_env_file "${alert_env}"
-      set -a
-      # shellcheck source=/dev/null
-      source "${alert_env}"
-      set +a
-      local alert_text alert_json
-      alert_text="⚠️ <b>Note-Review canary</b>: Step 10 не сработал (${bold_new_before} → ${bold_new_after} new bold). Deterministic cleanup applied."
-      alert_json=$(printf '%s' "${alert_text}" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))')
-      curl --fail --max-time 10 --connect-timeout 5 \
-        -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-        -H "Content-Type: application/json" \
-        -d "{\"chat_id\":\"${TELEGRAM_CHAT_ID}\",\"text\":${alert_json},\"parse_mode\":\"HTML\"}" \
-        > /dev/null 2>&1 || true
-    fi
+    local alert_text
+    alert_text="⚠️ <b>Note-Review canary</b>: Step 10 не сработал (${bold_new_before} → ${bold_new_after} new bold). Deterministic cleanup applied."
+    "$(dirname "$(dirname "$(dirname "${SCRIPT_DIR}")")")/scripts/notify.sh" \
+      "Note-Review canary" "${alert_text}" "alert" >> "${LOG_FILE}" 2>&1 || true
   fi
 
   notify_telegram "note-review"

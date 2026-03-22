@@ -15,8 +15,9 @@ echo "Installing Strategist Agent..."
 
 STRATEGIST_SH="$SCRIPT_DIR/scripts/strategist.sh"
 
-# Make script executable
+# Make scripts executable
 chmod +x "$STRATEGIST_SH"
+chmod +x "$SCRIPT_DIR/scripts/templates/"*.sh 2>/dev/null || true
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
     # === macOS: launchd ===

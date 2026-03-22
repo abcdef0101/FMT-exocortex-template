@@ -15,8 +15,9 @@ echo "Installing Extractor agent..."
 
 EXTRACTOR_SH="$SCRIPT_DIR/scripts/extractor.sh"
 
-# Делаем скрипт исполняемым
+# Делаем скрипты исполняемыми
 chmod +x "$EXTRACTOR_SH"
+chmod +x "$SCRIPT_DIR/scripts/templates/"*.sh 2>/dev/null || true
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
     # === macOS: launchd ===

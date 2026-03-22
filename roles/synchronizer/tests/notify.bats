@@ -234,3 +234,39 @@ EOF
     run grep 'api.telegram.org' "$CURL_LOG"
     assert_success
 }
+
+@test "notify.sh: level=info не проходит Telegram adapter (min=notice)" {
+    cat > "$BIN_DIR/curl" <<'EOF'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$CURL_LOG"
+printf '{"ok": true}'
+EOF
+    chmod +x "$BIN_DIR/curl"
+
+    run env HOME="$TEST_DIR" bash "$SCRIPT" "Test Title" "Test Message" info
+    assert_success
+    # Telegram adapter имеет min_level=notice, поэтому не должен сработать на info
+    run test -f "$CURL_LOG"
+    assert_failure
+}
+
+@test "notify.sh: level=alert проходит Telegram adapter (min=notice)" {
+    cat > "$BIN_DIR/curl" <<'EOF'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$CURL_LOG"
+printf '{"ok": true}'
+EOF
+    chmod +x "$BIN_DIR/curl"
+
+    run env HOME="$TEST_DIR" bash "$SCRIPT" "Test Title" "Test Message" alert
+    assert_success
+    assert_output --partial "Sent via telegram"
+    run grep 'api.telegram.org' "$CURL_LOG"
+    assert_success
+}
+
+@test "notify.sh: неизвестный level выводит предупреждение" {
+    run env HOME="$TEST_DIR" bash "$SCRIPT" "Test Title" "Test Message" "badlevel"
+    assert_success
+    assert_output --partial 'unknown notify level'
+}

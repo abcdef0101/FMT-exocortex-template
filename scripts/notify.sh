@@ -29,7 +29,10 @@ _iwe_level_to_int() {
     notice)   printf '1' ;;
     alert)    printf '2' ;;
     critical) printf '3' ;;
-    *)        printf '0' ;;
+    *)
+      printf 'WARN: unknown notify level "%s", using info\n' "${1}" >&2
+      printf '0'
+      ;;
   esac
 }
 

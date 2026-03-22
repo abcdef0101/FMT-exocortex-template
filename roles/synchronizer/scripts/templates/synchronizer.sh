@@ -38,6 +38,26 @@ build_message() {
             fi
             ;;
 
+        "dt-collect")
+            local log_file="$LOG_DIR/dt-collect-$DATE.log"
+
+            if [ ! -f "$log_file" ]; then
+                echo ""
+                return
+            fi
+
+            local status
+            if grep -q 'DT Collect Completed Successfully' "$log_file" 2>/dev/null; then
+                status="✅ Записано"
+            else
+                status="❌ Ошибка"
+            fi
+
+            printf "<b>📊 DT Collect</b>\n\n"
+            printf "📅 %s\n\n" "$DATE"
+            printf "%s\n" "$status"
+            ;;
+
         *)
             echo ""
             ;;
