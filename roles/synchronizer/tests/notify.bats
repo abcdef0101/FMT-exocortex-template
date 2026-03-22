@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
-# Тесты для roles/synchronizer/scripts/notify.sh
-# Покрывает: _validate_env_file, send_telegram (mock curl), SKIP без токенов
+# Тесты для scripts/notify.sh (Observer dispatcher)
+# Покрывает: _validate_env_file, send_telegram (mock curl), Observer interface
 
 load '../../../tests/test_helper/bats-support/load'
 load '../../../tests/test_helper/bats-assert/load'
@@ -13,19 +13,32 @@ setup() {
     BIN_DIR="$TEST_DIR/bin"
     SCRIPT_DIR_TMP="$TEST_DIR/scripts"
     TEMPLATES_DIR="$SCRIPT_DIR_TMP/templates"
-    mkdir -p "$SCRIPT_DIR_TMP" "$TEMPLATES_DIR"
+    CURL_LOG="$TEST_DIR/curl.log"
+    mkdir -p "$SCRIPT_DIR_TMP" "$TEMPLATES_DIR" "$BIN_DIR"
     cp "$REAL_SCRIPT" "$SCRIPT_DIR_TMP/notify.sh"
     cp -R "${BATS_TEST_DIRNAME}/../../../scripts/templates/." "$TEMPLATES_DIR/"
+    mkdir -p "$SCRIPT_DIR_TMP/adapters"
+    cp -R "${BATS_TEST_DIRNAME}/../../../scripts/adapters/." "$SCRIPT_DIR_TMP/adapters/"
+    chmod +x "$SCRIPT_DIR_TMP/adapters/"*.sh
     SCRIPT="$SCRIPT_DIR_TMP/notify.sh"
 
+    # lib/ нужен для notify.sh: source "${SCRIPT_DIR}/../lib/lib-env.sh"
+    mkdir -p "$TEST_DIR/lib"
+    cp -R "${BATS_TEST_DIRNAME}/../../../lib/." "$TEST_DIR/lib/"
+
+    # CLAUDE.md + memory — нужны iwe_find_repo_root из TEST_DIR/scripts
+    cat > "$TEST_DIR/CLAUDE.md" <<'EOFMD'
+# test
+EOFMD
+    mkdir -p "$TEST_DIR/memory"
+
     # Вычисляем ENV_FILE путь как делает скрипт
-    local script_dir
-    script_dir="$SCRIPT_DIR_TMP"
+    # repo_root = TEST_DIR, workspace_dir = dirname(TEST_DIR), env = HOME/.basename/env
     local iwe_ws
-    iwe_ws="$(cd "$script_dir/../.." && pwd)"
+    iwe_ws="$(cd "$TEST_DIR/.." && pwd)"
     ENV_DIR="$TEST_DIR/.$(basename "$iwe_ws")"
     ENV_FILE="$ENV_DIR/env"
-    mkdir -p "$ENV_DIR" "$BIN_DIR"
+    mkdir -p "$ENV_DIR"
 
     # Базовый env
     cat > "$ENV_FILE" <<EOF
@@ -37,6 +50,7 @@ TELEGRAM_CHAT_ID=123456789
 EOF
 
     export PATH="$BIN_DIR:$PATH"
+    export CURL_LOG
 }
 
 # ---------------------------------------------------------------------------
@@ -178,45 +192,47 @@ print(len(text))
 }
 
 # ---------------------------------------------------------------------------
-# notify.sh как целый скрипт — SKIP без токенов
+# notify.sh как целый скрипт — Observer interface
 # ---------------------------------------------------------------------------
 
-@test "notify.sh: SKIP если TELEGRAM_BOT_TOKEN не задан" {
-    # Env без токенов
+@test "notify.sh: пропускает Telegram без токена" {
+    # Env без Telegram-токенов
     cat > "$ENV_FILE" <<EOF
 WORKSPACE_DIR=$TEST_DIR/workspace
 CLAUDE_PATH=/usr/local/bin/claude
 GITHUB_USER=testuser
 EOF
-    # Нужен шаблон агента
-    mkdir -p "$TEMPLATES_DIR"
-    cat > "$TEMPLATES_DIR/synchronizer.sh" <<'EOF'
-#!/usr/bin/env bash
-build_message() { echo "test message"; }
-get_buttons() { echo "[]"; }
-EOF
-    chmod +x "$TEMPLATES_DIR/synchronizer.sh"
 
-    run env HOME="$TEST_DIR" bash "$SCRIPT" synchronizer code-scan
+    run env HOME="$TEST_DIR" bash "$SCRIPT" "Test Title" "Test Message" notice
     assert_success
-    assert_output --partial "SKIP"
+    # Curl не вызывался — Telegram-адаптер отключён
+    run test -f "$CURL_LOG"
+    assert_failure
 }
 
 @test "notify.sh: ошибка при вызове без аргументов" {
     run env HOME="$TEST_DIR" bash "$SCRIPT"
     assert_failure
-    assert_output --partial "укажи агента"
+    assert_output --partial "укажи заголовок"
 }
 
-@test "notify.sh: ошибка при одном аргументе (без сценария)" {
-    mkdir -p "$TEMPLATES_DIR"
-    cat > "$TEMPLATES_DIR/synchronizer.sh" <<'EOF'
-#!/usr/bin/env bash
-build_message() { echo "test"; }
-EOF
-    chmod +x "$TEMPLATES_DIR/synchronizer.sh"
-
-    run env HOME="$TEST_DIR" bash "$SCRIPT" synchronizer
+@test "notify.sh: ошибка при одном аргументе (без тела сообщения)" {
+    run env HOME="$TEST_DIR" bash "$SCRIPT" "Title Only"
     assert_failure
-    assert_output --partial "укажи сценарий"
+    assert_output --partial "укажи тело сообщения"
+}
+
+@test "notify.sh: отправляет через Telegram при наличии токенов" {
+    cat > "$BIN_DIR/curl" <<'EOF'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$CURL_LOG"
+printf '{"ok": true}'
+EOF
+    chmod +x "$BIN_DIR/curl"
+
+    run env HOME="$TEST_DIR" bash "$SCRIPT" "Test Title" "Test Message" notice
+    assert_success
+    assert_output --partial "Sent via telegram"
+    run grep 'api.telegram.org' "$CURL_LOG"
+    assert_success
 }

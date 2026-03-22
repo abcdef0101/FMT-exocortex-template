@@ -31,7 +31,6 @@ function code_scan_run() {
   local workspace_dir="${1}"
   local log_file="${2}"
   local dry_run="${3}"
-  local notify_script="${4}"
 
   local total_repos=0 total_commits=0 repo_dir repo_name commits count
   while IFS= read -r repo_dir; do
@@ -51,8 +50,4 @@ function code_scan_run() {
   done < <(code_scan_discover_repos "$workspace_dir")
 
   code_scan_log "$log_file" "Итого: $total_repos репо, $total_commits коммитов"
-
-  if [[ "$dry_run" == "false" ]] && [[ "$total_repos" -gt 0 ]]; then
-    "$notify_script" synchronizer code-scan 2>/dev/null || true
-  fi
 }

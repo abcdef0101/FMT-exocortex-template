@@ -55,8 +55,12 @@ LOG_FILE="$LOG_DIR/$DATE.log"
 
 notify_telegram() {
     local scenario="$1"
-    local notify_script="$WORKSPACE/FMT-exocortex-template/scripts/notify.sh"
-    iwe_notify_via_script "$notify_script" extractor "$scenario" "$LOG_FILE"
+    local _notify_sh _tmpl_dir _msg
+    _notify_sh="${SCRIPT_DIR}/../../../scripts/notify.sh"
+    _tmpl_dir="${SCRIPT_DIR}/../../../scripts/templates"
+    _msg="$(bash -c 'source "$1"; build_message "$2"' _ "${_tmpl_dir}/extractor.sh" "${scenario}")" || true
+    [[ -z "${_msg}" ]] && return 0
+    iwe_notify_via_script "${_notify_sh}" "KE: ${scenario}" "${_msg}" "notice" "${LOG_FILE}"
 }
 
 run_extractor_process() {

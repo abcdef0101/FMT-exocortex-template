@@ -31,5 +31,13 @@ DRY_RUN=false
 mkdir -p "$LOG_DIR"
 
 code_scan_log "$LOG_FILE" "=== Code Scan Started ==="
-code_scan_run "$WORKSPACE" "$LOG_FILE" "$DRY_RUN" "${SCRIPT_DIR}/../../../scripts/notify.sh"
+code_scan_run "$WORKSPACE" "$LOG_FILE" "$DRY_RUN"
 code_scan_log "$LOG_FILE" "=== Code Scan Completed ==="
+
+if [[ "$DRY_RUN" == "false" ]] && grep -q 'FOUND:' "$LOG_FILE" 2>/dev/null; then
+  _NOTIFY_SH="${SCRIPT_DIR}/../../../scripts/notify.sh"
+  _TMPL_DIR="${SCRIPT_DIR}/../../../scripts/templates"
+  _MSG="$(bash -c 'source "$1"; build_message "code-scan"' _ "${_TMPL_DIR}/synchronizer.sh")" || true
+  [[ -n "${_MSG}" ]] && "${_NOTIFY_SH}" "Code Scan" "${_MSG}" "notice" 2>/dev/null || true
+  unset _NOTIFY_SH _TMPL_DIR _MSG
+fi

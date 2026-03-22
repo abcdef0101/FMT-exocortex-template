@@ -19,6 +19,9 @@ setup() {
   cp "${BATS_TEST_DIRNAME}/../scripts/notify.sh" "$EXO_DIR/scripts/notify.sh"
   cp "${BATS_TEST_DIRNAME}/../roles/synchronizer/scripts/code-scan.sh" "$EXO_DIR/roles/synchronizer/scripts/code-scan.sh"
   cp -R "${BATS_TEST_DIRNAME}/../scripts/templates/." "$EXO_DIR/scripts/templates/"
+  mkdir -p "$EXO_DIR/scripts/adapters"
+  cp -R "${BATS_TEST_DIRNAME}/../scripts/adapters/." "$EXO_DIR/scripts/adapters/"
+  chmod +x "$EXO_DIR/scripts/adapters/"*.sh
   cp -R "${BATS_TEST_DIRNAME}/../roles/synchronizer/lib/." "$EXO_DIR/roles/synchronizer/lib/"
   cp -R "${BATS_TEST_DIRNAME}/../lib/." "$EXO_DIR/lib/"
   cat > "$EXO_DIR/CLAUDE.md" <<'EOF'
@@ -64,11 +67,11 @@ EOF
   chmod +x "$BIN_DIR/curl" "$BIN_DIR/date" "$BIN_DIR/git" "$EXO_DIR/scripts/notify.sh" "$EXO_DIR/roles/synchronizer/scripts/code-scan.sh"
 }
 
-@test "notify.sh: dispatches strategist template to Telegram" {
-  run bash "$EXO_DIR/scripts/notify.sh" strategist note-review
+@test "notify.sh: dispatches message to Telegram adapter" {
+  run bash "$EXO_DIR/scripts/notify.sh" "Test Title" "Test Message" notice
 
   assert_success
-  assert_output --partial 'Telegram notification sent: strategist/note-review'
+  assert_output --partial 'Sent via telegram'
   run grep 'api.telegram.org' "$CURL_LOG"
   assert_success
 }

@@ -19,11 +19,12 @@ function iwe_notify_local() {
 
 function iwe_notify_via_script() {
   local notify_script="${1}"
-  local agent_name="${2}"
-  local scenario="${3}"
-  local log_file="${4}"
+  local title="${2}"
+  local message="${3}"
+  local level="${4:-notice}"
+  local log_file="${5}"
 
   if [[ -f "${notify_script}" ]]; then
-    "${notify_script}" "${agent_name}" "${scenario}" >> "${log_file}" 2>&1 || true
+    "${notify_script}" "${title}" "${message}" "${level}" >> "${log_file}" 2>&1 || true
   fi
 }

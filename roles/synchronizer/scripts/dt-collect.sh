@@ -101,7 +101,11 @@ fi
 # Write to Neon
 if dt_write_payload "$SCRIPT_DIR" "$DT_USER_ID" "$MERGED" "$LOG_FILE"; then
     dt_log "$LOG_FILE" "=== DT Collect Completed Successfully ==="
-    "${SCRIPT_DIR}/../../../scripts/notify.sh" synchronizer dt-collect 2>/dev/null || true
+    _NOTIFY_SH="${SCRIPT_DIR}/../../../scripts/notify.sh"
+    _TMPL_DIR="${SCRIPT_DIR}/../../../scripts/templates"
+    _MSG="$(bash -c 'source "$1"; build_message "dt-collect"' _ "${_TMPL_DIR}/synchronizer.sh")" || true
+    [[ -n "${_MSG}" ]] && "${_NOTIFY_SH}" "DT Collect" "${_MSG}" "notice" 2>/dev/null || true
+    unset _NOTIFY_SH _TMPL_DIR _MSG
 else
     EXIT_CODE=$?
     dt_log "$LOG_FILE" "ERROR: dt-collect-neon.py exited with $EXIT_CODE"
