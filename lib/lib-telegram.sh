@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Library-Class: entrypoint-helper
 
-if [[ -n "${_SYNC_NOTIFY_LIB_LOADED:-}" ]]; then
+if [[ -n "${_LIB_TELEGRAM_LOADED:-}" ]]; then
   return 0
 fi
-readonly _SYNC_NOTIFY_LIB_LOADED=1
+readonly _LIB_TELEGRAM_LOADED=1
 
-function sync_notify_load_env() {
+function iwe_telegram_load_env() {
   local env_file="${1}"
   if [[ -f "${env_file}" ]]; then
     iwe_validate_env_file "${env_file}" || return 1
@@ -17,12 +17,12 @@ function sync_notify_load_env() {
   fi
 }
 
-function sync_notify_available_templates() {
+function iwe_telegram_available_templates() {
   local templates_dir="${1}"
   ls "${templates_dir}"/*.sh 2>/dev/null | xargs -I{} basename {} .sh | tr '\n' '|' | sed 's/|$//'
 }
 
-function sync_notify_send_telegram() {
+function iwe_telegram_send() {
   local telegram_bot_token="${1}"
   local telegram_chat_id="${2}"
   local text="${3}"

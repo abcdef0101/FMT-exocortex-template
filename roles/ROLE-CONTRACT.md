@@ -62,7 +62,7 @@ install:
   priority: integer       # Порядок установки (меньше = раньше)
 
 # === Уведомления (опц.) ===
-notify_template: string   # Имя файла в synchronizer/scripts/templates/
+notify_template: string   # Имя файла в scripts/templates/
 ```
 
 ### Пример (Стратег)
@@ -104,7 +104,7 @@ notify_template: strategist.sh
 4. Добавь `install.sh` (скопируй из существующей роли, адаптируй)
 5. Если ИИ-агент: добавь `prompts/` со сценариями
 6. Если нужно расписание: добавь секцию в `synchronizer/config.yaml`
-7. Для уведомлений: добавь шаблон `synchronizer/scripts/templates/<name>.sh`
+7. Для уведомлений: добавь шаблон `scripts/templates/<name>.sh`
 8. `setup.sh` обнаружит роль автоматически
 
 ---

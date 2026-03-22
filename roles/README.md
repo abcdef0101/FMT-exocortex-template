@@ -87,7 +87,7 @@ export TELEGRAM_CHAT_ID="your-id"
 4. Добавь `install.sh` (скопируй из существующей роли, адаптируй)
 5. Если ИИ-агент: добавь `prompts/` со сценариями
 6. Если нужно расписание: добавь секцию в `synchronizer/config.yaml`
-7. Для уведомлений: добавь шаблон `synchronizer/scripts/templates/<name>.sh`
+7. Для уведомлений: добавь шаблон `scripts/templates/<name>.sh`
 
 `setup.sh` обнаружит роль автоматически:
 - `install.auto: true` в role.yaml → установит при полном setup
