@@ -3,3 +3,4 @@ DS-exocortex-setup/
 # Claude Code — персональные файлы (не входят в шаблон)
 .claude/settings.local.json
 .claude/checkpoint.md
+.DS_Store
