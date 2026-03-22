@@ -55,7 +55,7 @@ LOG_FILE="$LOG_DIR/$DATE.log"
 
 notify_telegram() {
     local scenario="$1"
-    local notify_script="$WORKSPACE/FMT-exocortex-template/roles/synchronizer/scripts/notify.sh"
+    local notify_script="$WORKSPACE/FMT-exocortex-template/scripts/notify.sh"
     iwe_notify_via_script "$notify_script" extractor "$scenario" "$LOG_FILE"
 }
 

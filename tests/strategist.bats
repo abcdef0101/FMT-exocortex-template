@@ -20,7 +20,7 @@ setup() {
     "$STRATEGY_DIR/.git" "$STRATEGY_DIR/inbox" "$STRATEGY_DIR/archive/notes" \
     "$EXO_DIR/roles/strategist/scripts" "$EXO_DIR/roles/strategist/prompts" \
     "$EXO_DIR/roles/strategist/lib" "$EXO_DIR/roles/shared/lib" "$EXO_DIR/lib" \
-    "$EXO_DIR/roles/synchronizer/scripts" "$BIN_DIR" "$LOG_DIR"
+    "$EXO_DIR/roles/synchronizer/scripts" "$EXO_DIR/scripts" "$BIN_DIR" "$LOG_DIR"
 
   cp "${BATS_TEST_DIRNAME}/../roles/strategist/scripts/strategist.sh" "$EXO_DIR/roles/strategist/scripts/strategist.sh"
   cp "${BATS_TEST_DIRNAME}/../roles/strategist/scripts/cleanup-processed-notes.sh" "$EXO_DIR/roles/strategist/scripts/cleanup-processed-notes.sh"
@@ -90,14 +90,14 @@ case "$1" in
   *) /bin/date "$@" ;;
 esac
 EOF
-  cat > "$EXO_DIR/roles/synchronizer/scripts/notify.sh" <<'EOF'
+  cat > "$EXO_DIR/scripts/notify.sh" <<'EOF'
 #!/usr/bin/env bash
 printf '%s %s\n' "$1" "$2" >> "$NOTIFY_LOG"
 exit 0
 EOF
 
   chmod +x "$BIN_DIR/mock-claude" "$BIN_DIR/git" "$BIN_DIR/notify-send" "$BIN_DIR/date" \
-    "$EXO_DIR/roles/synchronizer/scripts/notify.sh" \
+    "$EXO_DIR/scripts/notify.sh" \
     "$EXO_DIR/roles/strategist/scripts/strategist.sh" \
     "$EXO_DIR/roles/strategist/scripts/cleanup-processed-notes.sh"
 }

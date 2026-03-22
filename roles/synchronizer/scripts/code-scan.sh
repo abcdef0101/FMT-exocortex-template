@@ -31,5 +31,5 @@ DRY_RUN=false
 mkdir -p "$LOG_DIR"
 
 code_scan_log "$LOG_FILE" "=== Code Scan Started ==="
-code_scan_run "$WORKSPACE" "$LOG_FILE" "$DRY_RUN" "$SCRIPT_DIR/notify.sh"
+code_scan_run "$WORKSPACE" "$LOG_FILE" "$DRY_RUN" "${SCRIPT_DIR}/../../../scripts/notify.sh"
 code_scan_log "$LOG_FILE" "=== Code Scan Completed ==="

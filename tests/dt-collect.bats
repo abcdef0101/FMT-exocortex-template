@@ -15,7 +15,7 @@ setup() {
 
   mkdir -p "$HOME_DIR/.workspace" "$HOME_DIR/.config/aist" "$HOME_DIR/.claude/projects/-Users-$(whoami)-IWE/memory" \
     "$HOME_DIR/.local/state/exocortex" "$BIN_DIR" "$LOG_DIR" \
-    "$EXO_DIR/roles/synchronizer/scripts" "$EXO_DIR/roles/synchronizer/lib" "$EXO_DIR/lib" \
+    "$EXO_DIR/roles/synchronizer/scripts" "$EXO_DIR/roles/synchronizer/lib" "$EXO_DIR/lib" "$EXO_DIR/scripts" \
     "$WORKSPACE_DIR/DS-strategy/inbox" "$WORKSPACE_DIR/DS-alpha/.git" "$WORKSPACE_DIR/DS-beta/.git"
 
   cp "${BATS_TEST_DIRNAME}/../roles/synchronizer/scripts/dt-collect.sh" "$EXO_DIR/roles/synchronizer/scripts/dt-collect.sh"
@@ -73,12 +73,12 @@ case "$*" in
   *) exit 0 ;;
 esac
 EOF
-  cat > "$EXO_DIR/roles/synchronizer/scripts/notify.sh" <<'EOF'
+  cat > "$EXO_DIR/scripts/notify.sh" <<'EOF'
 #!/usr/bin/env bash
 printf '%s %s\n' "$1" "$2" >> "$PYTHON_NEON_LOG"
 exit 0
 EOF
-  chmod +x "$BIN_DIR/date" "$BIN_DIR/curl" "$BIN_DIR/git" "$EXO_DIR/roles/synchronizer/scripts/notify.sh" "$EXO_DIR/roles/synchronizer/scripts/dt-collect.sh"
+  chmod +x "$BIN_DIR/date" "$BIN_DIR/curl" "$BIN_DIR/git" "$EXO_DIR/scripts/notify.sh" "$EXO_DIR/roles/synchronizer/scripts/dt-collect.sh"
 }
 
 @test "dt-collect --dry-run: emits merged JSON" {

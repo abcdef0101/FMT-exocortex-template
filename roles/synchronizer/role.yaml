@@ -13,7 +13,6 @@ scripts:
   - scripts/dt-collect.sh
   - scripts/dt-collect-neon.py
   - scripts/daily-report.sh
-  - scripts/notify.sh
   - scripts/sync-files.sh
 
 install:

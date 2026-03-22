@@ -5,13 +5,13 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-TEMPLATES_DIR="$SCRIPT_DIR/templates"
+TEMPLATES_DIR="${SCRIPT_DIR}/../roles/synchronizer/scripts/templates"
 
 # shellcheck source=lib/lib-env.sh
-source "${SCRIPT_DIR}/../../../lib/lib-env.sh"
+source "${SCRIPT_DIR}/../lib/lib-env.sh"
 
 # shellcheck source=roles/synchronizer/lib/lib-sync-notify.sh
-source "${SCRIPT_DIR}/../lib/lib-sync-notify.sh"
+source "${SCRIPT_DIR}/../roles/synchronizer/lib/lib-sync-notify.sh"
 
 _repo_root="$(iwe_find_repo_root "${SCRIPT_DIR}")" \
   || { echo "ERROR: Cannot resolve repo root from ${SCRIPT_DIR}" >&2; exit 1; }

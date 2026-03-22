@@ -13,10 +13,10 @@ setup() {
   export HOME="$HOME_DIR"
 
   mkdir -p "$HOME_DIR/.workspace" "$BIN_DIR" "$EXO_DIR/roles/synchronizer/scripts/templates" \
-    "$EXO_DIR/roles/synchronizer/scripts" "$EXO_DIR/roles/synchronizer/lib" "$EXO_DIR/lib" \
+    "$EXO_DIR/roles/synchronizer/scripts" "$EXO_DIR/roles/synchronizer/lib" "$EXO_DIR/lib" "$EXO_DIR/scripts" \
     "$WORKSPACE_DIR/DS-strategy/.git" "$WORKSPACE_DIR/DS-strategy/current" "$WORKSPACE_DIR/DS-alpha/.git" "$WORKSPACE_DIR/DS-beta/.git"
 
-  cp "${BATS_TEST_DIRNAME}/../roles/synchronizer/scripts/notify.sh" "$EXO_DIR/roles/synchronizer/scripts/notify.sh"
+  cp "${BATS_TEST_DIRNAME}/../scripts/notify.sh" "$EXO_DIR/scripts/notify.sh"
   cp "${BATS_TEST_DIRNAME}/../roles/synchronizer/scripts/code-scan.sh" "$EXO_DIR/roles/synchronizer/scripts/code-scan.sh"
   cp -R "${BATS_TEST_DIRNAME}/../roles/synchronizer/scripts/templates/." "$EXO_DIR/roles/synchronizer/scripts/templates/"
   cp -R "${BATS_TEST_DIRNAME}/../roles/synchronizer/lib/." "$EXO_DIR/roles/synchronizer/lib/"
@@ -61,11 +61,11 @@ case "$*" in
   *) exit 0 ;;
 esac
 EOF
-  chmod +x "$BIN_DIR/curl" "$BIN_DIR/date" "$BIN_DIR/git" "$EXO_DIR/roles/synchronizer/scripts/notify.sh" "$EXO_DIR/roles/synchronizer/scripts/code-scan.sh"
+  chmod +x "$BIN_DIR/curl" "$BIN_DIR/date" "$BIN_DIR/git" "$EXO_DIR/scripts/notify.sh" "$EXO_DIR/roles/synchronizer/scripts/code-scan.sh"
 }
 
 @test "notify.sh: dispatches strategist template to Telegram" {
-  run bash "$EXO_DIR/roles/synchronizer/scripts/notify.sh" strategist note-review
+  run bash "$EXO_DIR/scripts/notify.sh" strategist note-review
 
   assert_success
   assert_output --partial 'Telegram notification sent: strategist/note-review'

@@ -158,8 +158,8 @@ EOF
 ### A
 pending
 EOF
-  make_mock_notify_script "$WORKSPACE_DIR/FMT-exocortex-template/roles/synchronizer/scripts/notify.sh"
-  mkdir -p "$WORKSPACE_DIR/FMT-exocortex-template/roles/synchronizer/scripts"
+  make_mock_notify_script "$WORKSPACE_DIR/FMT-exocortex-template/scripts/notify.sh"
+  mkdir -p "$WORKSPACE_DIR/FMT-exocortex-template/scripts"
   run env HOME="$HOME_DIR" PATH="$PATH" bash "$SCRIPT" inbox-check
   assert_success
   run grep -- '--dangerously-skip-permissions' "$MOCK_CLAUDE_ARGS_FILE"

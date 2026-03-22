@@ -64,13 +64,13 @@ EOF
   chmod +x "$BIN_DIR/mock-ai" "$BIN_DIR/git" "$BIN_DIR/notify-send" "$EXO_DIR/roles/extractor/scripts/extractor.sh"
 
   mkdir -p "$WORKSPACE_DIR/DS-strategy/.git" "$WORKSPACE_DIR/DS-strategy/inbox/extraction-reports"
-  mkdir -p "$WORKSPACE_DIR/FMT-exocortex-template/roles/synchronizer/scripts"
-  cat > "$WORKSPACE_DIR/FMT-exocortex-template/roles/synchronizer/scripts/notify.sh" <<'EOF'
+  mkdir -p "$WORKSPACE_DIR/FMT-exocortex-template/scripts"
+  cat > "$WORKSPACE_DIR/FMT-exocortex-template/scripts/notify.sh" <<'EOF'
 #!/usr/bin/env bash
 printf '%s %s\n' "$1" "$2" >> "$ROLE_NOTIFY_LOG"
 exit 0
 EOF
-  chmod +x "$WORKSPACE_DIR/FMT-exocortex-template/roles/synchronizer/scripts/notify.sh"
+  chmod +x "$WORKSPACE_DIR/FMT-exocortex-template/scripts/notify.sh"
 }
 
 @test "extractor inbox-check: пропускает запуск вне рабочих часов" {

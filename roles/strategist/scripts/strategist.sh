@@ -82,7 +82,7 @@ function notify() {
 
 function notify_telegram() {
   local scenario="${1}"
-  "$(dirname "$(dirname "${SCRIPT_DIR}")")/synchronizer/scripts/notify.sh" strategist "${scenario}" >> "${LOG_FILE}" 2>&1 || true
+  "$(dirname "$(dirname "$(dirname "${SCRIPT_DIR}")")")/scripts/notify.sh" strategist "${scenario}" >> "${LOG_FILE}" 2>&1 || true
 }
 
 function run_claude() {

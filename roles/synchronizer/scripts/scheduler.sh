@@ -40,7 +40,7 @@ LOG_DIR="$HOME/.local/state/logs/synchronizer"
 LOG_FILE="$LOG_DIR/scheduler-$(date +%Y-%m-%d).log"
 
 ROLES_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
-NOTIFY_SH="$SCRIPT_DIR/notify.sh"
+NOTIFY_SH="$REPO_ROOT/scripts/notify.sh"
 
 STRATEGIST_SH="$(scheduler_get_role_runner "$ROLES_DIR" strategist)"
 EXTRACTOR_SH="$(scheduler_get_role_runner "$ROLES_DIR" extractor)"
