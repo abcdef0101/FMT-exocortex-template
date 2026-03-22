@@ -21,6 +21,9 @@ setup() {
   cp -R "${BATS_TEST_DIRNAME}/../roles/extractor/lib/." "$EXO_DIR/roles/extractor/lib/"
   cp -R "${BATS_TEST_DIRNAME}/../roles/shared/lib/." "$EXO_DIR/roles/shared/lib/"
   cp -R "${BATS_TEST_DIRNAME}/../lib/." "$EXO_DIR/lib/"
+  mkdir -p "$EXO_DIR/roles/extractor/scripts/templates"
+  cp "${BATS_TEST_DIRNAME}/../roles/extractor/scripts/templates/extractor.sh" \
+     "$EXO_DIR/roles/extractor/scripts/templates/extractor.sh"
   cp "${BATS_TEST_DIRNAME}/../roles/extractor/prompts/inbox-check.md" "$EXO_DIR/roles/extractor/prompts/inbox-check.md"
   cp "${BATS_TEST_DIRNAME}/../roles/extractor/prompts/knowledge-audit.md" "$EXO_DIR/roles/extractor/prompts/knowledge-audit.md"
   cp "${BATS_TEST_DIRNAME}/../roles/extractor/prompts/on-demand.md" "$EXO_DIR/roles/extractor/prompts/on-demand.md"
@@ -115,6 +118,13 @@ EOF
 capture body
 EOF
 
+  local today
+  today=$(date +%Y-%m-%d)
+  cat > "$WORKSPACE_DIR/DS-strategy/inbox/extraction-reports/${today}-test.md" <<'EOF'
+## Кандидат 1
+Вердикт: accept
+EOF
+
   run bash "$EXO_DIR/roles/extractor/scripts/extractor.sh" inbox-check
 
   assert_success
@@ -124,7 +134,7 @@ EOF
   assert_success
   run grep 'add inbox/captures.md inbox/extraction-reports/' "$GIT_CALLS_LOG"
   assert_success
-  run grep 'extractor inbox-check' "$ROLE_NOTIFY_LOG"
+  run grep 'KE: inbox-check' "$ROLE_NOTIFY_LOG"
   assert_success
 }
 
