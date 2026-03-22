@@ -102,7 +102,7 @@ fi
 if dt_write_payload "$SCRIPT_DIR" "$DT_USER_ID" "$MERGED" "$LOG_FILE"; then
     dt_log "$LOG_FILE" "=== DT Collect Completed Successfully ==="
     _NOTIFY_SH="${SCRIPT_DIR}/../../../scripts/notify.sh"
-    _TMPL_DIR="${SCRIPT_DIR}/../../../scripts/templates"
+    _TMPL_DIR="${SCRIPT_DIR}/templates"
     _MSG="$(bash -c 'source "$1"; build_message "dt-collect"' _ "${_TMPL_DIR}/synchronizer.sh")" || true
     [[ -n "${_MSG}" ]] && "${_NOTIFY_SH}" "DT Collect" "${_MSG}" "notice" 2>/dev/null || true
     unset _NOTIFY_SH _TMPL_DIR _MSG

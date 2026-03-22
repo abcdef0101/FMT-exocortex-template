@@ -150,7 +150,7 @@ EOF
 }
 
 @test "template extractor: build_buttons returns empty array" {
-  source "${BATS_TEST_DIRNAME}/../scripts/templates/extractor.sh"
+  source "${BATS_TEST_DIRNAME}/../../extractor/scripts/templates/extractor.sh"
   run build_buttons
   assert_success
   assert_output '[]'
@@ -167,7 +167,7 @@ EOF
 @test "template strategist: find_strategy_file returns today dayplan path" {
   WORKSPACE_DIR="$TEST_DIR/ws"
   mkdir -p "$WORKSPACE_DIR/DS-strategy/current"
-  source "${BATS_TEST_DIRNAME}/../scripts/templates/strategist.sh"
+  source "${BATS_TEST_DIRNAME}/../../strategist/scripts/templates/strategist.sh"
   run find_strategy_file day-plan
   assert_success
   assert_output --partial "DayPlan $(date +%Y-%m-%d).md"

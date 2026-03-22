@@ -18,7 +18,6 @@ setup() {
 
   cp "${BATS_TEST_DIRNAME}/../scripts/notify.sh" "$EXO_DIR/scripts/notify.sh"
   cp "${BATS_TEST_DIRNAME}/../roles/synchronizer/scripts/code-scan.sh" "$EXO_DIR/roles/synchronizer/scripts/code-scan.sh"
-  cp -R "${BATS_TEST_DIRNAME}/../scripts/templates/." "$EXO_DIR/scripts/templates/"
   mkdir -p "$EXO_DIR/scripts/adapters"
   cp -R "${BATS_TEST_DIRNAME}/../scripts/adapters/." "$EXO_DIR/scripts/adapters/"
   chmod +x "$EXO_DIR/scripts/adapters/"*.sh

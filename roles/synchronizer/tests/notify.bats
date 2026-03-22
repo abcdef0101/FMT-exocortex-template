@@ -12,11 +12,9 @@ setup() {
     TEST_DIR="$BATS_TEST_TMPDIR"
     BIN_DIR="$TEST_DIR/bin"
     SCRIPT_DIR_TMP="$TEST_DIR/scripts"
-    TEMPLATES_DIR="$SCRIPT_DIR_TMP/templates"
     CURL_LOG="$TEST_DIR/curl.log"
-    mkdir -p "$SCRIPT_DIR_TMP" "$TEMPLATES_DIR" "$BIN_DIR"
+    mkdir -p "$SCRIPT_DIR_TMP" "$BIN_DIR"
     cp "$REAL_SCRIPT" "$SCRIPT_DIR_TMP/notify.sh"
-    cp -R "${BATS_TEST_DIRNAME}/../../../scripts/templates/." "$TEMPLATES_DIR/"
     mkdir -p "$SCRIPT_DIR_TMP/adapters"
     cp -R "${BATS_TEST_DIRNAME}/../../../scripts/adapters/." "$SCRIPT_DIR_TMP/adapters/"
     chmod +x "$SCRIPT_DIR_TMP/adapters/"*.sh

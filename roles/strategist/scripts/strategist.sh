@@ -84,7 +84,7 @@ function notify_telegram() {
   local scenario="${1}"
   local _notify_sh _tmpl_dir _msg
   _notify_sh="$(dirname "$(dirname "$(dirname "${SCRIPT_DIR}")")")/scripts/notify.sh"
-  _tmpl_dir="$(dirname "$(dirname "$(dirname "${SCRIPT_DIR}")")")/scripts/templates"
+  _tmpl_dir="${SCRIPT_DIR}/templates"
   _msg="$(bash -c 'source "$1"; build_message "$2"' _ "${_tmpl_dir}/strategist.sh" "${scenario}")" || true
   [[ -z "${_msg}" ]] && return 0
   "${_notify_sh}" "Стратег: ${scenario}" "${_msg}" "notice" >> "${LOG_FILE}" 2>&1 || true
