@@ -37,7 +37,7 @@ TMP_DIR=""
 TAG=""
 NEW_WORKSPACE_DIR=""
 BACKUP_GITHUB_REPO="${BACKUP_GITHUB_REPO:-}"
-BACKUP_PASSWORD=""
+BACKUP_PASSWORD="${BACKUP_PASSWORD:-}"
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 

@@ -43,7 +43,7 @@ readonly EXIT_SYNC=11
 
 DRY_RUN=false
 TMP_DIR=""
-BACKUP_PASSWORD=""
+BACKUP_PASSWORD="${BACKUP_PASSWORD:-}"
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 
@@ -227,7 +227,7 @@ function sync_repos() {
     [[ -d "${repo_dir}/.git" ]] || continue
 
     repo_name="$(basename "${repo_dir}")"
-    (( found++ ))
+    found=$(( found + 1 ))
 
     # Get remote URL — required
     remote_url="$(git -C "${repo_dir}" remote get-url origin 2>/dev/null || true)"
