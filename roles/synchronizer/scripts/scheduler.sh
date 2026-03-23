@@ -58,6 +58,79 @@ log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] [scheduler] $1" | tee -a "$LOG_FILE"
 }
 
+# === Управление состоянием ===
+
+ran_today() {
+    [ -f "$STATE_DIR/$1-$DATE" ]
+}
+
+ran_this_week() {
+    [ -f "$STATE_DIR/$1-W$WEEK" ]
+}
+
+mark_done() {
+    echo "$(date '+%H:%M:%S')" > "$STATE_DIR/$1-$DATE"
+}
+
+mark_done_week() {
+    echo "$DATE $(date '+%H:%M:%S')" > "$STATE_DIR/$1-W$WEEK"
+}
+
+last_run_seconds_ago() {
+    local marker="$STATE_DIR/$1-last"
+    if [ -f "$marker" ]; then
+        local prev
+        prev=$(cat "$marker")
+        echo $(( NOW - prev ))
+    else
+        echo 999999
+    fi
+}
+
+mark_interval() {
+    echo "$NOW" > "$STATE_DIR/$1-last"
+}
+
+# === Очистка старых маркеров (>7 дней) ===
+
+cleanup_state() {
+    find "$STATE_DIR" -name "*-202*" -mtime +7 -delete 2>/dev/null || true
+}
+
+# === Pre-archive: мгновенная очистка вчерашнего DayPlan (< 1 сек) ===
+# Разделяет архивацию (мгновенно) и генерацию (15+ мин Claude Code).
+# Гарантирует: даже если генерация ещё не началась, старый план не висит в current/.
+pre_archive_dayplan() {
+    local strategy_dir="{{WORKSPACE_DIR}}/DS-strategy"
+    local archive_dir="$strategy_dir/archive/day-plans"
+    local moved=0
+
+    mkdir -p "$archive_dir"
+
+    for dayplan in "$strategy_dir/current"/DayPlan\ 20*.md; do
+        [ -f "$dayplan" ] || continue
+        local fname
+        fname=$(basename "$dayplan")
+        # Пропускаем сегодняшний план
+        if [[ "$fname" == *"$DATE"* ]]; then continue; fi
+        # Архивируем вчерашний (и любой более старый)
+        git -C "$strategy_dir" mv "$dayplan" "$archive_dir/" 2>/dev/null || mv "$dayplan" "$archive_dir/"
+        moved=$((moved + 1))
+        log "pre-archive: moved $fname → archive/day-plans/"
+    done
+
+    if [ "$moved" -gt 0 ]; then
+        git -C "$strategy_dir" pull --rebase 2>/dev/null || true
+        # ВАЖНО: добавляем ТОЛЬКО перемещённые файлы, не всю директорию.
+        # `git add current/` может подхватить грязные unstaged файлы (баг 21 мар 2026).
+        git -C "$strategy_dir" add -- archive/day-plans/ 2>/dev/null || true
+        git -C "$strategy_dir" add -u -- current/ 2>/dev/null || true
+        git -C "$strategy_dir" commit -m "chore: archive $moved old DayPlan(s)" 2>/dev/null || true
+        git -C "$strategy_dir" push 2>/dev/null || true
+        log "pre-archive: committed and pushed ($moved file(s))"
+    fi
+}
+
 # === Диспетчер ===
 
 dispatch() {

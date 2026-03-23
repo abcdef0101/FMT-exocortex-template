@@ -36,9 +36,10 @@
 
 | Pack | Путь |
 |------|------|
-| PACK-education | Методика обучения |
+| ~~PACK-education~~ | ~~Архивирован → PACK-MIM~~ |
 | PACK-personal | Личностное развитие |
 | PACK-verification | Верификация и приёмка (трансдоменный) |
+| PACK-autonomous-agents | Автономные агенты (BC, различения, методы) |
 
 ## Ключевые документы (Pack DP)
 
@@ -57,6 +58,10 @@
 | knowledge-mcp (исходники) | `DS-MCP/knowledge-mcp/src/index.ts` |
 | knowledge-mcp (ingest) | `DS-MCP/knowledge-mcp/scripts/ingest.ts` |
 | guides-mcp (исходники) | `DS-MCP/guides-mcp/src/index.ts` |
+| fsm-mcp (исходники) | `DS-MCP/fsm-mcp/src/index.ts` |
+| Activity Hub | `DS-IT-systems/activity-hub/` |
+| Автономные агенты (код) | `DS-autonomous-agents/` |
+| Данные агентов (workspace) | `DS-agent-workspace/` |
 
 ## Стратегия
 
