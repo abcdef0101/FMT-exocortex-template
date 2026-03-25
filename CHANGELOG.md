@@ -20,6 +20,7 @@ Versioning: [Semantic Versioning](https://semver.org/).
 - **daily-report.sh conditional** — если DS-agent-workspace/.git существует → отчёты туда, иначе DS-strategy/current/ (обратная совместимость)
 
 ### Updated
+- **LEARNING-PATH §11 FAQ** — 3 развёрнутых ответа (Windows+WSL, заметки, бот отвечает не то) + 6 табличных строк (WP-166: feedback_triage кластеры)
 - docs/LEARNING-PATH, USE-CASES, SETUP-GUIDE, onboarding-guide — убран WeekReport
 - roles/strategist/README, seed/strategy/CLAUDE.md — WeekReport помечен deprecated
 - synchronizer/scripts/templates/strategist.sh — ищет WeekPlan вместо WeekReport
