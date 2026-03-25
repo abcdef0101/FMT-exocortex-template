@@ -4,16 +4,9 @@
 
 set -e
 
-# Предотвращаем сон пока скрипт работает
-# macOS: caffeinate -diu (idle+display+user, работает на батарее; -s НЕ используем — игнорируется при OBC→BATT)
-# Linux: systemd-inhibit (если доступен)
-if [[ "$(uname)" == "Darwin" ]]; then
-    caffeinate -diu -w $$ &
-elif command -v systemd-inhibit &>/dev/null; then
-    systemd-inhibit --what=idle:sleep --who=strategist --why="agent session" --mode=block sleep infinity &
-    _INHIBIT_PID=$!
-    trap 'kill $_INHIBIT_PID 2>/dev/null' EXIT
-fi
+# Предотвращаем сон: -i (idle, работает на батарее) -d (display) -u (user activity)
+# Флаг -s (system sleep) не используем — он НЕ работает на батарее (OBC может переключить профиль)
+caffeinate -diu -w $$ &
 
 # Конфигурация
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
