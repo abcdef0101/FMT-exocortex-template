@@ -562,6 +562,23 @@ if [ -f "$ENV_FILE" ] && [ -n "${ENV_WORKSPACE_DIR:-}" ] && [ -n "${ENV_EXOCORTE
     fi
 fi
 
+# === Step 6c: Merge extensions/mcp-user.json into .mcp.json ===
+MCP_BASE="$WORKSPACE_DIR/.mcp.json"
+MCP_USER="$WORKSPACE_DIR/extensions/mcp-user.json"
+
+if [ -f "$MCP_BASE" ] && [ -f "$MCP_USER" ]; then
+    if command -v jq >/dev/null 2>&1; then
+        MCP_MERGED=$(jq -s '.[0].mcpServers * .[1].mcpServers | {mcpServers: .}' "$MCP_BASE" "$MCP_USER" 2>/dev/null)
+        if [ -n "$MCP_MERGED" ]; then
+            echo "$MCP_MERGED" > "$MCP_BASE"
+            echo "  ✓ .mcp.json — пользовательские MCP из extensions/mcp-user.json добавлены"
+        fi
+    else
+        echo "  ○ .mcp.json — jq не установлен, мёрж extensions/mcp-user.json пропущен"
+        echo "    Установите jq: brew install jq"
+    fi
+fi
+
 # Reinstall roles if changed
 ROLES_CHANGED=false
 for f in "${NEW_FILES[@]}" "${UPDATED_FILES[@]}"; do
