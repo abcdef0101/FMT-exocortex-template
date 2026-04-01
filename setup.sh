@@ -493,12 +493,14 @@ else
     KNOWLEDGE_MCP_DATABASE_URL=""
     DIGITAL_TWIN_MCP_PACKAGE=""
     DIGITAL_TWIN_DATABASE_URL=""
+    MCP_GITHUB_USER="$GITHUB_USER"  # already collected above; re-read from env as fallback
     if [ -f "$ENV_FILE" ]; then
         while IFS= read -r line; do
             case "$line" in \#*|"") continue ;; esac
             k="${line%%=*}"; v="${line#*=}"
             k=$(echo "$k" | tr -d '[:space:]')
             case "$k" in
+                GITHUB_USER)               MCP_GITHUB_USER="$v" ;;
                 KNOWLEDGE_MCP_PACKAGE)     KNOWLEDGE_MCP_PACKAGE="$v" ;;
                 KNOWLEDGE_MCP_DATABASE_URL) KNOWLEDGE_MCP_DATABASE_URL="$v" ;;
                 DIGITAL_TWIN_MCP_PACKAGE)  DIGITAL_TWIN_MCP_PACKAGE="$v" ;;
@@ -512,6 +514,7 @@ else
 
     # Substitute MCP-specific placeholders
     sed_inplace \
+        -e "s|{{GITHUB_USER}}|${MCP_GITHUB_USER:-}|g" \
         -e "s|{{KNOWLEDGE_MCP_PACKAGE}}|${KNOWLEDGE_MCP_PACKAGE:-@aisystant/knowledge-mcp}|g" \
         -e "s|{{KNOWLEDGE_MCP_DATABASE_URL}}|${KNOWLEDGE_MCP_DATABASE_URL:-}|g" \
         -e "s|{{DIGITAL_TWIN_MCP_PACKAGE}}|${DIGITAL_TWIN_MCP_PACKAGE:-@aisystant/digital-twin-mcp}|g" \
