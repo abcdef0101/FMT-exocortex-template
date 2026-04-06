@@ -19,7 +19,7 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 AGENT_DIR="$SCRIPT_DIR"
-BOT_DIR="${BOT_DIR:-$HOME/IWE/DS-IT-systems/{{BOT_REPO}}}"
+BOT_DIR="${BOT_DIR:?BOT_DIR not set. Set it in .env or pass as environment variable, e.g.: BOT_DIR=\$HOME/IWE/your-bot-repo}"
 WORKSPACE_DIR="${WORKSPACE_DIR:-$HOME/IWE/DS-agent-workspace/tester}"
 DATE=$(date +%Y-%m-%d)
 REPORT="$WORKSPACE_DIR/weekly-$DATE.md"
