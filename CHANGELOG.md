@@ -5,6 +5,16 @@ All notable changes to FMT-exocortex-template will be documented in this file.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
+## [0.22.0] — 2026-04-06
+
+### Added
+- **verify SKILL.md** — два новых типа верификации: `chain` (data flow check, CoVe stage 3) и `adversarial` (scope & bias check, pre-mortem). Context isolation sub-agent с чеклистами
+- **day-close.sh** — маппинг dir→source из L2 (sources.json) + L4 (sources-personal.json). Раздельные вызовы selective-reindex через SOURCES_CONFIG. Фикс хронического reindex failure с 20 марта
+
+### Changed
+- **verify SKILL.md** — обновлена нумерация шагов (0→4), unified verdict формат, автоопределение chain/adversarial по контексту
+- **update-manifest.json** → v0.22.0
+
 ## [0.21.0] — 2026-03-29
 
 ### Added
