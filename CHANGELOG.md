@@ -5,6 +5,11 @@ All notable changes to FMT-exocortex-template will be documented in this file.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
+## [0.24.1] — 2026-04-13
+
+### Fixed
+- **protocol-close.md** — Day Close §3: правило архивации DayPlan (`mv current/DayPlan → archive/day-plans/`) + пункт в чеклист Day Close. Week Close §2: архивация WeekPlan прошлой недели + `git status` перед финальным коммитом (незастейженные deletes).
+
 ## [0.24.0] — 2026-04-12
 
 ### Added
