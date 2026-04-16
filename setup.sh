@@ -358,7 +358,7 @@ echo "[3/6] Installing memory..."
 CLAUDE_THIS_PROJECT_DIR="$HOME/.claude/projects/$CLAUDE_PROJECT_SLUG"
 CLAUDE_MEMORY_DIR="$CLAUDE_THIS_PROJECT_DIR/memory"
 if $DRY_RUN; then
-    MEM_COUNT=$(ls "$TEMPLATE_DIR/memory/"*.md 2>/dev/null | wc -l | tr -d ' ')
+    MEM_COUNT=$(ls "$TEMPLATE_DIR/memory/"* 2>/dev/null | wc -l | tr -d ' ')
     echo "  [DRY RUN] Would create directory (if missing): $WORKSPACE_DIR/memory"
     echo "  [DRY RUN] Would copy $MEM_COUNT memory files → $WORKSPACE_DIR/memory/"
     if [ ! -e "$CLAUDE_THIS_PROJECT_DIR" ]; then
@@ -373,7 +373,7 @@ if $DRY_RUN; then
 
 else
     install -d "$WORKSPACE_DIR/memory"
-    install -m 644 "$TEMPLATE_DIR/memory/"*.md "$WORKSPACE_DIR/memory/"
+    install -m 644 "$TEMPLATE_DIR/memory/"* "$WORKSPACE_DIR/memory/"
     echo "  Copied to $WORKSPACE_DIR/memory"
 
     # Create project's directory in .claude
