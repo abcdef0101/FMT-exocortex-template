@@ -178,6 +178,7 @@ else
     check_command "node" "Node.js" "brew install node (or https://nodejs.org)"
     check_command "npm" "npm" "Comes with Node.js"
     check_command "claude" "Claude Code" "npm install -g @anthropic-ai/claude-code"
+    check_command "jq" "commandline JSON processor" "brew install jq"
 
     # Check gh auth
     if command -v gh >/dev/null 2>&1; then
