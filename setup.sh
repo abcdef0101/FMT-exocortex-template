@@ -354,26 +354,47 @@ fi
 
 # === 3. Copy memory to Claude projects directory ===
 echo "[3/6] Installing memory..."
-CLAUDE_MEMORY_DIR="$HOME/.claude/projects/$CLAUDE_PROJECT_SLUG/memory"
+CLAUDE_THIS_PROJECT_DIR="$HOME/.claude/projects/$CLAUDE_PROJECT_SLUG"
+CLAUDE_MEMORY_DIR="$CLAUDE_THIS_PROJECT_DIR/memory"
 if $DRY_RUN; then
     MEM_COUNT=$(ls "$TEMPLATE_DIR/memory/"*.md 2>/dev/null | wc -l | tr -d ' ')
-    echo "  [DRY RUN] Would copy $MEM_COUNT memory files → $CLAUDE_MEMORY_DIR/"
-    if [ ! -e "$WORKSPACE_DIR/memory" ]; then
-        echo "  [DRY RUN] Would create symlink: $WORKSPACE_DIR/memory → $CLAUDE_MEMORY_DIR"
-    else
-        echo "  WARN: $WORKSPACE_DIR/memory already exists, symlink would be skipped."
+    echo "  [DRY RUN] Would create directory (if missing): $WORKSPACE_DIR/memory"
+    echo "  [DRY RUN] Would copy $MEM_COUNT memory files → $WORKSPACE_DIR/memory/"
+    if [ ! -e "$CLAUDE_THIS_PROJECT_DIR" ]; then
+        echo "  [DRY RUN] Would create project dir: $CLAUDE_THIS_PROJECT_DIR"
     fi
+
+    if [ ! -L "$CLAUDE_MEMORY_DIR" ]; then
+        echo "  [DRY RUN] Would create symlink: $CLAUDE_MEMORY_DIR → $WORKSPACE_DIR/memory"
+    else
+        echo "  WARN: $CLAUDE_MEMORY_DIR already exists, symlink would be skipped."
+    fi
+
 else
-    mkdir -p "$CLAUDE_MEMORY_DIR"
-    cp "$TEMPLATE_DIR/memory/"*.md "$CLAUDE_MEMORY_DIR/"
-    echo "  Copied to $CLAUDE_MEMORY_DIR"
+    install -d "$WORKSPACE_DIR/memory"
+    install -m 644 "$TEMPLATE_DIR/memory/"*.md "$WORKSPACE_DIR/memory/"
+    echo "  Copied to $WORKSPACE_DIR/memory"
+
+    # Create project's directory in .claude
+    if [ ! -e "$CLAUDE_THIS_PROJECT_DIR" ]; then
+        install -d "$CLAUDE_THIS_PROJECT_DIR"
+        echo "  Create directory: $CLAUDE_THIS_PROJECT_DIR"
+    fi
+
+    # Ensure the path is not occupied by a physical file or directory
+    if [[ -e "$CLAUDE_MEMORY_DIR" && ! -L "$CLAUDE_MEMORY_DIR" ]]; then
+        echo "ERROR: $CLAUDE_MEMORY_DIR exists but is not a symlink."
+        echo "  Migration: remove it manually and re-run setup.sh"
+        echo "    rm -rf \"$CLAUDE_MEMORY_DIR\""
+        exit 1
+    fi
 
     # Create symlink so CLAUDE.md references (memory/protocol-open.md etc.) resolve from workspace root
-    if [ ! -e "$WORKSPACE_DIR/memory" ]; then
-        ln -s "$CLAUDE_MEMORY_DIR" "$WORKSPACE_DIR/memory"
-        echo "  Symlink: $WORKSPACE_DIR/memory → $CLAUDE_MEMORY_DIR"
+    if [ ! -L "$CLAUDE_MEMORY_DIR" ]; then
+        ln -s "$WORKSPACE_DIR/memory" "$CLAUDE_MEMORY_DIR"
+        echo "  Symlink: $CLAUDE_MEMORY_DIR → $WORKSPACE_DIR/memory"
     else
-        echo "  WARN: $WORKSPACE_DIR/memory already exists, symlink skipped."
+        echo "  WARN: $CLAUDE_MEMORY_DIR already exists, symlink skipped."
     fi
 fi
 
