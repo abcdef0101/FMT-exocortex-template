@@ -408,7 +408,7 @@ if $CORE_ONLY; then
 else
   echo "[4/6] Installing Claude settings..."
   if $DRY_RUN; then
-    if [ -f "$ROOT_DIR/.claude/settings.local.json" ]; then
+    if [ -f "$ROOT_DIR/seed/settings.local.json" ]; then
       echo "  [DRY RUN] Would copy: settings.local.json → $WORKSPACE_DIR/.claude/settings.local.json"
     else
       echo "  WARN: settings.local.json not found in template."
@@ -416,8 +416,8 @@ else
     echo "  [DRY RUN] Would show MCP setup instructions (claude.ai/settings/connectors)"
   else
     mkdir -p "$WORKSPACE_DIR/.claude"
-    if [ -f "$ROOT_DIR/.claude/settings.local.json" ]; then
-      cp "$ROOT_DIR/.claude/settings.local.json" "$WORKSPACE_DIR/.claude/settings.local.json"
+    if [ -f "$ROOT_DIR/seed/settings.local.json" ]; then
+      cp "$ROOT_DIR/seed/settings.local.json" "$WORKSPACE_DIR/.claude/settings.local.json"
       echo "  Copied to $WORKSPACE_DIR/.claude/settings.local.json"
     else
       echo "  WARN: settings.local.json not found in template, skipping."
