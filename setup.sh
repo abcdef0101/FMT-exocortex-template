@@ -47,40 +47,22 @@ for arg in "$@"; do
   esac
 done
 
+ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# TODO: отрефакторить
 # === Validate mode ===
 if $VALIDATE_ONLY; then
   echo "=========================================="
   echo "  Exocortex Validate v$VERSION"
   echo "=========================================="
   echo ""
-  SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-  ENV_FILE="$SCRIPT_DIR/.exocortex.env"
   ERRORS=0
-
-  # Load .exocortex.env
-  if [ -f "$ENV_FILE" ]; then
-    echo "[1/4] Env-конфиг... ✓ .exocortex.env найден"
-    # Safe read: grep KEY=VALUE, no eval/source (values may contain spaces)
-    _env_get() { grep "^$1=" "$ENV_FILE" 2>/dev/null | head -1 | cut -d'=' -f2-; }
-    # Check required keys
-    for key in GITHUB_USER WORKSPACE_DIR; do
-      val=$(_env_get "$key")
-      if [ -z "$val" ]; then
-        echo "  ✗ $key не задан"
-        ERRORS=$((ERRORS + 1))
-      fi
-    done
-  else
-    echo "[1/4] Env-конфиг... ✗ .exocortex.env не найден"
-    echo "  Запустите setup.sh для первичной настройки"
-    ERRORS=$((ERRORS + 1))
-  fi
 
   # Check required files
   echo "[2/4] Файлы..."
-  CHECK_FILES="CLAUDE.md memory/MEMORY.md memory/protocol-open.md memory/protocol-close.md memory/protocol-work.md memory/navigation.md memory/roles.md"
+  CHECK_FILES="CLAUDE.md seed/CLAUDE.md seed/MEMORY.md memory/protocol-open.md memory/protocol-close.md memory/protocol-work.md memory/navigation.md memory/roles.md"
   for f in $CHECK_FILES; do
-    if [ -f "$SCRIPT_DIR/$f" ]; then
+    if [ -f "$ROOT_DIR/$f" ]; then
       echo "  ✓ $f"
     else
       echo "  ✗ $f отсутствует"
@@ -90,13 +72,14 @@ if $VALIDATE_ONLY; then
 
   # Check extensions
   echo "[3/4] Extensions..."
-  if [ -d "$SCRIPT_DIR/extensions" ]; then
-    EXT_COUNT=$(find "$SCRIPT_DIR/extensions" -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
+  # TODO: refactoring
+  if [ -d "$ROOT_DIR/extensions" ]; then
+    EXT_COUNT=$(find "$ROOT_DIR/extensions" -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
     echo "  ✓ extensions/ ($EXT_COUNT файлов)"
   else
     echo "  ⚠ extensions/ не найдена (опционально)"
   fi
-  if [ -f "$SCRIPT_DIR/params.yaml" ]; then
+  if [ -f "$ROOT_DIR/params.yaml" ]; then
     echo "  ✓ params.yaml"
   else
     echo "  ⚠ params.yaml не найден (опционально)"
@@ -128,13 +111,11 @@ fi
 echo ""
 
 # === Detect template directory ===
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-TEMPLATE_DIR="$SCRIPT_DIR"
 
 # Verify we're inside the template
-if [ ! -f "$TEMPLATE_DIR/CLAUDE.md" ] || [ ! -d "$TEMPLATE_DIR/memory" ]; then
+if [ ! -f "$ROO_DIR/CLAUDE.md" ] || [ ! -d "$ROOT_DIR/memory" ] || [ ! -f "$ROOT_DIR/seed/CLAUDE.md" ]; then
   echo "ERROR: This script must be run from the root of FMT-exocortex-template."
-  echo "  Expected: $TEMPLATE_DIR/CLAUDE.md and $TEMPLATE_DIR/memory/"
+  echo "  Expected: $ROOT_DIR/CLAUDE.md, $ROOT_DIR/memory/ $ROOT_DIR/seed/CLAUDE.md"
   echo ""
   echo "  Steps:"
   echo "    gh repo fork TserenTserenov/FMT-exocortex-template --clone"
@@ -143,7 +124,7 @@ if [ ! -f "$TEMPLATE_DIR/CLAUDE.md" ] || [ ! -d "$TEMPLATE_DIR/memory" ]; then
   exit 1
 fi
 
-echo "Template: $TEMPLATE_DIR"
+echo "ROOT DIR: $ROOT_DIR"
 echo ""
 
 # === Prerequisites check ===
@@ -203,13 +184,38 @@ if [ "$PREREQ_FAIL" -eq 1 ]; then
 fi
 
 # === Collect configuration ===
+WORKSPACES_DIR=$(dirname "$ROOT_DIR")/workspaces}"
+
 read -p "GitHub username (или Enter для пропуска): " GITHUB_USER
 GITHUB_USER="${GITHUB_USER:-your-username}"
 
-read -p "Workspace directory [$(dirname "$TEMPLATE_DIR")]: " WORKSPACE_DIR
-WORKSPACE_DIR="${WORKSPACE_DIR:-$(dirname "$TEMPLATE_DIR")}"
-# Expand ~ to $HOME
-WORKSPACE_DIR="${WORKSPACE_DIR/#\~/$HOME}"
+read -p "Workspace name ($WORKSPACES_DIR/) [default-project]: " WORKSPACE_NAME
+
+WORKSPACE_NAME="${WORKSPACE_NAME:-default-project}"
+
+if [ -z "$WORKSPACE_NAME" ]; then
+  echo "ERROR: Project name cannot be empty." >&2
+  exit 1
+fi
+
+if ! echo "$WORKSPACE_NAME" | grep -qxE '[a-zA-Z0-9][a-zA-Z0-9._-]*'; then
+  echo "ERROR: Project name '$WORKSPACE_NAME' is invalid. Use letters, digits, hyphens, dots, underscores; must not start with a hyphen or dot." >&2
+  exit 1
+fi
+
+WORKSPACE_FULL_PATH="$WORKSPACES_DIR/$WORKSPACE_NAME"
+if [ -d "$WORKSPACE_FULL_PATH" ]; then
+  echo "ERROR: Directory $WORKSPACE_FULL_PATH already exists. Remove it or choose another name." >&2
+  exit 1
+fi
+
+# === Ensure workspace exists ===
+if $DRY_RUN; then
+  echo "[DRY RUN] Would create workspace: $WORKSPACE_FULL_PATH"
+else
+  mkdir -p "$WORKSPACE_FULL_PATH"
+fi
+
 
 if $CORE_ONLY; then
   # Core: используем defaults, не спрашиваем Claude-специфичные параметры
@@ -227,15 +233,15 @@ else
   TIMEZONE_DESC="${TIMEZONE_DESC:-${TIMEZONE_HOUR}:00 UTC}"
 fi
 
-HOME_DIR="$HOME"
+
 
 # Compute Claude project slug: /Users/alice/IWE → -Users-alice-IWE
-CLAUDE_PROJECT_SLUG="$(echo "$WORKSPACE_DIR" | tr '/' '-')"
+CLAUDE_PROJECT_SLUG="$(echo "$WORKSPACE_FULL_PATH" | tr '/' '-')"
 
 echo ""
 echo "Configuration:"
 echo "  GitHub user:    $GITHUB_USER"
-echo "  Workspace:      $WORKSPACE_DIR"
+echo "  Workspace:      $WORKSPACE_FULL_PATH"
 if $CORE_ONLY; then
   echo "  Mode:           core (offline)"
 else
@@ -243,7 +249,7 @@ else
   echo "  Schedule hour:  $TIMEZONE_HOUR (UTC)"
   echo "  Time desc:      $TIMEZONE_DESC"
 fi
-echo "  Home dir:       $HOME_DIR"
+echo "  Root dir:       $ROOT_DIR"
 echo "  Project slug:   $CLAUDE_PROJECT_SLUG"
 echo ""
 
@@ -271,7 +277,9 @@ if ! $DRY_RUN; then
 fi
 
 # === Save configuration to .exocortex.env ===
-ENV_FILE="$TEMPLATE_DIR/.exocortex.env"
+
+ENV_FILE="$WORKSPACE_FULL_PATH/.env"
+
 if $DRY_RUN; then
   echo "[DRY RUN] Would save configuration to $ENV_FILE"
 else
@@ -283,12 +291,13 @@ else
 
 # === Core (substituted into template files) ===
 GITHUB_USER=$GITHUB_USER
-WORKSPACE_DIR=$WORKSPACE_DIR
+WORKSPACE_NAME=$WORKSPACE_NAME
+WORKSPACE_FULL_PATH=$WORKSPACE_FULL_PATH
 CLAUDE_PATH=$CLAUDE_PATH
 CLAUDE_PROJECT_SLUG=$CLAUDE_PROJECT_SLUG
 TIMEZONE_HOUR=$TIMEZONE_HOUR
 TIMEZONE_DESC=$TIMEZONE_DESC
-HOME_DIR=$HOME_DIR
+ROOT_DIR=$ROOT_DIR
 
 # === Platform LLM Proxy (optional own API key for unlimited usage) ===
 PLATFORM_LLM_PROXY_URL=https://llm.aisystant.com/v1
@@ -299,61 +308,52 @@ ENVEOF
   echo "  Configuration saved to $ENV_FILE"
 fi
 
-# === Ensure workspace exists ===
-if $DRY_RUN; then
-  echo "[DRY RUN] Would create workspace: $WORKSPACE_DIR"
-else
-  mkdir -p "$WORKSPACE_DIR"
-fi
-
-# === 1. Substitute placeholders ===
-echo ""
-echo "[1/6] Configuring placeholders..."
-
-if $DRY_RUN; then
-  PLACEHOLDER_FILES=$(find "$TEMPLATE_DIR" -type f \( -name "*.md" -o -name "*.json" -o -name "*.sh" -o -name "*.plist" -o -name "*.yaml" -o -name "*.yml" \) | wc -l | tr -d ' ')
-  echo "  [DRY RUN] Would substitute placeholders in $PLACEHOLDER_FILES files"
-  echo "    {{GITHUB_USER}} → $GITHUB_USER"
-  echo "    {{WORKSPACE_DIR}} → $WORKSPACE_DIR"
-  echo "    {{CLAUDE_PATH}} → $CLAUDE_PATH"
-  echo "    {{CLAUDE_PROJECT_SLUG}} → $CLAUDE_PROJECT_SLUG"
-  echo "    {{TIMEZONE_HOUR}} → $TIMEZONE_HOUR"
-  echo "    {{TIMEZONE_DESC}} → $TIMEZONE_DESC"
-  echo "    {{HOME_DIR}} → $HOME_DIR"
-else
-  find "$TEMPLATE_DIR" -type f \( -name "*.md" -o -name "*.json" -o -name "*.sh" -o -name "*.plist" -o -name "*.yaml" -o -name "*.yml" \) | while IFS= read -r file; do
-    sed_inplace \
-      -e "s|{{GITHUB_USER}}|$GITHUB_USER|g" \
-      -e "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g" \
-      -e "s|{{CLAUDE_PATH}}|$CLAUDE_PATH|g" \
-      -e "s|{{CLAUDE_PROJECT_SLUG}}|$CLAUDE_PROJECT_SLUG|g" \
-      -e "s|{{TIMEZONE_HOUR}}|$TIMEZONE_HOUR|g" \
-      -e "s|{{TIMEZONE_DESC}}|$TIMEZONE_DESC|g" \
-      -e "s|{{HOME_DIR}}|$HOME_DIR|g" \
-      "$file"
-  done
-
-  echo "  Placeholders substituted."
-
-  # Enable pre-commit hook for platform compatibility checks
-  if [ -d "$TEMPLATE_DIR/.githooks" ]; then
-    git -C "$TEMPLATE_DIR" config core.hooksPath .githooks 2>/dev/null &&
-      echo "  Pre-commit hook enabled (.githooks/)" || true
-  fi
-fi
+# TODO: refactoring
+# # === 1. Substitute placeholders ===
+# echo ""
+# echo "[1/6] Configuring placeholders..."
+#
+# if $DRY_RUN; then
+#   PLACEHOLDER_FILES=$(find "$ROOT_DIR" -type f \( -name "*.md" -o -name "*.json" -o -name "*.sh" -o -name "*.plist" -o -name "*.yaml" -o -name "*.yml" \) | wc -l | tr -d ' ')
+#   echo "  [DRY RUN] Would substitute placeholders in $PLACEHOLDER_FILES files"
+#   echo "    {{GITHUB_USER}} → $GITHUB_USER"
+#   echo "    {{WORKSPACE_DIR}} → $WORKSPACE_DIR"
+#   echo "    {{CLAUDE_PATH}} → $CLAUDE_PATH"
+#   echo "    {{CLAUDE_PROJECT_SLUG}} → $CLAUDE_PROJECT_SLUG"
+#   echo "    {{TIMEZONE_HOUR}} → $TIMEZONE_HOUR"
+#   echo "    {{TIMEZONE_DESC}} → $TIMEZONE_DESC"
+#   echo "    {{HOME_DIR}} → $HOME_DIR"
+# else
+#   find "$ROOT_DIR" -type f \( -name "*.md" -o -name "*.json" -o -name "*.sh" -o -name "*.plist" -o -name "*.yaml" -o -name "*.yml" \) | while IFS= read -r file; do
+#     sed_inplace \
+#       -e "s|{{GITHUB_USER}}|$GITHUB_USER|g" \
+#       -e "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g" \
+#       -e "s|{{CLAUDE_PATH}}|$CLAUDE_PATH|g" \
+#       -e "s|{{CLAUDE_PROJECT_SLUG}}|$CLAUDE_PROJECT_SLUG|g" \
+#       -e "s|{{TIMEZONE_HOUR}}|$TIMEZONE_HOUR|g" \
+#       -e "s|{{TIMEZONE_DESC}}|$TIMEZONE_DESC|g" \
+#       -e "s|{{HOME_DIR}}|$HOME_DIR|g" \
+#       "$file"
+#   done
+#
+#   echo "  Placeholders substituted."
+#
+#   # Enable pre-commit hook for platform compatibility checks
+#   if [ -d "$ROOT_DIR/.githooks" ]; then
+#     git -C "$ROOT_DIR" config core.hooksPath .githooks 2>/dev/null &&
+#       echo "  Pre-commit hook enabled (.githooks/)" || true
+#   fi
+# fi
 
 # (Repo rename removed — folder stays as FMT-exocortex-template)
-
+# TODO: refaftoring - ?
 # === 2. Copy CLAUDE.md to workspace root ===
-echo "[2/6] Installing CLAUDE.md..."
+echo "[2/6] installing CLAUDE.md into workspace..."
 if $DRY_RUN; then
-  echo "  [DRY RUN] Would copy: $TEMPLATE_DIR/CLAUDE.md → $WORKSPACE_DIR/CLAUDE.md"
-  echo "  [DRY RUN] Would copy: $TEMPLATE_DIR/CLAUDE.extension.md → $WORKSPACE_DIR/CLAUDE.extension.md"
+  echo "  [DRY RUN] Would copy: $ROOT_DIR/seed/CLAUDE.md → $WORKSPACE_DIR/CLAUDE.md"
 else
-  cp "$TEMPLATE_DIR/CLAUDE.md" "$WORKSPACE_DIR/CLAUDE.md"
-  cp "$TEMPLATE_DIR/CLAUDE.extension.md" "$WORKSPACE_DIR/CLAUDE.extension.md"
+  cp "$ROOT_DIR/seed/CLAUDE.md" "$WORKSPACE_DIR/CLAUDE.md"
   echo "  Copied to $WORKSPACE_DIR/CLAUDE.md"
-  echo "  Copied to $WORKSPACE_DIR/CLAUDE.extension.md"
 fi
 
 # === 3. Copy memory to Claude projects directory ===
@@ -361,7 +361,7 @@ echo "[3/6] Installing memory..."
 CLAUDE_THIS_PROJECT_DIR="$HOME/.claude/projects/$CLAUDE_PROJECT_SLUG"
 CLAUDE_MEMORY_DIR="$CLAUDE_THIS_PROJECT_DIR/memory"
 if $DRY_RUN; then
-  MEM_COUNT=$(ls "$TEMPLATE_DIR/memory/"* 2>/dev/null | wc -l | tr -d ' ')
+  MEM_COUNT=$(ls "$ROOT_DIR/memory/"* 2>/dev/null | wc -l | tr -d ' ')
   echo "  [DRY RUN] Would create directory (if missing): $WORKSPACE_DIR/memory"
   echo "  [DRY RUN] Would copy $MEM_COUNT memory files → $WORKSPACE_DIR/memory/"
   if [ ! -e "$CLAUDE_THIS_PROJECT_DIR" ]; then
@@ -376,8 +376,8 @@ if $DRY_RUN; then
 
 else
   install -d "$WORKSPACE_DIR/memory"
-  install -m 644 "$TEMPLATE_DIR/memory/"* "$WORKSPACE_DIR/memory/"
-  echo "  Copied to $WORKSPACE_DIR/memory"
+  install -m 644 "$ROOT_DIR/memory/"* "$WORKSPACE_DIR/memory/"
+  echo "  Copied to $ROOT_DIR/memory"
 
   # Create project's directory in .claude
   if [ ! -e "$CLAUDE_THIS_PROJECT_DIR" ]; then
@@ -408,7 +408,7 @@ if $CORE_ONLY; then
 else
   echo "[4/6] Installing Claude settings..."
   if $DRY_RUN; then
-    if [ -f "$TEMPLATE_DIR/.claude/settings.local.json" ]; then
+    if [ -f "$ROOT_DIR/.claude/settings.local.json" ]; then
       echo "  [DRY RUN] Would copy: settings.local.json → $WORKSPACE_DIR/.claude/settings.local.json"
     else
       echo "  WARN: settings.local.json not found in template."
@@ -416,8 +416,8 @@ else
     echo "  [DRY RUN] Would show MCP setup instructions (claude.ai/settings/connectors)"
   else
     mkdir -p "$WORKSPACE_DIR/.claude"
-    if [ -f "$TEMPLATE_DIR/.claude/settings.local.json" ]; then
-      cp "$TEMPLATE_DIR/.claude/settings.local.json" "$WORKSPACE_DIR/.claude/settings.local.json"
+    if [ -f "$ROOT_DIR/.claude/settings.local.json" ]; then
+      cp "$ROOT_DIR/.claude/settings.local.json" "$WORKSPACE_DIR/.claude/settings.local.json"
       echo "  Copied to $WORKSPACE_DIR/.claude/settings.local.json"
     else
       echo "  WARN: settings.local.json not found in template, skipping."
@@ -433,7 +433,7 @@ else
     echo "  После входа проверьте командой /mcp в Claude Code."
   fi
 fi
-
+# TODO: refactoring
 # === 4b. Propagate skills, hooks, rules to workspace ===
 echo "[4b] Installing skills, hooks, rules..."
 if $DRY_RUN; then
@@ -441,14 +441,14 @@ if $DRY_RUN; then
 else
   mkdir -p "$WORKSPACE_DIR/.claude"
   for subdir in skills hooks rules; do
-    if [ -d "$TEMPLATE_DIR/.claude/$subdir" ]; then
-      cp -r "$TEMPLATE_DIR/.claude/$subdir" "$WORKSPACE_DIR/.claude/"
+    if [ -d "$ROOT_DIR/.claude/$subdir" ]; then
+      cp -r "$ROOT_DIR/.claude/$subdir" "$WORKSPACE_DIR/.claude/"
       echo "  ✓ .claude/$subdir/ → $WORKSPACE_DIR/.claude/$subdir/"
     fi
   done
   # Copy settings.json (project-level, not local)
-  if [ -f "$TEMPLATE_DIR/.claude/settings.json" ]; then
-    cp "$TEMPLATE_DIR/.claude/settings.json" "$WORKSPACE_DIR/.claude/settings.json"
+  if [ -f "$ROOT_DIR/.claude/settings.json" ]; then
+    cp "$ROOT_DIR/.claude/settings.json" "$WORKSPACE_DIR/.claude/settings.json"
     echo "  ✓ .claude/settings.json"
   fi
 fi
@@ -456,7 +456,7 @@ fi
 # === 4c. Copy .mcp.json to workspace ===
 echo "[4c] Configuring .mcp.json..."
 
-MCP_TEMPLATE="$TEMPLATE_DIR/.mcp.json"
+MCP_TEMPLATE="$ROOT_DIR/.mcp.json"
 MCP_DEST="$WORKSPACE_DIR/.mcp.json"
 MCP_USER_EXT="$WORKSPACE_DIR/extensions/mcp-user.json"
 
@@ -531,21 +531,20 @@ ZSHENV_EOF
 
   echo "  ℹ  Restart shell or run: source $ZSHENV_FILE"
 fi
-
 # === 5. Install roles (autodiscovery via role.yaml) ===
 if $CORE_ONLY; then
   echo "[5/6] Автоматизация... пропущена (core mode)"
 elif ! command -v launchctl >/dev/null 2>&1; then
   echo "[5/6] Автоматизация... пропущена (launchd не найден — не macOS)"
   echo "  Роли используют launchd (macOS). На Linux используйте cron/systemd вручную."
-  echo "  См. $TEMPLATE_DIR/roles/ROLE-CONTRACT.md"
+  echo "  См. $ROOT_DIR/roles/ROLE-CONTRACT.md"
 else
   echo "[5/6] Installing roles..."
 
   MANUAL_ROLES=()
 
   # Discover roles by role.yaml manifests (sorted by priority)
-  for role_dir in "$TEMPLATE_DIR"/roles/*/; do
+  for role_dir in "$ROOT_DIR"/roles/*/; do
     [ -d "$role_dir" ] || continue
     role_yaml="$role_dir/role.yaml"
     [ -f "$role_yaml" ] || continue
@@ -576,14 +575,14 @@ else
     echo ""
     echo "  Additional roles (install later when ready):"
     printf '%s\n' "${MANUAL_ROLES[@]}"
-    echo "  See: $TEMPLATE_DIR/roles/ROLE-CONTRACT.md"
+    echo "  See: $ROOT_DIR/roles/ROLE-CONTRACT.md"
   fi
 fi
 
 # === 6. Create DS-strategy repo ===
 echo "[6/6] Setting up DS-strategy..."
 MY_STRATEGY_DIR="$WORKSPACE_DIR/DS-strategy"
-STRATEGY_TEMPLATE="$TEMPLATE_DIR/seed/strategy"
+STRATEGY_TEMPLATE="$ROOT_DIR/seed/strategy"
 
 if [ -d "$MY_STRATEGY_DIR/.git" ]; then
   echo "  DS-strategy already exists as git repo."
@@ -653,7 +652,7 @@ else
   echo "  ✓ Memory:      $CLAUDE_MEMORY_DIR/ ($(ls "$CLAUDE_MEMORY_DIR"/*.md 2>/dev/null | wc -l | tr -d ' ') files)"
   echo "  ✓ Symlink:     $WORKSPACE_DIR/memory → $CLAUDE_MEMORY_DIR"
   echo "  ✓ DS-strategy: $MY_STRATEGY_DIR/"
-  echo "  ✓ Template:    $TEMPLATE_DIR/"
+  echo "  ✓ Template:    $ROOT_DIR/"
   echo ""
 
   echo "Next steps:"
@@ -671,6 +670,6 @@ else
   fi
   echo ""
   echo "Update from upstream:"
-  echo "  cd $TEMPLATE_DIR && bash update.sh"
+  echo "  cd $ROOT_DIR && bash update.sh"
   echo ""
 fi
