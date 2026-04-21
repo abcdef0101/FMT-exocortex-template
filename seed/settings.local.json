@@ -38,6 +38,7 @@
     ]
   },
   "enableAllProjectMcpServers": true,
+  "autoMemoryDirectory": "{{ROOT_DIR}}/workspaces/CURRENT_WORKSPACE/memory",
   "enabledMcpjsonServers": [
     "iwe-knowledge"
   ]

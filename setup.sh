@@ -419,6 +419,9 @@ else
     if [ -f "$ROOT_DIR/seed/settings.local.json" ]; then
       cp "$ROOT_DIR/seed/settings.local.json" "$WORKSPACE_DIR/.claude/settings.local.json"
       echo "  Copied to $WORKSPACE_DIR/.claude/settings.local.json"
+      
+      sed_inplace "s|{{ROOT_DIR}}|$ROOT_DIR|g" "$WORKSPACE_DIR/.claude/settings.local.json"
+      echo "  Placeholder {{ROOT_DIR}} replace into $ROOT_DIR"
     else
       echo "  WARN: settings.local.json not found in template, skipping."
     fi
