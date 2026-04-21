@@ -1,5 +1,5 @@
 {
-  "permissions": {
+"permissions": {
     "defaultMode": "dontAsk",
     "allow": [
       "Edit(/.claude/skills/**)",
