@@ -65,7 +65,7 @@
 | `daily-report.sh` | Утренняя сводка результатов ночных задач |
 | `sync-files.sh` | Синхронизация файлов между репо |
 
-**Telegram (опционально):** Создай `~/.config/aist/env` с:
+**Telegram (опционально):** Создай `WORKSPACE_DIR/env` с:
 ```bash
 export TELEGRAM_BOT_TOKEN="your-token"
 export TELEGRAM_CHAT_ID="your-id"

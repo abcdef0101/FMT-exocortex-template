@@ -7,7 +7,11 @@
 
     <key>ProgramArguments</key>
     <array>
-        <string>{{WORKSPACE_DIR}}/FMT-exocortex-template/roles/strategist/scripts/strategist.sh</string>
+        <string>{{ROOT_DIR}}/roles/strategist/scripts/strategist.sh</string>
+        <string>--workspace-dir</string>
+        <string>{{WORKSPACE_DIR}}</string>
+        <string>--claude-path</string>
+        <string>{{CLAUDE_PATH}}</string>
         <string>morning</string>
     </array>
 
@@ -20,17 +24,15 @@
     </dict>
 
     <key>StandardOutPath</key>
-    <string>{{HOME_DIR}}/logs/strategist/launchd-morning.log</string>
+    <string>{{WORKSPACE_DIR}}/logs/strategist/launchd-morning.log</string>
 
     <key>StandardErrorPath</key>
-    <string>{{HOME_DIR}}/logs/strategist/launchd-morning-error.log</string>
+    <string>{{WORKSPACE_DIR}}/logs/strategist/launchd-morning-error.log</string>
 
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
         <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
-        <key>HOME</key>
-        <string>{{HOME_DIR}}</string>
     </dict>
 
     <key>RunAtLoad</key>
