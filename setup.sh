@@ -58,9 +58,21 @@ if $VALIDATE_ONLY; then
   echo ""
   ERRORS=0
 
-  # Check required files
+  # Check required filels
   echo "[2/4] Файлы..."
-  CHECK_FILES="CLAUDE.md seed/CLAUDE.md seed/MEMORY.md memory/protocol-open.md memory/protocol-close.md memory/protocol-work.md memory/navigation.md memory/roles.md"
+  CHECK_FILES=(
+    "CLAUDE.md"
+    "seed/CLAUDE.md"
+    "seed/MEMORY.md"
+    "seed/settings.local.json"
+    "seed/.mcp.json"
+    "seed/day-rhythm-config.yaml"
+    "memory/protocol-open.md"
+    "memory/protocol-close.md"
+    "memory/protocol-work.md"
+    "memory/navigation.md"
+    "memory/roles.md"
+  )
   for f in $CHECK_FILES; do
     if [ -f "$ROOT_DIR/$f" ]; then
       echo "  ✓ $f"
@@ -70,19 +82,24 @@ if $VALIDATE_ONLY; then
     fi
   done
 
-  # Check extensions
-  echo "[3/4] Extensions..."
-  # TODO: refactoring
-  if [ -d "$ROOT_DIR/extensions" ]; then
-    EXT_COUNT=$(find "$ROOT_DIR/extensions" -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
-    echo "  ✓ extensions/ ($EXT_COUNT файлов)"
-  else
-    echo "  ⚠ extensions/ не найдена (опционально)"
+  # Check the required symlink .claude/settings.local.json --> workspaces/CURRENT_WORKSPACE/.mcp.json
+  if [ ! -L ".claude/settings.local.json"]; then
+    echo " ⚠ Symlink .claude/settings.local.json not found"
   fi
-  if [ -f "$ROOT_DIR/params.yaml" ]; then
-    echo "  ✓ params.yaml"
+  if [ "$(readlink ".claude/settings.local.json")" = "../workspaces/CURRENT_WORKSPACE/.claude/settings.local.json" ]; then
+    echo " ✓ Symlink .claude/settings.local.json == ../workspaces/CURRENT_WORKSPACE/.claude/settings.local.json"
   else
-    echo "  ⚠ params.yaml не найден (опционально)"
+    echo " ⚠ Symlink .claude/settings.local.json != ../workspaces/CURRENT_WORKSPACE/.claude/settings.local.json"
+  fi
+
+  # Check the required symlink ./.mcp.json --> workspaces/CURRENT_WORKSPACE/.mcp.json
+  if [ ! -L ".mcp.json"]; then
+    echo " ⚠ Symlink .mcp.json not found"
+  fi
+  if [ "$(readlink ".mcp.json")" == "workspaces/CURRENT_WORKSPACE/.mcp.json" ]; then
+    echo " ✓ Symlink .mcp.json == workspaces/CURRENT_WORKSPACE/.mcp.json"
+  else
+    echo " ⚠ Symlink .mcp.json != workspaces/CURRENT_WORKSPACE/.mcp.json"
   fi
 
   # Check MCP accessibility
@@ -111,11 +128,41 @@ fi
 echo ""
 
 # === Detect template directory ===
-
-# Verify we're inside the template
-if [ ! -f "$ROO_DIR/CLAUDE.md" ] || [ ! -d "$ROOT_DIR/memory" ] || [ ! -f "$ROOT_DIR/seed/CLAUDE.md" ]; then
-  echo "ERROR: This script must be run from the root of FMT-exocortex-template."
-  echo "  Expected: $ROOT_DIR/CLAUDE.md, $ROOT_DIR/memory/ $ROOT_DIR/seed/CLAUDE.md"
+missing=()
+files=(
+  "$ROO_DIR/CLAUDE.md"
+  "$ROOT_DIR/persistent-memory"
+  "$ROOT_DIR/seed"
+  "$ROOT_DIR/seed/CLAUDE.md"
+  "$ROOT_DIR/seed/MEMORY.md"
+  "$ROOT_DIR/seed/settings.local.json"
+)
+for f in "${files[@]}"; do
+  if [[ ! -e "$f" ]]; then
+    misssng+=("$f")
+  fi
+done
+if [[ "$missing[@]" -gt 0 ]]; then
+  echo "  ERROR: files not found" >&2
+  printf '  - %s\n' "${missing[@]}" >&2
+  echo ""
+  echo "  Steps:"
+  echo "    gh repo fork TserenTserenov/FMT-exocortex-template --clone"
+  echo "    cd FMT-exocortex-template"
+  echo "    bash setup.sh"
+  exit 1
+fi
+if [[ "$(readlink ".claude/settings.local.json")" != "../workspaces/CURRENT_WORKSPACE/.claude/settings.local.json" ]]; then
+  echo "  ERROR: .claude/settings.local.json != ../workspaces/CURRENT_WORKSPACE/.claude/settings.local.json" >&2
+  echo ""
+  echo "  Steps:"
+  echo "    gh repo fork TserenTserenov/FMT-exocortex-template --clone"
+  echo "    cd FMT-exocortex-template"
+  echo "    bash setup.sh"
+  exit 1
+fi
+if [[ "$(readlink ".mcp.json")" != "workspaces/CURRENT_WORKSPACE/.mcp.json" ]]; then
+  echo "  ERROR: This script must be run from the root of FMT-exocortex-template." >&2
   echo ""
   echo "  Steps:"
   echo "    gh repo fork TserenTserenov/FMT-exocortex-template --clone"
@@ -184,8 +231,7 @@ if [ "$PREREQ_FAIL" -eq 1 ]; then
 fi
 
 # === Collect configuration ===
-WORKSPACES_DIR=$(dirname "$ROOT_DIR")/workspaces}"
-
+WORKSPACES_DIR="$ROOT_DIR/workspaces"
 read -p "GitHub username (или Enter для пропуска): " GITHUB_USER
 GITHUB_USER="${GITHUB_USER:-your-username}"
 
@@ -216,7 +262,6 @@ else
   mkdir -p "$WORKSPACE_FULL_PATH"
 fi
 
-
 if $CORE_ONLY; then
   # Core: используем defaults, не спрашиваем Claude-специфичные параметры
   CLAUDE_PATH="${AI_CLI:-claude}"
@@ -233,10 +278,8 @@ else
   TIMEZONE_DESC="${TIMEZONE_DESC:-${TIMEZONE_HOUR}:00 UTC}"
 fi
 
-
-
 # Compute Claude project slug: /Users/alice/IWE → -Users-alice-IWE
-CLAUDE_PROJECT_SLUG="$(echo "$WORKSPACE_FULL_PATH" | tr '/' '-')"
+CLAUDE_PROJECT_SLUG="$(echo "$ROOT_DIR" | tr '/' '-')"
 
 echo ""
 echo "Configuration:"
@@ -250,7 +293,7 @@ else
   echo "  Time desc:      $TIMEZONE_DESC"
 fi
 echo "  Root dir:       $ROOT_DIR"
-echo "  Project slug:   $CLAUDE_PROJECT_SLUG"
+echo "  Root slug:   $CLAUDE_PROJECT_SLUG"
 echo ""
 
 # === Data Policy acceptance (skip in dry-run) ===
@@ -317,7 +360,7 @@ fi
 #   PLACEHOLDER_FILES=$(find "$ROOT_DIR" -type f \( -name "*.md" -o -name "*.json" -o -name "*.sh" -o -name "*.plist" -o -name "*.yaml" -o -name "*.yml" \) | wc -l | tr -d ' ')
 #   echo "  [DRY RUN] Would substitute placeholders in $PLACEHOLDER_FILES files"
 #   echo "    {{GITHUB_USER}} → $GITHUB_USER"
-#   echo "    {{WORKSPACE_DIR}} → $WORKSPACE_DIR"
+#   echo "    {{WORKSPACE_FULL_PATH}} → $WORKSPACE_FULL_PATH"
 #   echo "    {{CLAUDE_PATH}} → $CLAUDE_PATH"
 #   echo "    {{CLAUDE_PROJECT_SLUG}} → $CLAUDE_PROJECT_SLUG"
 #   echo "    {{TIMEZONE_HOUR}} → $TIMEZONE_HOUR"
@@ -327,7 +370,7 @@ fi
 #   find "$ROOT_DIR" -type f \( -name "*.md" -o -name "*.json" -o -name "*.sh" -o -name "*.plist" -o -name "*.yaml" -o -name "*.yml" \) | while IFS= read -r file; do
 #     sed_inplace \
 #       -e "s|{{GITHUB_USER}}|$GITHUB_USER|g" \
-#       -e "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g" \
+#       -e "s|{{WORKSPACE_FULL_PATH}}|$WORKSPACE_FULL_PATH|g" \
 #       -e "s|{{CLAUDE_PATH}}|$CLAUDE_PATH|g" \
 #       -e "s|{{CLAUDE_PROJECT_SLUG}}|$CLAUDE_PROJECT_SLUG|g" \
 #       -e "s|{{TIMEZONE_HOUR}}|$TIMEZONE_HOUR|g" \
@@ -346,59 +389,40 @@ fi
 # fi
 
 # (Repo rename removed — folder stays as FMT-exocortex-template)
-# TODO: refaftoring - ?
 # === 2. Copy CLAUDE.md to workspace root ===
 echo "[2/6] installing CLAUDE.md into workspace..."
 if $DRY_RUN; then
-  echo "  [DRY RUN] Would copy: $ROOT_DIR/seed/CLAUDE.md → $WORKSPACE_DIR/CLAUDE.md"
+  echo "  [DRY RUN] Would copy: $ROOT_DIR/seed/CLAUDE.md → $WORKSPACE_FULL_PATH/CLAUDE.md"
 else
-  cp "$ROOT_DIR/seed/CLAUDE.md" "$WORKSPACE_DIR/CLAUDE.md"
-  echo "  Copied to $WORKSPACE_DIR/CLAUDE.md"
+  cp "$ROOT_DIR/seed/CLAUDE.md" "$WORKSPACE_FULL_PATH/CLAUDE.md"
+  echo "  Copied to $WORKSPACE_FULL_PATH/CLAUDE.md"
 fi
 
 # === 3. Copy memory to Claude projects directory ===
 echo "[3/6] Installing memory..."
-CLAUDE_THIS_PROJECT_DIR="$HOME/.claude/projects/$CLAUDE_PROJECT_SLUG"
-CLAUDE_MEMORY_DIR="$CLAUDE_THIS_PROJECT_DIR/memory"
 if $DRY_RUN; then
-  MEM_COUNT=$(ls "$ROOT_DIR/memory/"* 2>/dev/null | wc -l | tr -d ' ')
-  echo "  [DRY RUN] Would create directory (if missing): $WORKSPACE_DIR/memory"
-  echo "  [DRY RUN] Would copy $MEM_COUNT memory files → $WORKSPACE_DIR/memory/"
-  if [ ! -e "$CLAUDE_THIS_PROJECT_DIR" ]; then
-    echo "  [DRY RUN] Would create project dir: $CLAUDE_THIS_PROJECT_DIR"
-  fi
-
-  if [ ! -L "$CLAUDE_MEMORY_DIR" ]; then
-    echo "  [DRY RUN] Would create symlink: $CLAUDE_MEMORY_DIR → $WORKSPACE_DIR/memory"
+  MEM_COUNT=$(ls "$ROOT_DIR/persistent-memory/"* 2>/dev/null | wc -l | tr -d ' ')
+  if [[ "$MEM_COUNT" -gt 0 ]]; then
+    echo "  [DRY RUN] Would create directory (if missing): $WORKSPACE_FULL_PATH/memory"
+    echo "  [DRY RUN] Would copy seed/MEMORY.md → $WORKSPACE_FULL_PATH/memory/"
+    echo "  [DRY RUN] Would create symlink $WORKSPACE_FULL_PATH/memory/persistent-memory --> ../../../persistent-memory/"
   else
-    echo "  WARN: $CLAUDE_MEMORY_DIR already exists, symlink would be skipped."
+    echo "  [DRY RUN] $ROOT_DIR/persistent-memory is empty"
   fi
 
 else
-  install -d "$WORKSPACE_DIR/memory"
-  install -m 644 "$ROOT_DIR/memory/"* "$WORKSPACE_DIR/memory/"
-  echo "  Copied to $ROOT_DIR/memory"
-
-  # Create project's directory in .claude
-  if [ ! -e "$CLAUDE_THIS_PROJECT_DIR" ]; then
-    install -d "$CLAUDE_THIS_PROJECT_DIR"
-    echo "  Create directory: $CLAUDE_THIS_PROJECT_DIR"
-  fi
-
-  # Ensure the path is not occupied by a physical file or directory
-  if [[ -e "$CLAUDE_MEMORY_DIR" && ! -L "$CLAUDE_MEMORY_DIR" ]]; then
-    echo "ERROR: $CLAUDE_MEMORY_DIR exists but is not a symlink."
-    echo "  Migration: remove it manually and re-run setup.sh"
-    echo "    rm -rf \"$CLAUDE_MEMORY_DIR\""
-    exit 1
-  fi
+  install -d "$WORKSPACE_FULL_PATH/memory"
+  cp "$ROOT_DIR/seed/MEMORY.md" "$WORKSPACE_FULL_PATH/memory/"
+  echo "  Copy template $ROOT_DIR/seed/MEMORY.md -> $WORKSPACE_FULL_PATH/memory/"
+  cp "$ROOT_DIR/seed/day-rhythm-config.yaml" "$WORKSPACE_FULL_PATH/memory/"
+  echo "  Copy template $ROOT_DIR/seed/day-rhythm-config.yaml -> $WORKSPACE_FULL_PATH/memory/"
 
   # Create symlink so CLAUDE.md references (memory/protocol-open.md etc.) resolve from workspace root
-  if [ ! -L "$CLAUDE_MEMORY_DIR" ]; then
-    ln -s "$WORKSPACE_DIR/memory" "$CLAUDE_MEMORY_DIR"
-    echo "  Symlink: $CLAUDE_MEMORY_DIR → $WORKSPACE_DIR/memory"
+  if [ ! -L "$WORKSPACE_FULL_PATH/memory/persistent-memory" ]; then
+    ln -s "../../../persistent-memory/" "$WORKSPACE_FULL_PATH/memory/persistent-memory"
+    echo "  Symlink:  ../../../persistent-memory/ → $WORKSPACE_FULL_PATH/memory/persistent-memory"
   else
-    echo "  WARN: $CLAUDE_MEMORY_DIR already exists, symlink skipped."
+    echo "  WARN: $WORKSPACE_FULL_PATH/memory/persistent-memory already exists, symlink skipped."
   fi
 fi
 
@@ -409,189 +433,69 @@ else
   echo "[4/6] Installing Claude settings..."
   if $DRY_RUN; then
     if [ -f "$ROOT_DIR/seed/settings.local.json" ]; then
-      echo "  [DRY RUN] Would copy: settings.local.json → $WORKSPACE_DIR/.claude/settings.local.json"
+      echo "  [DRY RUN] Would copy: settings.local.json → $WORKSPACE_FULL_PATH/.claude/settings.local.json"
+      echo "  [DRY RUN] Would replace: {{ROOT_DIR}} → $ROOT_DIR in $WORKSPACE_FULL_PATH/.claude/settings.local.json"
     else
-      echo "  WARN: settings.local.json not found in template."
+      echo "  WARN: $ROOT_DIR/seed/settings.local.json not found in template."
     fi
     echo "  [DRY RUN] Would show MCP setup instructions (claude.ai/settings/connectors)"
   else
-    mkdir -p "$WORKSPACE_DIR/.claude"
+    mkdir -p "$WORKSPACE_FULL_PATH/.claude"
     if [ -f "$ROOT_DIR/seed/settings.local.json" ]; then
-      cp "$ROOT_DIR/seed/settings.local.json" "$WORKSPACE_DIR/.claude/settings.local.json"
-      echo "  Copied to $WORKSPACE_DIR/.claude/settings.local.json"
-      
-      sed_inplace "s|{{ROOT_DIR}}|$ROOT_DIR|g" "$WORKSPACE_DIR/.claude/settings.local.json"
-      echo "  Placeholder {{ROOT_DIR}} replace into $ROOT_DIR"
+      cp "$ROOT_DIR/seed/settings.local.json" "$WORKSPACE_FULL_PATH/.claude/settings.local.json"
+      echo "  $ROOT_DIR/seed/settings.local.json copied to $WORKSPACE_FULL_PATH/.claude/settings.local.json"
+
+      sed_inplace "s|{{ROOT_DIR}}|$ROOT_DIR|g" "$WORKSPACE_FULL_PATH/.claude/settings.local.json"
+      echo "  Replace the placeholder {{ROOT_DIR}} into $ROOT_DIR in $WORKSPACE_FULL_PATH/.claude/settings.local.json"
     else
-      echo "  WARN: settings.local.json not found in template, skipping."
-    fi
-
-    # MCP knowledge servers connect through Gateway (OAuth auto-flow)
-    echo "  Знаниевые MCP-серверы подключаются через Gateway (автоматически):"
-    echo ""
-    echo "  .mcp.json уже содержит iwe-knowledge → https://mcp.aisystant.com/mcp"
-    echo "  При первом запуске Claude Code откроется браузер для входа через Ory."
-    echo "  Необходима подписка «Бесконечное развитие»."
-    echo ""
-    echo "  После входа проверьте командой /mcp в Claude Code."
-  fi
-fi
-# TODO: refactoring
-# === 4b. Propagate skills, hooks, rules to workspace ===
-echo "[4b] Installing skills, hooks, rules..."
-if $DRY_RUN; then
-  echo "  [DRY RUN] Would copy .claude/skills/, .claude/hooks/, .claude/rules/ → $WORKSPACE_DIR/.claude/"
-else
-  mkdir -p "$WORKSPACE_DIR/.claude"
-  for subdir in skills hooks rules; do
-    if [ -d "$ROOT_DIR/.claude/$subdir" ]; then
-      cp -r "$ROOT_DIR/.claude/$subdir" "$WORKSPACE_DIR/.claude/"
-      echo "  ✓ .claude/$subdir/ → $WORKSPACE_DIR/.claude/$subdir/"
-    fi
-  done
-  # Copy settings.json (project-level, not local)
-  if [ -f "$ROOT_DIR/.claude/settings.json" ]; then
-    cp "$ROOT_DIR/.claude/settings.json" "$WORKSPACE_DIR/.claude/settings.json"
-    echo "  ✓ .claude/settings.json"
-  fi
-fi
-
-# === 4c. Copy .mcp.json to workspace ===
-echo "[4c] Configuring .mcp.json..."
-
-MCP_TEMPLATE="$ROOT_DIR/.mcp.json"
-MCP_DEST="$WORKSPACE_DIR/.mcp.json"
-MCP_USER_EXT="$WORKSPACE_DIR/extensions/mcp-user.json"
-
-if $DRY_RUN; then
-  echo "  [DRY RUN] Would copy $MCP_TEMPLATE → $MCP_DEST"
-  echo "    iwe-knowledge → https://mcp.aisystant.com/mcp (OAuth)"
-  if [ -f "$MCP_USER_EXT" ] && command -v jq >/dev/null 2>&1; then
-    echo "  [DRY RUN] Would merge extensions/mcp-user.json into .mcp.json"
-  fi
-elif [ ! -f "$MCP_TEMPLATE" ]; then
-  echo "  WARN: $MCP_TEMPLATE not found, skipping."
-else
-  # Copy template .mcp.json to workspace (no placeholders — Gateway URL is static)
-  cp "$MCP_TEMPLATE" "$MCP_DEST"
-  echo "  ✓ $MCP_DEST → iwe-knowledge (Gateway, OAuth)"
-
-  # Merge extensions/mcp-user.json if it exists and has content
-  if [ -f "$MCP_USER_EXT" ]; then
-    if command -v jq >/dev/null 2>&1; then
-      USER_COUNT=$(jq '.mcpServers | length' "$MCP_USER_EXT" 2>/dev/null || echo "0")
-      if [ "$USER_COUNT" -gt 0 ]; then
-        MCP_MERGED=$(jq -s '.[0].mcpServers * .[1].mcpServers | {mcpServers: .}' "$MCP_DEST" "$MCP_USER_EXT" 2>/dev/null)
-        if [ -n "$MCP_MERGED" ]; then
-          echo "$MCP_MERGED" >"$MCP_DEST"
-          echo "  ✓ Merged $USER_COUNT server(s) from extensions/mcp-user.json"
-        fi
-      fi
-    else
-      echo "  ○ jq not found — extensions/mcp-user.json merge skipped"
-      echo "    Install jq: brew install jq"
+      echo "  ERROR: $ROOT_DIR/seed/settings.local.json not found, skipping."
+      exit 1
     fi
   fi
 fi
 
-# === 4d. IWE environment variables (WP-219, DP.FM.009) ===
-# Lookup-слой для путей к скриптам: протоколы и скиллы ссылаются на
-# $IWE_SCRIPTS / $IWE_ROLES, а не на абсолютные пути. Перемещение скрипта
-# ломает одну переменную, а не N протоколов.
-echo "[4d] Installing IWE environment variables..."
-
-IWE_ENV_FILE="$HOME/.iwe-paths"
-ZSHENV_FILE="$HOME/.zshenv"
-IWE_ENV_MARKER="# IWE environment (WP-219, DP.FM.009): lookup-слой для путей к скриптам"
-
-if $DRY_RUN; then
-  echo "  [DRY RUN] Would write $IWE_ENV_FILE with IWE_WORKSPACE/IWE_TEMPLATE/IWE_SCRIPTS/IWE_ROLES"
-  echo "  [DRY RUN] Would ensure $ZSHENV_FILE sources $IWE_ENV_FILE"
-else
-  cat >"$IWE_ENV_FILE" <<IWEENV_EOF
-# IWE environment variables
-# Generated by setup.sh v$VERSION. Rerun setup.sh or iwe-update to regenerate.
-# Do not edit manually — changes will be lost.
-
-export IWE_WORKSPACE="$WORKSPACE_DIR"
-export IWE_TEMPLATE="\$IWE_WORKSPACE/FMT-exocortex-template"
-export IWE_SCRIPTS="\$IWE_TEMPLATE/scripts"
-export IWE_ROLES="\$IWE_TEMPLATE/roles"
-IWEENV_EOF
-  echo "  ✓ $IWE_ENV_FILE written"
-
-  # Ensure ~/.zshenv sources ~/.iwe-paths (idempotent)
-  if [ -f "$ZSHENV_FILE" ] && grep -qF "$IWE_ENV_MARKER" "$ZSHENV_FILE"; then
-    echo "  ○ $ZSHENV_FILE already sources \$HOME/.iwe-paths"
-  else
-    cat >>"$ZSHENV_FILE" <<'ZSHENV_EOF'
-
-# IWE environment (WP-219, DP.FM.009): lookup-слой для путей к скриптам
-[ -f "$HOME/.iwe-paths" ] && source "$HOME/.iwe-paths"
-ZSHENV_EOF
-    echo "  ✓ $ZSHENV_FILE → sources \$HOME/.iwe-paths"
-  fi
-
-  echo "  ℹ  Restart shell or run: source $ZSHENV_FILE"
-fi
-# === 5. Install roles (autodiscovery via role.yaml) ===
+# === 4. Copy .claude settings ===
 if $CORE_ONLY; then
-  echo "[5/6] Автоматизация... пропущена (core mode)"
-elif ! command -v launchctl >/dev/null 2>&1; then
-  echo "[5/6] Автоматизация... пропущена (launchd не найден — не macOS)"
-  echo "  Роли используют launchd (macOS). На Linux используйте cron/systemd вручную."
-  echo "  См. $ROOT_DIR/roles/ROLE-CONTRACT.md"
+  echo "[5/6] Claude install mcp... пропущено (core mode)"
 else
-  echo "[5/6] Installing roles..."
+  echo "[5/6] Claude installing mcp..."
 
-  MANUAL_ROLES=()
+  echo "  Copy $ROOT_DIR/seed/.mcp.json -> $WORKSPACE_FULL_PATH/"
+  # MCP knowledge servers connect through Gateway (OAuth auto-flow)
+  echo "  Знаниевые MCP-серверы подключаются через Gateway (автоматически):"
+  echo ""
+  echo "  .mcp.json уже содержит iwe-knowledge → https://mcp.aisystant.com/mcp"
+  echo "  При первом запуске Claude Code откроется браузер для входа через Ory."
+  echo "  Необходима подписка «Бесконечное развитие»."
+  echo "  ✓ $ROOT_DIR/seed/.mcp.json → iwe-knowledge (Gateway, OAuth)"
+  echo ""
+  echo "  После входа проверьте командой /mcp в Claude Code."
+fi
 
-  # Discover roles by role.yaml manifests (sorted by priority)
-  for role_dir in "$ROOT_DIR"/roles/*/; do
-    [ -d "$role_dir" ] || continue
-    role_yaml="$role_dir/role.yaml"
-    [ -f "$role_yaml" ] || continue
-    role_name=$(basename "$role_dir")
+# === 4c. Prepare directory in workspace for user's mcps in json format ===
+echo "[4c] Prepare directory in workspace for user's mcps in json format"
 
-    if grep -q 'auto:.*true' "$role_yaml" 2>/dev/null; then
-      # Auto-install role
-      if [ -f "$role_dir/install.sh" ]; then
-        if $DRY_RUN; then
-          echo "  [DRY RUN] Would install role: $role_name (auto)"
-        else
-          chmod +x "$role_dir/install.sh"
-          runner=$(grep '^runner:' "$role_yaml" | sed 's/runner: *//' | tr -d '"' | tr -d "'")
-          [ -n "$runner" ] && chmod +x "$role_dir/$runner" 2>/dev/null || true
-          bash "$role_dir/install.sh"
-          echo "  ✓ $role_name installed"
-        fi
-      else
-        echo "  WARN: $role_name/install.sh not found, skipping."
-      fi
-    else
-      display=$(grep 'display_name:' "$role_yaml" 2>/dev/null | sed 's/display_name: *//' | tr -d '"')
-      MANUAL_ROLES+=("  - ${display:-$role_name}: bash $role_dir/install.sh")
-    fi
-  done
+MCP_USER_DIR="$WORKSPACE_FULL_PATH/extensions/mcps"
 
-  if [ ${#MANUAL_ROLES[@]} -gt 0 ]; then
-    echo ""
-    echo "  Additional roles (install later when ready):"
-    printf '%s\n' "${MANUAL_ROLES[@]}"
-    echo "  See: $ROOT_DIR/roles/ROLE-CONTRACT.md"
+if $DRY_RUN; then
+  echo "  [DRY RUN] Would create directory for user's mcps $MCP_USER_DIR"
+else
+  if [ ! -f "$MCP_TEMPLATE" ]; then
+    mkdir -p $MCP_USER_DIR
+    echo "  Create directory: $MCP_USER_DIR"
   fi
 fi
 
-# === 6. Create DS-strategy repo ===
-echo "[6/6] Setting up DS-strategy..."
-MY_STRATEGY_DIR="$WORKSPACE_DIR/DS-strategy"
+# === 5. Create DS-strategy repo ===
+echo "[5/5] Setting up DS-strategy..."
+MY_STRATEGY_DIR="$WORKSPACE_FULL_PATH/DS-strategy"
 STRATEGY_TEMPLATE="$ROOT_DIR/seed/strategy"
 
 if [ -d "$MY_STRATEGY_DIR/.git" ]; then
   echo "  DS-strategy already exists as git repo."
 elif $DRY_RUN; then
   if [ -d "$STRATEGY_TEMPLATE" ]; then
-    echo "  [DRY RUN] Would create DS-strategy from seed/strategy → $MY_STRATEGY_DIR"
+    echo "  [DRY RUN] Would create DS-strategy from $STRATEGY_TEMPLATE → $MY_STRATEGY_DIR"
     echo "  [DRY RUN] Would init git repo + initial commit"
     if ! $CORE_ONLY; then
       echo "  [DRY RUN] Would create GitHub repo: $GITHUB_USER/DS-strategy (private)"
@@ -633,6 +537,53 @@ else
   fi
 fi
 
+# TODO: refactoring
+# === 6. Install roles (autodiscovery via role.yaml) ===
+if $CORE_ONLY; then
+  echo "[6/6] Автоматизация... пропущена (core mode)"
+else
+  echo "  Роли используют launchd (macOS). На Linux используйте cron/systemd вручную."
+  echo "  См. $ROOT_DIR/roles/ROLE-CONTRACT.md"
+  echo "[6/6] Installing roles..."
+
+  MANUAL_ROLES=()
+
+  # Discover roles by role.yaml manifests (sorted by priority)
+  for role_dir in "$ROOT_DIR"/roles/*/; do
+    [ -d "$role_dir" ] || continue
+    role_yaml="$role_dir/role.yaml"
+    [ -f "$role_yaml" ] || continue
+    role_name=$(basename "$role_dir")
+
+    if grep -q 'auto:.*true' "$role_yaml" 2>/dev/null; then
+      # Auto-install role
+      if [ -f "$role_dir/install.sh" ]; then
+        if $DRY_RUN; then
+          echo "  [DRY RUN] Would install role: $role_name (auto)"
+        else
+          chmod +x "$role_dir/install.sh"
+          runner=$(grep '^runner:' "$role_yaml" | sed 's/runner: *//' | tr -d '"' | tr -d "'")
+          [ -n "$runner" ] && chmod +x "$role_dir/$runner" 2>/dev/null || true
+          bash "$role_dir/install.sh"
+          echo "  ✓ $role_name installed"
+        fi
+      else
+        echo "  WARN: $role_name/install.sh not found, skipping."
+      fi
+    else
+      display=$(grep 'display_name:' "$role_yaml" 2>/dev/null | sed 's/display_name: *//' | tr -d '"')
+      MANUAL_ROLES+=("  - ${display:-$role_name}: bash $role_dir/install.sh")
+    fi
+  done
+
+  if [ ${#MANUAL_ROLES[@]} -gt 0 ]; then
+    echo ""
+    echo "  Additional roles (install later when ready):"
+    printf '%s\n' "${MANUAL_ROLES[@]}"
+    echo "  See: $ROOT_DIR/roles/ROLE-CONTRACT.md"
+  fi
+fi
+
 # === Done ===
 echo ""
 if $DRY_RUN; then
@@ -651,15 +602,15 @@ else
   echo "=========================================="
   echo ""
   echo "Verify installation:"
-  echo "  ✓ CLAUDE.md:   $WORKSPACE_DIR/CLAUDE.md"
-  echo "  ✓ Memory:      $CLAUDE_MEMORY_DIR/ ($(ls "$CLAUDE_MEMORY_DIR"/*.md 2>/dev/null | wc -l | tr -d ' ') files)"
-  echo "  ✓ Symlink:     $WORKSPACE_DIR/memory → $CLAUDE_MEMORY_DIR"
+  echo "  ✓ CLAUDE.md:   $WORKSPACE_FULL_PATH/CLAUDE.md"
+  echo "  ✓ Memory:      $WORKSPACE_FULL_PATH/memory ($(ls "$WORKSPACE_FULL_PATH"/memory/ 2>/dev/null) file)"
+  echo "  ✓ Symlink:     $WORKSPACE_FULL_PATH/memory/persistent-memory → ($(readlink "$WORKSPACE_FULL_PATH"/memory/persistent-memory))"
   echo "  ✓ DS-strategy: $MY_STRATEGY_DIR/"
   echo "  ✓ Template:    $ROOT_DIR/"
   echo ""
 
   echo "Next steps:"
-  echo "  1. cd $WORKSPACE_DIR"
+  echo "  1. cd $WORKSPACE_FULL_PATH"
   if $CORE_ONLY; then
     echo "  2. Запустите ваш AI CLI (Claude Code, Codex, Aider, Continue.dev и др.)"
     echo "  3. Скажите: «Проведём первую стратегическую сессию»"
