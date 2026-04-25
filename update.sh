@@ -60,7 +60,17 @@ if [ ! -f "$SCRIPT_DIR/CLAUDE.md" ]; then
     exit 1
 fi
 
-WORKSPACE_DIR="$(dirname "$SCRIPT_DIR")"
+# ADR-004: canonical workspace via workspaces/CURRENT_WORKSPACE symlink
+WS_LINK="$SCRIPT_DIR/workspaces/CURRENT_WORKSPACE"
+if [ -L "$WS_LINK" ]; then
+    WORKSPACE_DIR="$(cd "$WS_LINK" 2>/dev/null && pwd)"
+fi
+if [ -z "$WORKSPACE_DIR" ] || [ ! -d "$WORKSPACE_DIR" ]; then
+    echo "ОШИБКА: workspaces/CURRENT_WORKSPACE symlink не найден или битый."
+    echo "  Настройте workspace: запустите iwe-workspace или проверьте симлинк."
+    echo "  ln -sfn <workspace-name> $WS_LINK"
+    exit 1
+fi
 
 # === Temp directory ===
 TMPDIR_UPDATE=$(mktemp -d 2>/dev/null || { mkdir -p "/tmp/exocortex-update-$$"; echo "/tmp/exocortex-update-$$"; })
@@ -199,7 +209,7 @@ if [ ${#UPDATED_FILES[@]} -gt 0 ]; then
 fi
 
 echo "Не затрагиваются:"
-echo "  ✓ memory/MEMORY.md (личная оперативная память)"
+echo "  ✓ workspaces/.../memory/MEMORY.md (личная оперативная память)"
 echo "  ✓ CLAUDE.md (3-way merge: ваши правки сохраняются)"
 echo "  ✓ extensions/ (ваши расширения протоколов)"
 echo "  ✓ params.yaml (ваши параметры)"
@@ -304,11 +314,20 @@ done
 
 # === Step 5b: Re-substitute placeholders in new/updated files ===
 # After downloading from upstream, files contain {{PLACEHOLDERS}}.
-# Read saved configuration from .exocortex.env (created by setup.sh).
+# Read saved configuration from workspace .env (created by setup.sh).
 echo ""
 echo "Подстановка переменных..."
 
-ENV_FILE="$SCRIPT_DIR/.exocortex.env"
+# ADR-004: canonical env file is workspace .env; legacy .exocortex.env is read-only fallback
+ENV_FILE=""
+if [ -f "$WORKSPACE_DIR/.env" ]; then
+    ENV_FILE="$WORKSPACE_DIR/.env"
+elif [ -f "$SCRIPT_DIR/.exocortex.env" ]; then
+    ENV_FILE="$SCRIPT_DIR/.exocortex.env"
+    echo "  ⚠ Используется legacy .exocortex.env. Рекомендуется: cp $SCRIPT_DIR/.exocortex.env $WORKSPACE_DIR/.env"
+else
+    ENV_FILE=""
+fi
 
 if [ -f "$ENV_FILE" ]; then
     # Validate: only KEY=VALUE lines allowed (no shell commands)
@@ -330,6 +349,15 @@ if [ -f "$ENV_FILE" ]; then
             # Export for use below (secrets: L4_DATABASE_URL etc. are loaded but not substituted into files)
             declare "ENV_$key=$value"
         done < "$ENV_FILE"
+
+        # ADR-004: normalize workspace variable names
+        # setup.sh writes WORKSPACE_FULL_PATH; legacy .exocortex.env may write WORKSPACE_DIR
+        if [ -n "${ENV_WORKSPACE_FULL_PATH:-}" ]; then
+            ENV_WORKSPACE_DIR="${ENV_WORKSPACE_FULL_PATH}"
+        fi
+        if [ -z "${ENV_ROOT_DIR:-}" ]; then
+            ENV_ROOT_DIR="$SCRIPT_DIR"
+        fi
 
         PLACEHOLDER_HIT=0
         for f in "${NEW_FILES[@]}" "${UPDATED_FILES[@]}"; do
@@ -385,22 +413,25 @@ if [ -f "$ENV_FILE" ]; then
         fi
     fi
 else
-    # No .exocortex.env — try to detect and generate (migration scenario С5)
-    echo "  ⚠ .exocortex.env не найден (установка до Ф0.5?)."
+    # No env file found — try to detect and generate (migration scenario)
+    echo "  ⚠ Конфигурация не найдена (ни $WORKSPACE_DIR/.env, ни .exocortex.env)."
     echo "  Попытка восстановления конфигурации..."
 
     DETECTED_WORKSPACE="$WORKSPACE_DIR"
     DETECTED_REPO="$(basename "$SCRIPT_DIR")"
 
+    ENV_FILE="$WORKSPACE_DIR/.env"
     cat > "$ENV_FILE" <<ENVEOF
 # Exocortex configuration (auto-detected by update.sh — verify and fix values)
 # SECURITY: chmod 600. Listed in .gitignore. Do NOT commit this file.
 GITHUB_USER=your-username
-WORKSPACE_DIR=$DETECTED_WORKSPACE
+WORKSPACE_FULL_PATH=$DETECTED_WORKSPACE
+WORKSPACE_NAME=$(basename "$DETECTED_WORKSPACE")
 CLAUDE_PATH=$(command -v claude 2>/dev/null || echo 'claude')
 CLAUDE_PROJECT_SLUG=$(echo "$DETECTED_WORKSPACE" | tr '/' '-')
 TIMEZONE_HOUR=4
 TIMEZONE_DESC=4:00 UTC
+ROOT_DIR=$SCRIPT_DIR
 HOME_DIR=$HOME
 
 # === Knowledge Gateway (T3+) — fill in if using personal Pack index ===
@@ -477,27 +508,45 @@ for f in "${NEW_FILES[@]}" "${UPDATED_FILES[@]}"; do
     fi
 done
 
-# Copy memory files to Claude projects directory
+# ADR-004: validate/repair canonical workspace runtime topology
+WS_MEMORY_DIR="$WORKSPACE_DIR/memory"
+
+if [ -d "$WS_MEMORY_DIR" ]; then
+    # Verify user-owned files exist
+    for uf in MEMORY.md day-rhythm-config.yaml; do
+        if [ ! -f "$WS_MEMORY_DIR/$uf" ]; then
+            echo "  ⚠ $WS_MEMORY_DIR/$uf отсутствует"
+        fi
+    done
+
+    # Verify/repair persistent-memory symlink
+    WS_PM_LINK="$WS_MEMORY_DIR/persistent-memory"
+    EXPECTED_TARGET="../../../persistent-memory/"
+    if [ -L "$WS_PM_LINK" ]; then
+        CURRENT_TARGET="$(readlink "$WS_PM_LINK")"
+        if [ "$CURRENT_TARGET" != "$EXPECTED_TARGET" ]; then
+            echo "  ⚠ persistent-memory symlink → $CURRENT_TARGET (expected $EXPECTED_TARGET), repairing..."
+            rm -f "$WS_PM_LINK"
+            ln -s "$EXPECTED_TARGET" "$WS_PM_LINK"
+            echo "  ✓ persistent-memory symlink repaired"
+        fi
+    elif [ -e "$WS_PM_LINK" ]; then
+        echo "  ⚠ $WS_PM_LINK существует, но не symlink. Не могу починить автоматически."
+    else
+        ln -s "$EXPECTED_TARGET" "$WS_PM_LINK"
+        echo "  ✓ persistent-memory symlink создан"
+    fi
+else
+    echo "  ⚠ $WS_MEMORY_DIR не найден. Запустите setup.sh для создания workspace."
+fi
+
+# ADR-004: warn-only for legacy hidden memory (no sync)
 CLAUDE_PROJECT_SLUG="$(echo "$WORKSPACE_DIR" | tr '/' '-')"
 CLAUDE_MEMORY_DIR="$HOME/.claude/projects/$CLAUDE_PROJECT_SLUG/memory"
-
 if [ -d "$CLAUDE_MEMORY_DIR" ]; then
-    MEM_UPDATED=0
-    for f in "${NEW_FILES[@]}" "${UPDATED_FILES[@]}"; do
-        case "$f" in
-            memory/*.md)
-                fname=$(basename "$f")
-                if [ "$fname" != "MEMORY.md" ]; then
-                    cp "$SCRIPT_DIR/$f" "$CLAUDE_MEMORY_DIR/$fname"
-                    MEM_UPDATED=$((MEM_UPDATED + 1))
-                fi
-                ;;
-        esac
-    done
-    if [ "$MEM_UPDATED" -gt 0 ]; then
-        echo "  ✓ $MEM_UPDATED memory-файлов обновлено в $CLAUDE_MEMORY_DIR"
-    fi
-    echo "  ✓ memory/MEMORY.md — не тронут"
+    echo "  ⚠ Legacy hidden memory detected: $CLAUDE_MEMORY_DIR"
+    echo "    ADR-004: update.sh не синхронизирует hidden memory."
+    echo "    Canonical runtime: $WS_MEMORY_DIR/"
 fi
 
 # Propagate skills, hooks, rules to workspace if changed
@@ -673,4 +722,4 @@ echo "=========================================="
 echo "  Обновление завершено ($APPLIED файлов)"
 echo "=========================================="
 echo ""
-echo "Перезапустите Claude Code для применения обновлений в memory/."
+echo "Перезапустите Claude Code для применения обновлений в workspace memory."
