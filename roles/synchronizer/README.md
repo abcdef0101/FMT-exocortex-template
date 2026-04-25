@@ -14,7 +14,7 @@
 
 | Скрипт | Что делает | Триггер |
 |--------|-----------|---------|
-| `scheduler.sh` | Центральный диспетчер: проверяет расписание, запускает агентов | launchd (11 раз/день) |
+| `scheduler.sh` | Центральный диспетчер: проверяет расписание, запускает агентов | launchd (10 раз/день) |
 | `code-scan.sh` | Сканирует DS-* репо на коммиты за 24ч | scheduler (00:00) |
 | `daily-report.sh` | Отчёт здоровья: светофор, ошибки, рекомендации | scheduler (после утра) |
 | `sync-files.sh` | Точечная синхронизация файлов из remote | scheduler (каждые 2 мин) |
@@ -23,8 +23,8 @@
 ## Установка
 
 ```bash
-cd {{WORKSPACE_DIR}}/FMT-exocortex-template/roles/synchronizer
-bash install.sh
+cd roles/synchronizer
+bash install.sh --workspace-dir /path/to/workspace --timezone-hour 4
 ```
 
 ### Telegram уведомления (опционально)
@@ -79,12 +79,12 @@ roles/synchronizer/
 
 ## Состояние
 
-Маркеры запуска: `~/.local/state/exocortex/`
+Маркеры запуска: `$WORKSPACE_DIR/state/`
 - `{agent}-{YYYY-MM-DD}` — ежедневные
 - `{agent}-W{NN}` — еженедельные
 - `{agent}-last` — интервальные (timestamp)
 
-Логи: `~/logs/synchronizer/`
+Логи: `$WORKSPACE_DIR/logs/synchronizer/`
 
 ---
 

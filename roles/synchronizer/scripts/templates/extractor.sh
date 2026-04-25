@@ -1,8 +1,25 @@
 #!/bin/bash
 # Шаблон уведомлений: Экстрактор (R2)
 # Вызывается из notify.sh через source
+# Требует: WORKSPACE_DIR (env или аргумент)
 
-REPORTS_DIR="{{WORKSPACE_DIR}}/DS-strategy/inbox/extraction-reports"
+WORKSPACE_DIR="${WORKSPACE_DIR:-}"
+if [ -z "$WORKSPACE_DIR" ]; then
+  if [[ $# -gt 0 ]]; then
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        --workspace-dir) WORKSPACE_DIR="$2"; shift 2 ;;
+        *) shift ;;
+      esac
+    done
+  fi
+fi
+if [ -z "$WORKSPACE_DIR" ]; then
+  echo "Ошибка: WORKSPACE_DIR не задан" >&2
+  exit 1
+fi
+
+REPORTS_DIR="$WORKSPACE_DIR/DS-strategy/inbox/extraction-reports"
 DATE=$(date +%Y-%m-%d)
 
 build_message() {
@@ -35,7 +52,7 @@ build_message() {
             ;;
 
         "audit")
-            printf "<b>🔍 Knowledge Audit завершён</b>\n\n📅 %s\n\nПроверьте лог: ~/logs/extractor/%s.log" "$DATE" "$DATE"
+            printf "<b>🔍 Knowledge Audit завершён</b>\n\n📅 %s\n\nПроверьте лог: %s/logs/synchronizer/%s.log" "$DATE" "$WORKSPACE_DIR" "$DATE"
             ;;
 
         *)

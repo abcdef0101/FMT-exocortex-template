@@ -5,87 +5,128 @@
 # логирует активность.
 #
 # Использование:
-#   code-scan.sh           # сканировать все downstream-репо
-#   code-scan.sh --dry-run # показать что найдёт, не записывать
+#   code-scan.sh --workspace-dir /path/to/workspace --env-file /path/to/env
+#   code-scan.sh --workspace-dir /path/to/workspace --env-file /path/to/env --dry-run
 #
 # Триггер: scheduler.sh dispatch (ежедневно)
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-WORKSPACE="{{WORKSPACE_DIR}}"
-LOG_DIR="{{HOME_DIR}}/logs/synchronizer"
+WORKSPACE_DIR=""
+ENV_FILE=""
+DRY_RUN=false
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+  --workspace-dir)
+    WORKSPACE_DIR="$2"
+    shift 2
+    ;;
+  --env-file)
+    ENV_FILE="$2"
+    shift 2
+    ;;
+  --dry-run)
+    DRY_RUN=true
+    shift
+    ;;
+  *)
+    echo "Неизвестный аргумент: $1" >&2
+    exit 1
+    ;;
+  esac
+done
+
+if [ -z "$WORKSPACE_DIR" ]; then
+  echo "Ошибка: обязательный параметр --workspace-dir не указан" >&2
+  exit 1
+fi
+
+if [ ! -d "$WORKSPACE_DIR" ]; then
+  echo "Ошибка: WORKSPACE_DIR не существует: $WORKSPACE_DIR" >&2
+  exit 1
+fi
+
+if [ -z "$ENV_FILE" ]; then
+  echo "Ошибка: обязательный параметр --env-file не указан" >&2
+  exit 1
+fi
+
+if [ ! -f "$ENV_FILE" ]; then
+  echo "Ошибка: ENV_FILE не существует: $ENV_FILE" >&2
+  exit 1
+fi
+
+LOG_DIR="$WORKSPACE_DIR/logs/synchronizer"
 DATE=$(date +%Y-%m-%d)
 LOG_FILE="$LOG_DIR/code-scan-$DATE.log"
-
-DRY_RUN=false
-[ "${1:-}" = "--dry-run" ] && DRY_RUN=true
 
 mkdir -p "$LOG_DIR"
 
 log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [code-scan] $1" | tee -a "$LOG_FILE"
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] [code-scan] $1" | tee -a "$LOG_FILE"
 }
 
 # === Обнаружение Downstream-репо ===
 
 discover_repos() {
-    local repos=()
+  local repos=()
 
-    # Governance-репо — исключаем из сканирования
-    local exclude=(
-        "DS-strategy"
-    )
+  # Governance-репо — исключаем из сканирования
+  local exclude=(
+    "DS-strategy"
+  )
 
-    for dir in "$WORKSPACE"/DS-*/; do
-        [ -d "$dir/.git" ] || continue
-        local name
-        name=$(basename "$dir")
-        local skip=false
-        for ex in "${exclude[@]}"; do
-            [ "$name" = "$ex" ] && skip=true && break
-        done
-        [ "$skip" = true ] && continue
-        repos+=("$dir")
+  for dir in "$WORKSPACE_DIR"/DS-*/; do
+    [ -d "$dir/.git" ] || continue
+    local name
+    name=$(basename "$dir")
+    local skip=false
+    for ex in "${exclude[@]}"; do
+      [ "$name" = "$ex" ] && skip=true && break
     done
+    [ "$skip" = true ] && continue
+    repos+=("$dir")
+  done
 
-    printf '%s\n' "${repos[@]}"
+  printf '%s\n' "${repos[@]}"
 }
 
 # === Основной цикл ===
 
 scan_repos() {
-    local total_repos=0
-    local total_commits=0
+  local total_repos=0
+  local total_commits=0
 
-    while IFS= read -r repo_dir; do
-        repo_dir="${repo_dir%/}"
-        local repo_name
-        repo_name=$(basename "$repo_dir")
+  while IFS= read -r repo_dir; do
+    repo_dir="${repo_dir%/}"
+    local repo_name
+    repo_name=$(basename "$repo_dir")
 
-        local commits
-        commits=$(git -C "$repo_dir" log --since="24 hours ago" --oneline --no-merges 2>/dev/null || true)
+    local commits
+    commits=$(git -C "$repo_dir" log --since="24 hours ago" --oneline --no-merges 2>/dev/null || true)
 
-        if [ -z "$commits" ]; then
-            log "SKIP: $repo_name — нет коммитов за 24ч"
-            continue
-        fi
-
-        local count
-        count=$(echo "$commits" | wc -l | tr -d ' ')
-        log "FOUND: $repo_name — $count коммитов"
-
-        total_repos=$((total_repos + 1))
-        total_commits=$((total_commits + count))
-
-    done < <(discover_repos)
-
-    log "Итого: $total_repos репо, $total_commits коммитов"
-
-    # Уведомление в Telegram
-    if [ "$DRY_RUN" = false ] && [ "$total_repos" -gt 0 ]; then
-        "$SCRIPT_DIR/notify.sh" synchronizer code-scan 2>/dev/null || true
+    if [ -z "$commits" ]; then
+      log "SKIP: $repo_name — нет коммитов за 24ч"
+      continue
     fi
+
+    local count
+    count=$(echo "$commits" | wc -l | tr -d ' ')
+    log "FOUND: $repo_name — $count коммитов"
+
+    total_repos=$((total_repos + 1))
+    total_commits=$((total_commits + count))
+
+  done < <(discover_repos)
+
+  log "Итого: $total_repos репо, $total_commits коммитов"
+
+  # Уведомление в Telegram
+  if [ "$DRY_RUN" = false ] && [ "$total_repos" -gt 0 ]; then
+    "$SCRIPT_DIR/notify.sh" --workspace-dir "$WORKSPACE_DIR" --env-file "$ENV_FILE" synchronizer code-scan 2>/dev/null || true
+  fi
 }
 
 log "=== Code Scan Started ==="

@@ -11,8 +11,8 @@
 #   collect_name() { echo '{"key": "value"}' }
 #
 # Использование:
-#   dt-collect.sh           # собрать и записать
-#   dt-collect.sh --dry-run # показать JSON, не записывать
+#   dt-collect.sh --workspace-dir /path/to/workspace --env-file /path/to/env
+#   dt-collect.sh --workspace-dir /path/to/workspace --env-file /path/to/env --dry-run
 #
 # Триггер: scheduler.sh dispatch dt-collect (ежедневно, после code-scan)
 # Зависимости:
@@ -22,47 +22,89 @@
 
 set -euo pipefail
 
+# === Named parameters ===
+WORKSPACE_DIR=""
+ENV_FILE=""
+DRY_RUN=false
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+  --workspace-dir)
+    WORKSPACE_DIR="$2"
+    shift 2
+    ;;
+  --env-file)
+    ENV_FILE="$2"
+    shift 2
+    ;;
+  --dry-run)
+    DRY_RUN=true
+    shift
+    ;;
+  *)
+    echo "Неизвестный аргумент: $1" >&2
+    exit 1
+    ;;
+  esac
+done
+
+missing=()
+[ -z "$WORKSPACE_DIR" ] && missing+=("--workspace-dir")
+[ -z "$ENV_FILE" ] && missing+=("--env-file")
+
+if [ "${#missing[@]}" -gt 0 ]; then
+  echo "Ошибка: обязательные параметры не указаны:" >&2
+  printf '  - %s\n' "${missing[@]}" >&2
+  exit 1
+fi
+
+if [ ! -d "$WORKSPACE_DIR" ]; then
+  echo "Ошибка: WORKSPACE_DIR не существует: $WORKSPACE_DIR" >&2
+  exit 1
+fi
+
+if [ ! -f "$ENV_FILE" ]; then
+  echo "Ошибка: ENV_FILE не существует: $ENV_FILE" >&2
+  exit 1
+fi
+
 # Cross-platform date offset (macOS + Linux)
 portable_date_offset() {
-    local days="$1"
-    local fmt="${2:-%Y-%m-%d}"
-    date -v-${days}d +"$fmt" 2>/dev/null || date -d "$days days ago" +"$fmt" 2>/dev/null
+  local days="$1"
+  local fmt="${2:-%Y-%m-%d}"
+  date -v-${days}d +"$fmt" 2>/dev/null || date -d "$days days ago" +"$fmt" 2>/dev/null
 }
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-WORKSPACE="$HOME/IWE"
-GOVERNANCE_DIR="${GOVERNANCE_DIR:-$WORKSPACE/DS-strategy}"
-LOG_DIR="$HOME/logs/synchronizer"
+WORKSPACE="$WORKSPACE_DIR"
+GOVERNANCE_DIR="${GOVERNANCE_DIR:-$WORKSPACE_DIR/DS-strategy}"
+LOG_DIR="$WORKSPACE_DIR/logs/synchronizer"
 DATE=$(date +%Y-%m-%d)
 LOG_FILE="$LOG_DIR/dt-collect-$DATE.log"
-
-DRY_RUN=false
-[ "${1:-}" = "--dry-run" ] && DRY_RUN=true
 
 mkdir -p "$LOG_DIR"
 
 # Load env
-ENV_FILE="$HOME/.config/aist/env"
-if [ -f "$ENV_FILE" ]; then
-    set -a; source "$ENV_FILE"; set +a
-fi
+set -a
+source "$ENV_FILE"
+set +a
 
 log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [dt-collect] $1" | tee -a "$LOG_FILE"
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] [dt-collect] $1" | tee -a "$LOG_FILE"
 }
 
 log "=== DT Collect Started ==="
 
 # Проверка обязательных env vars (skip при --dry-run)
 if [ "$DRY_RUN" = false ]; then
-    if [ -z "${NEON_URL:-}" ]; then
-        log "NEON_URL not set — skipping"
-        exit 0
-    fi
-    if [ -z "${DT_USER_ID:-}" ]; then
-        log "DT_USER_ID not set — skipping"
-        exit 0
-    fi
+  if [ -z "${NEON_URL:-}" ]; then
+    log "NEON_URL not set — skipping"
+    exit 0
+  fi
+  if [ -z "${DT_USER_ID:-}" ]; then
+    log "DT_USER_ID not set — skipping"
+    exit 0
+  fi
 fi
 
 # ============================================================
@@ -70,31 +112,31 @@ fi
 # ============================================================
 
 collect_wakatime() {
-    if [ -z "${WAKATIME_API_KEY:-}" ]; then
-        log "WAKATIME_API_KEY not set — skipping WakaTime"
-        echo "{}"
-        return
-    fi
+  if [ -z "${WAKATIME_API_KEY:-}" ]; then
+    log "WAKATIME_API_KEY not set — skipping WakaTime"
+    echo "{}"
+    return
+  fi
 
-    local ENCODED
-    ENCODED=$(echo -n "$WAKATIME_API_KEY" | base64)
-    local API="https://wakatime.com/api/v1/users/current"
+  local ENCODED
+  ENCODED=$(echo -n "$WAKATIME_API_KEY" | base64)
+  local API="https://wakatime.com/api/v1/users/current"
 
-    # Today
-    local TODAY_RESP
-    TODAY_RESP=$(curl -s -H "Authorization: Basic $ENCODED" "$API/summaries?start=$DATE&end=$DATE" 2>/dev/null || echo "{}")
+  # Today
+  local TODAY_RESP
+  TODAY_RESP=$(curl -s -H "Authorization: Basic $ENCODED" "$API/summaries?start=$DATE&end=$DATE" 2>/dev/null || echo "{}")
 
-    # Last 7 days
-    local D7=$(portable_date_offset 7)
-    local WEEK_RESP
-    WEEK_RESP=$(curl -s -H "Authorization: Basic $ENCODED" "$API/summaries?start=$D7&end=$DATE" 2>/dev/null || echo "{}")
+  # Last 7 days
+  local D7=$(portable_date_offset 7)
+  local WEEK_RESP
+  WEEK_RESP=$(curl -s -H "Authorization: Basic $ENCODED" "$API/summaries?start=$D7&end=$DATE" 2>/dev/null || echo "{}")
 
-    # Last 30 days
-    local D30=$(portable_date_offset 30)
-    local MONTH_RESP
-    MONTH_RESP=$(curl -s -H "Authorization: Basic $ENCODED" "$API/summaries?start=$D30&end=$DATE" 2>/dev/null || echo "{}")
+  # Last 30 days
+  local D30=$(portable_date_offset 30)
+  local MONTH_RESP
+  MONTH_RESP=$(curl -s -H "Authorization: Basic $ENCODED" "$API/summaries?start=$D30&end=$DATE" 2>/dev/null || echo "{}")
 
-    python3 -c "
+  python3 -c "
 import sys, json
 
 def safe_load(s):
@@ -142,20 +184,20 @@ print(json.dumps(result))
 }
 
 # ============================================================
-# 2. Git Stats (все репо в {{WORKSPACE_DIR}}/)
+# 2. Git Stats (все репо в WORKSPACE_DIR/)
 # ============================================================
 
 collect_git() {
-    python3 -c "
+  python3 -c "
 import subprocess, json, os
 from datetime import datetime, timedelta
 
-workspace = os.path.expanduser('{{WORKSPACE_DIR}}')
-repos = []
-for name in sorted(os.listdir(workspace)):
-    path = os.path.join(workspace, name)
-    if os.path.isdir(os.path.join(path, '.git')):
-        repos.append((name, path))
+    workspace = '$WORKSPACE_DIR'
+    repos = []
+    for name in sorted(os.listdir(workspace)):
+        path = os.path.join(workspace, name)
+        if os.path.isdir(os.path.join(path, '.git')):
+            repos.append((name, path))
 
 def git_count(path, since):
     try:
@@ -230,9 +272,9 @@ print(json.dumps(result))
 # ============================================================
 
 collect_sessions() {
-    local SESSION_LOG="$WORKSPACE/DS-agent-workspace/scheduler/open-sessions.log"
+  local SESSION_LOG="$WORKSPACE_DIR/DS-agent-workspace/scheduler/open-sessions.log"
 
-    python3 -c "
+  python3 -c "
 import json, os, re
 from datetime import datetime, timedelta
 
@@ -261,7 +303,7 @@ if os.path.exists(log_path):
 
 # Also count from git log (more reliable — sessions leave commits)
 import subprocess
-workspace = os.path.expanduser('{{WORKSPACE_DIR}}')
+workspace = '$WORKSPACE_DIR'
 git_sessions_7d = 0
 for name in os.listdir(workspace):
     path = os.path.join(workspace, name)
@@ -290,9 +332,9 @@ print(json.dumps(result))
 # ============================================================
 
 collect_wp() {
-    local MEMORY_FILE="$HOME/.claude/projects/-Users-$(whoami)-IWE/memory/MEMORY.md"
+  local MEMORY_FILE="$WORKSPACE_DIR/memory/MEMORY.md"
 
-    python3 -c "
+  python3 -c "
 import json, os, re
 
 memory_path = '$MEMORY_FILE'
@@ -331,8 +373,8 @@ print(json.dumps(result))
 # ============================================================
 
 collect_health() {
-    local STATE_DIR="$HOME/.local/state/exocortex"
-    python3 -c "
+  local STATE_DIR="$WORKSPACE_DIR/state"
+  python3 -c "
 import json, os
 from datetime import datetime
 
@@ -377,10 +419,10 @@ print(json.dumps(result))
 # ============================================================
 
 collect_multiplier() {
-    local DAYPLAN_DIR="$GOVERNANCE_DIR/current"
-    local ARCHIVE_DIR="$GOVERNANCE_DIR/archive/day-plans"
+  local DAYPLAN_DIR="$GOVERNANCE_DIR/current"
+  local ARCHIVE_DIR="$GOVERNANCE_DIR/archive/day-plans"
 
-    python3 -c "
+  python3 -c "
 import json, os, re, glob
 from datetime import datetime, timedelta
 
@@ -500,9 +542,9 @@ print(json.dumps(result))
 # ============================================================
 
 collect_registry() {
-    local REGISTRY="$GOVERNANCE_DIR/docs/WP-REGISTRY.md"
+  local REGISTRY="$GOVERNANCE_DIR/docs/WP-REGISTRY.md"
 
-    python3 -c "
+  python3 -c "
 import json, os, re
 from datetime import datetime
 
@@ -537,10 +579,10 @@ print(json.dumps(result))
 # ============================================================
 
 collect_pack() {
-    python3 -c "
+  python3 -c "
 import json, os, re
 
-workspace = os.path.expanduser('{{WORKSPACE_DIR}}')
+workspace = '$WORKSPACE_DIR'
 pack_stats = {}
 total_md = 0
 total_entities = 0
@@ -580,9 +622,9 @@ print(json.dumps(result))
 # ============================================================
 
 collect_notes() {
-    local NOTES="$GOVERNANCE_DIR/inbox/fleeting-notes.md"
+  local NOTES="$GOVERNANCE_DIR/inbox/fleeting-notes.md"
 
-    python3 -c "
+  python3 -c "
 import json, os, re
 
 notes_path = '$NOTES'
@@ -638,9 +680,9 @@ print(json.dumps(result))
 # ============================================================
 
 collect_scheduler_reports() {
-    local REPORTS_DIR="$WORKSPACE/DS-agent-workspace/scheduler/scheduler-reports"
+  local REPORTS_DIR="$WORKSPACE_DIR/DS-agent-workspace/scheduler/reports"
 
-    python3 -c "
+  python3 -c "
 import json, os, re, glob
 from datetime import datetime, timedelta
 
@@ -712,34 +754,34 @@ PLUGIN_ECO_JSONS=()
 PLUGIN_KNOW_JSONS=()
 
 if [ -d "$COLLECTORS_DIR" ]; then
-    for plugin in "$COLLECTORS_DIR"/*.sh; do
-        [ -f "$plugin" ] || continue
-        plugin_name=$(basename "$plugin" .sh)
+  for plugin in "$COLLECTORS_DIR"/*.sh; do
+    [ -f "$plugin" ] || continue
+    plugin_name=$(basename "$plugin" .sh)
 
-        # Read target from comment header
-        target=$(grep -m1 '^# TARGET:' "$plugin" | sed 's/^# TARGET:\s*//' | tr -d '[:space:]')
-        collector_func=$(grep -m1 '^# COLLECTOR:' "$plugin" | sed 's/^# COLLECTOR:\s*//' | tr -d '[:space:]')
+    # Read target from comment header
+    target=$(grep -m1 '^# TARGET:' "$plugin" | sed 's/^# TARGET:\s*//' | tr -d '[:space:]')
+    collector_func=$(grep -m1 '^# COLLECTOR:' "$plugin" | sed 's/^# COLLECTOR:\s*//' | tr -d '[:space:]')
 
-        if [ -z "$collector_func" ] || [ -z "$target" ]; then
-            log "SKIP plugin $plugin_name — missing COLLECTOR/TARGET header"
-            continue
-        fi
+    if [ -z "$collector_func" ] || [ -z "$target" ]; then
+      log "SKIP plugin $plugin_name — missing COLLECTOR/TARGET header"
+      continue
+    fi
 
-        # Source the plugin (defines collect_NAME function)
-        source "$plugin"
+    # Source the plugin (defines collect_NAME function)
+    source "$plugin"
 
-        # Call the collector function
-        log "Collecting plugin: $collector_func..."
-        plugin_json=$(collect_"$collector_func" 2>/dev/null || echo "{}")
+    # Call the collector function
+    log "Collecting plugin: $collector_func..."
+    plugin_json=$(collect_"$collector_func" 2>/dev/null || echo "{}")
 
-        # Route JSON to the right target array
-        case "$target" in
-            2_7_iwe)        PLUGIN_IWE_JSONS+=("$plugin_json") ;;
-            2_8_ecosystem)  PLUGIN_ECO_JSONS+=("$plugin_json") ;;
-            2_9_knowledge)  PLUGIN_KNOW_JSONS+=("$plugin_json") ;;
-            *)              log "WARN plugin $plugin_name — unknown target: $target" ;;
-        esac
-    done
+    # Route JSON to the right target array
+    case "$target" in
+    2_7_iwe) PLUGIN_IWE_JSONS+=("$plugin_json") ;;
+    2_8_ecosystem) PLUGIN_ECO_JSONS+=("$plugin_json") ;;
+    2_9_knowledge) PLUGIN_KNOW_JSONS+=("$plugin_json") ;;
+    *) log "WARN plugin $plugin_name — unknown target: $target" ;;
+    esac
+  done
 fi
 
 # Convert arrays to JSON arrays for Python merge
@@ -835,17 +877,17 @@ print(json.dumps(result, indent=2, ensure_ascii=False))
 " 2>/dev/null)
 
 if [ -z "$MERGED" ] || [ "$MERGED" = "{}" ]; then
-    log "ERROR: empty merge result"
-    exit 1
+  log "ERROR: empty merge result"
+  exit 1
 fi
 
 log "Merged JSON:"
-echo "$MERGED" >> "$LOG_FILE"
+echo "$MERGED" >>"$LOG_FILE"
 
 if [ "$DRY_RUN" = true ]; then
-    echo "$MERGED"
-    log "DRY RUN — not writing to Neon"
-    exit 0
+  echo "$MERGED"
+  log "DRY RUN — not writing to Neon"
+  exit 0
 fi
 
 # Write to Neon
@@ -854,8 +896,8 @@ python3 "$SCRIPT_DIR/dt-collect-neon.py" "$DT_USER_ID" "$MERGED" 2>>"$LOG_FILE"
 EXIT_CODE=$?
 
 if [ $EXIT_CODE -eq 0 ]; then
-    log "=== DT Collect Completed Successfully ==="
-    "$SCRIPT_DIR/notify.sh" synchronizer dt-collect 2>/dev/null || true
+  log "=== DT Collect Completed Successfully ==="
+  "$SCRIPT_DIR/notify.sh" --workspace-dir "$WORKSPACE_DIR" --env-file "$ENV_FILE" synchronizer dt-collect 2>/dev/null || true
 else
-    log "ERROR: dt-collect-neon.py exited with $EXIT_CODE"
+  log "ERROR: dt-collect-neon.py exited with $EXIT_CODE"
 fi

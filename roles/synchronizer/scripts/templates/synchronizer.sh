@@ -1,8 +1,23 @@
 #!/bin/bash
 # Шаблон уведомлений: Синхронизатор (R8)
 # Вызывается из notify.sh через source
+# Требует: WORKSPACE_DIR (env или аргумент)
 
-LOG_DIR="{{HOME_DIR}}/logs/synchronizer"
+WORKSPACE_DIR="${WORKSPACE_DIR:-}"
+if [ -z "$WORKSPACE_DIR" ]; then
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --workspace-dir) WORKSPACE_DIR="$2"; shift 2 ;;
+      *) shift ;;
+    esac
+  done
+fi
+if [ -z "$WORKSPACE_DIR" ]; then
+  echo "Ошибка: WORKSPACE_DIR не задан" >&2
+  exit 1
+fi
+
+LOG_DIR="$WORKSPACE_DIR/logs/synchronizer"
 DATE=$(date +%Y-%m-%d)
 
 build_message() {
@@ -35,6 +50,24 @@ build_message() {
 
             if [ "$found" -gt 0 ]; then
                 printf "<b>Репо:</b>\n%s" "$repo_list"
+            fi
+            ;;
+
+        "dt-collect")
+            local log_file="$LOG_DIR/dt-collect-$DATE.log"
+
+            if [ ! -f "$log_file" ]; then
+                echo ""
+                return
+            fi
+
+            local status_line
+            status_line=$(grep -E '=== DT Collect (Completed|Started)' "$log_file" | tail -1)
+
+            if echo "$status_line" | grep -q 'Completed Successfully'; then
+                printf "<b>📊 DT Collect</b>\n\n📅 %s\n\nЦД обновлён." "$DATE"
+            else
+                printf "<b>📊 DT Collect</b>\n\n📅 %s\n\n⚠️ Проверьте лог." "$DATE"
             fi
             ;;
 
