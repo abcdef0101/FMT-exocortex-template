@@ -65,7 +65,7 @@
 
 ## Конфиг Day Open (day-rhythm-config.yaml)
 
-Поведение Day Open управляется через `memory/day-rhythm-config.yaml` (не params.yaml).
+Поведение Day Open управляется через `workspaces/<ws>/memory/day-rhythm-config.yaml` (не params.yaml).
 
 | Параметр | Что управляет |
 |----------|---------------|

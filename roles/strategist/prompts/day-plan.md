@@ -1,4 +1,4 @@
-> **DEPRECATED (WP-98, 2026-03-14).** Day Open перенесён в `memory/protocol-open.md § День` (ОРЗ-фрактал).
+> **DEPRECATED (WP-98, 2026-03-14).** Day Open перенесён в `persistent-memory/protocol-open.md § День` (ОРЗ-фрактал).
 > Этот файл сохранён для справки. При триггере «открывай день» → читать `protocol-open.md`.
 
 Выполни сценарий Day Plan для роли Стратег (R1).

@@ -28,7 +28,7 @@ launchctl list | grep pomodoro
 
 ### Configuration
 
-Edit `memory/day-rhythm-config.yaml` → section `pomodoro`:
+Edit `workspaces/<ws>/memory/day-rhythm-config.yaml` → section `pomodoro`:
 
 ```yaml
 pomodoro:
@@ -64,7 +64,7 @@ rm ~/Library/LaunchAgents/com.exocortex.pomodoro-alert.plist
 
 ## Day Rhythm Config
 
-The file `memory/day-rhythm-config.yaml` controls several Day Open features:
+The file `workspaces/<ws>/memory/day-rhythm-config.yaml` controls several Day Open features:
 
 - **Strategy day** — which day of the week to suggest a strategy session
 - **Self-development slot** — always first in the daily plan

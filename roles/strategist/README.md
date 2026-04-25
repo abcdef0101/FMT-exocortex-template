@@ -23,10 +23,10 @@ FMT-exocortex-template/              DS-strategy/ (отдельный репо)
     protocol-close.md (← day-close)    archive/
 ```
 
-> **Примечание:** Промпты `session-prep`, `strategy-session`, `day-plan`, `week-review`, `day-close`, `note-review` вынесены из шаблона. `day-plan` и `day-close` мигрировали в протоколы `memory/protocol-open.md` и `memory/protocol-close.md`. Остальные создаются пользователем в его DS-репо при установке.
+> **Примечание:** Промпты `session-prep`, `strategy-session`, `day-plan`, `week-review`, `day-close`, `note-review` вынесены из шаблона. `day-plan` и `day-close` мигрировали в протоколы `persistent-memory/protocol-open.md` и `persistent-memory/protocol-close.md`. Остальные создаются пользователем в его DS-репо при установке.
 
 **Потоки данных:**
-- Промпты (PLATFORM) → `prompts/` (3 базовых) + `memory/protocol-*.md`
+- Промпты (PLATFORM) → `prompts/` (3 базовых) + `persistent-memory/protocol-*.md`
 - Результаты (PERSONAL) → DS-strategy/ (отдельный приватный репо, не затрагивается обновлениями)
 - Входные данные: MEMORY.md, MAPSTRATEGIC.md (из каждого репо), WakaTime
 
@@ -48,12 +48,12 @@ FMT-exocortex-template/              DS-strategy/ (отдельный репо)
 |---|----------|--------|---------|--------|
 | 1 | Подготовка к сессии | DS: `session-prep.md` | Пн утро (headless) | Создаётся пользователем |
 | 1b | Сессия стратегирования | DS: `strategy-session.md` | Вручную (интерактив) | Создаётся пользователем |
-| 2 | План на день | `memory/protocol-open.md` | Вт-Вс утро + вручную | В шаблоне |
+| 2 | План на день | `persistent-memory/protocol-open.md` | Вт-Вс утро + вручную | В шаблоне |
 | 3 | Вечерний итог | `prompts/evening.md` | Вручную | В шаблоне |
 | 4 | Итоги недели | DS: `week-review.md` | Вс ночь | Создаётся пользователем |
 | 5 | Добавить РП | `prompts/add-wp.md` | Вручную | В шаблоне |
 | 6 | Проверить задачу (WP Gate) | `prompts/check-plan.md` | WP Gate | В шаблоне |
-| 7 | Закрытие дня | `memory/protocol-close.md` | Вручную | В шаблоне |
+| 7 | Закрытие дня | `persistent-memory/protocol-close.md` | Вручную | В шаблоне |
 | 8 | Обзор заметок | DS: `note-review.md` | По необходимости | Создаётся пользователем |
 
 ---
