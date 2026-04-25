@@ -1,7 +1,8 @@
 ---
 name: run-protocol
 description: Пошаговое выполнение протокола ОРЗ с обязательной отметкой каждого шага. Предотвращает пропуск шагов (включая верификацию).
-argument-hint: "[open|close] [day|session]"
+argument-hint: "[open|close] [day|session|week]"
+version: 2.0.0
 ---
 
 # Выполнение протокола
@@ -13,15 +14,15 @@ argument-hint: "[open|close] [day|session]"
 
 ## Шаг 1. Определить протокол
 
-| Аргумент | Файл | Skill (полный алгоритм) |
-|----------|------|------------------------|
-| `day-open` / `open day` | `./workspaces/CURRENT_WORKSPACE/memory/persistent-memory/protocol-open.md § День` | `.claude/skills/day-open/SKILL.md` |
-| `open session` или задание | `./workspaces/CURRENT_WORKSPACE/memory/persistent-memory/protocol-open.md § Сессия` | — |
-| `day-close` / `close day` | `./workspaces/CURRENT_WORKSPACE/memory/persistent-memory/protocol-close.md § День` | `.claude/skills/day-close/SKILL.md` |
-| `close session` | `./workspaces/CURRENT_WORKSPACE/memory/persistent-memory/protocol-close.md § Сессия` | — |
-| `week-close` | `./workspaces/CURRENT_WORKSPACE/memory/persistent-memory/protocol-close.md § Неделя` | `.claude/skills/week-close/SKILL.md` |
+| Аргумент | Полный алгоритм (Skill) | Описание (protocol-файл) |
+|----------|------------------------|--------------------------|
+| `day-open` / `open day` | `.claude/skills/day-open/SKILL.md` | `persistent-memory/protocol-open.md § День` |
+| `open session` или задание | — (inline в `protocol-open.md § Сессия`) | `persistent-memory/protocol-open.md § Сессия` |
+| `day-close` / `close day` | `.claude/skills/day-close/SKILL.md` | `persistent-memory/protocol-close.md § День` |
+| `close session` / `close` | — (inline в `protocol-close.md § Quick Close`) | `persistent-memory/protocol-close.md` |
+| `week-close` | `.claude/skills/week-close/SKILL.md` | `persistent-memory/protocol-close.md § Неделя` |
 
-Если есть Skill-файл → читай его (содержит полный алгоритм + шаблоны). Protocol-файл = краткий маршрутизатор.
+**Правило:** Если есть Skill-файл → читать ЕГО. Skill содержит полный алгоритм + шаблоны. Protocol-файл = краткий маршрутизатор (для контекстной справки, не для исполнения).
 
 ## Шаг 1b. Загрузить extensions (БЛОКИРУЮЩЕЕ)
 
@@ -36,17 +37,17 @@ argument-hint: "[open|close] [day|session]"
 
 ## Шаг 2. Извлечь шаги
 
-Из алгоритма протокола (Skill-файл или protocol-файл) и extensions извлеки пронумерованный список шагов. Запиши их как задачи (TodoWrite):
+Из алгоритма протокола (Skill-файл) и extensions извлеки пронумерованный список шагов. Запиши их как задачи (TodoWrite):
 
 Порядок задач:
 1. Extensions `.before.md` (если есть)
-2. Основные шаги из алгоритма
+2. Основные шаги из алгоритма (Skill-файл)
 3. Extensions `.after.md` (если есть)
 4. Extensions `.checks.md` + git commit (если есть артефакт для коммита)
-5. Верификация по чеклисту (`/verify`)
+5. Верификация по чеклисту
 
 - Каждый основной шаг = отдельная задача
-- Последняя задача ВСЕГДА = «Верификация по чеклисту (/verify)»
+- Последняя задача ВСЕГДА = «Верификация по чеклисту»
 - Статус: pending
 
 ## Шаг 3. Выполнять последовательно

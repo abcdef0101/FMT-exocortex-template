@@ -2,8 +2,8 @@
 name: protocol-close
 description: Slim-ядро протокола Close — триггеры, маршрутизация, Quick Close inline
 type: reference
-valid_from: 2026-04-13
-originSessionId: b5655b53-7d87-478a-aad9-437479e81691
+valid_from: 2026-04-25
+superseded_by: null
 ---
 # Протокол Close (ОРЗ-фрактал)
 
@@ -20,6 +20,22 @@ originSessionId: b5655b53-7d87-478a-aad9-437479e81691
 | «закрываю неделю» / «итоги недели» | `week-close` | `.claude/skills/week-close/SKILL.md` |
 
 > **`close` без уточнения** → Quick Close (сессия) по умолчанию.
+
+---
+
+## § Масштаб: День → skill `/day-close`
+
+> **Триггер:** «закрываю день» / «итоги дня». Полный алгоритм → `.claude/skills/day-close/SKILL.md`.
+> **Исполнение:** пошагово через TodoWrite (каждый шаг = задача, блокирующее). Аналогично Open.
+> **Day Close ≠ Quick Close.** Day Close самодостаточен — Quick Close внутри него не повторять.
+
+---
+
+## § Масштаб: Неделя → skill `/week-close`
+
+> **Триггер:** «закрываю неделю» / «итоги недели». Полный алгоритм → `.claude/skills/week-close/SKILL.md`.
+> **Исполнение:** пошагово через TodoWrite (каждый шаг = задача, блокирующее).
+> **Включает:** сбор итогов, ротация уроков, обновление MEMORY.md, создание поста для клуба, memory audit.
 
 ---
 
