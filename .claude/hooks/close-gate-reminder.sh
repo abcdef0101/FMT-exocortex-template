@@ -15,7 +15,7 @@ PROMPT=$(printf '%s' "$SANITIZED" | jq -r '.prompt // empty' | tr '[:upper:]' '[
 # Day Close → ПРИНУДИТЕЛЬНЫЙ вызов /run-protocol
 if echo "$PROMPT" | grep -qE '(итоги дня|закрываю день|закрывай день)'; then
   cat <<'EOF'
-{"additionalContext": "⛔ БЛОКИРУЮЩЕЕ: Day Close выполняется ТОЛЬКО через skill /run-protocol с аргументом 'day-close'. ПЕРВОЕ И ЕДИНСТВЕННОЕ действие = вызвать Skill tool: skill='run-protocol', args='day-close'. НЕ читать protocol-close.md вручную. НЕ выполнять шаги самостоятельно. НЕ писать итоги без /run-protocol. Причина: 5 инцидентов пропуска шагов при ручном исполнении (15, 18, 19, 27 мар). /run-protocol гарантирует пошаговый TodoList + верификацию Haiku R23."}
+{"additionalContext": "⛔ БЛОКИРУЮЩЕЕ: Day Close выполняется ТОЛЬКО через skill /day-close (или /run-protocol close day). ПЕРВОЕ И ЕДИНСТВЕННОЕ действие = вызвать Skill tool: skill='day-close'. Полный алгоритм находится в day-close/SKILL.md. НЕ выполнять шаги самостоятельно. НЕ писать итоги без skill. Причина: 5+ инцидентов пропуска шагов при ручном исполнении. /run-protocol гарантирует пошаговый TodoList + верификацию Haiku R23."}
 EOF
 
 # Session Close → /run-protocol close

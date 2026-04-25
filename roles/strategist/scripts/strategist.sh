@@ -298,11 +298,6 @@ case "$COMMAND" in
   run_claude "session-prep"
   notify_telegram "session-prep"
   ;;
-"day-plan")
-  log "Manual: running day plan"
-  run_claude "day-plan"
-  notify_telegram "day-plan"
-  ;;
 "note-review")
   acquire_lock "note-review"
   log "Evening: running note review"
@@ -359,17 +354,12 @@ case "$COMMAND" in
 
   notify_telegram "note-review"
   ;;
-"day-close")
-  log "Manual: running day close"
-  run_claude "day-close"
-  notify_telegram "day-close"
-  ;;
 "strategy-session")
   log "Manual: running strategy session (interactive)"
   run_claude "strategy-session"
   ;;
 *)
-  echo "Usage: $0 {morning|note-review|week-review|session-prep|strategy-session|day-plan|day-close}"
+  echo "Usage: $0 {morning|note-review|week-review|session-prep|strategy-session}"
   echo ""
   echo "Scenarios:"
   echo "  morning           - 4:00 EET daily (session-prep on Mon, day-plan others)"
@@ -377,8 +367,9 @@ case "$COMMAND" in
   echo "  week-review       - Sunday 19:00 EET review for club"
   echo "  session-prep      - Manual session prep (headless preparation)"
   echo "  strategy-session  - Manual strategy session (interactive with user)"
-  echo "  day-plan          - Manual day plan"
-  echo "  day-close         - Manual day close (update WeekPlan + MEMORY + backup)"
+  echo ""
+  echo "  Note: day-plan and day-close are managed by IWE protocol skills"
+  echo "  (day-open, day-close) — use /day-open and /day-close commands."
   exit 1
   ;;
 esac

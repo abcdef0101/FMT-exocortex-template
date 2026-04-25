@@ -1,5 +1,6 @@
-> **DEPRECATED (WP-98, 2026-03-14).** Day Open перенесён в `persistent-memory/protocol-open.md § День` (ОРЗ-фрактал).
-> Этот файл сохранён для справки. При триггере «открывай день» → читать `protocol-open.md`.
+> **DEPRECATED (WP-98, 2026-03-14).** Day Open перенесён в `.claude/skills/day-open/SKILL.md`.
+> Этот файл сохранён для справки. При триггере «открывай день» → `/day-open`.
+> Ручная команда `strategist.sh day-plan` удалена. Day Plan = автоматический morning или `/day-open`.
 
 Выполни сценарий Day Plan для роли Стратег (R1).
 

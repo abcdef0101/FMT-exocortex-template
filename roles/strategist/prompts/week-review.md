@@ -161,7 +161,7 @@ content_plan: null
 
 ### 8. Week Close: обслуживание MEMORY.md
 
-> Дополнительные шаги поверх Week Review. Описаны в `protocol-close.md § Неделя`.
+> Дополнительные шаги поверх Week Review. Полный алгоритм → `.claude/skills/week-close/SKILL.md`.
 
 #### 8a. Ротация уроков
 

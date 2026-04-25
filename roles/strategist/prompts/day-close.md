@@ -1,5 +1,6 @@
-> **DEPRECATED (WP-98, 2026-03-14).** Day Close перенесён в `persistent-memory/protocol-close.md § День` (ОРЗ-фрактал).
-> Этот файл сохранён для справки. При триггере «закрываю день» → читать `protocol-close.md`.
+> **DEPRECATED (WP-98, 2026-03-14).** Day Close перенесён в `.claude/skills/day-close/SKILL.md`.
+> Этот файл сохранён для справки. При триггере «закрываю день» → `/day-close` или `/run-protocol close day`.
+> Ручная команда `strategist.sh day-close` удалена. Day Close = только через skill.
 
 Выполни сценарий Day-Close для роли Стратег (R1).
 
