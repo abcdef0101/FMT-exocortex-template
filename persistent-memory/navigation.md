@@ -6,16 +6,16 @@
 
 | Тема | Файл |
 |------|------|
-| Различения (жёсткие пары) | `memory/hard-distinctions.md` |
-| FPF (навигация, принципы) | `memory/fpf-reference.md` |
-| Правила по типам репо | `memory/repo-type-rules.md` |
-| Чеклисты | `memory/checklists.md` |
-| SOTA-практики (18 шт.) | `memory/sota-reference.md` |
-| Протокол Open (WP Gate, Ритуал) | `memory/protocol-open.md` |
-| Протокол Close (маршрутизация, Quick Close) | `memory/protocol-close.md` |
+| Различения (жёсткие пары) | `persistent-memory/hard-distinctions.md` |
+| FPF (навигация, принципы) | `persistent-memory/fpf-reference.md` |
+| Правила по типам репо | `persistent-memory/repo-type-rules.md` |
+| Чеклисты | `persistent-memory/checklists.md` |
+| SOTA-практики (18 шт.) | `persistent-memory/sota-reference.md` |
+| Протокол Open (WP Gate, Ритуал) | `persistent-memory/protocol-open.md` |
+| Протокол Close (маршрутизация, Quick Close) | `persistent-memory/protocol-close.md` |
 | Day Close (полный алгоритм) | `.claude/skills/day-close/SKILL.md` |
 | Week Close (полный алгоритм) | `.claude/skills/week-close/SKILL.md` |
-| Шаблоны DayPlan/WeekPlan | `memory/templates-dayplan.md` |
+| Шаблоны DayPlan/WeekPlan | `persistent-memory/templates-dayplan.md` |
 | Нулевые принципы + иерархия | `ZP/README.md` |
 | Кодирование сущностей | `SPF/spec/SPF.SPEC.001-entity-coding.md` |
 | Масштабируемость Pack | `SPF/spec/SPF.SPEC.003-pack-scalability.md` |
