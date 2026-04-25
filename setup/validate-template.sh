@@ -90,7 +90,7 @@ fi
 
 # 4. MEMORY.md — скелет (≤15 строк в таблице)
 echo -n "[4/5] MEMORY.md is skeleton... "
-MEMORY_FILE="$TEMPLATE_DIR/memory/MEMORY.md"
+MEMORY_FILE="$TEMPLATE_DIR/seed/MEMORY.md"
 if [ -f "$MEMORY_FILE" ]; then
     rp_rows=$(grep -c '^|' "$MEMORY_FILE" 2>/dev/null || echo 0)
     if [ "$rp_rows" -gt 15 ]; then
@@ -103,13 +103,14 @@ else
     echo "WARN (file missing)"
 fi
 
-# 5. Обязательные файлы
+# 5. Обязательные файлы (ADR-004: persistent-memory is template source-of-truth)
 echo -n "[5/5] Required files... "
 MISSING=0
 for f in CLAUDE.md ONTOLOGY.md README.md \
-         memory/MEMORY.md memory/hard-distinctions.md \
-         memory/protocol-open.md memory/protocol-close.md \
-         memory/navigation.md \
+         seed/MEMORY.md \
+         persistent-memory/hard-distinctions.md \
+         persistent-memory/protocol-open.md persistent-memory/protocol-close.md \
+         persistent-memory/navigation.md \
          roles/strategist/scripts/strategist.sh; do
     if [ ! -f "$TEMPLATE_DIR/$f" ]; then
         echo ""
@@ -128,7 +129,7 @@ CHECK6_FAIL=0
 CHECK6_FILES=""
 for pattern in 'FMT-exocortex-template/scripts' 'FMT-exocortex-template/roles/[a-z]*/scripts'; do
     hits=$(grep -rnE "$pattern" \
-            "$TEMPLATE_DIR/memory" \
+            "$TEMPLATE_DIR/persistent-memory" \
             "$TEMPLATE_DIR/.claude/skills" \
             --include="*.md" 2>/dev/null \
             | grep -v '\$IWE_' || true)

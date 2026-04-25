@@ -58,8 +58,8 @@ if $VALIDATE_ONLY; then
   echo ""
   ERRORS=0
 
-  # Check required filels
-  echo "[2/4] Файлы..."
+  # Check template source files (ADR-004: persistent-memory is template source-of-truth)
+  echo "[1/4] Template source files..."
   CHECK_FILES=(
     "CLAUDE.md"
     "seed/CLAUDE.md"
@@ -67,11 +67,11 @@ if $VALIDATE_ONLY; then
     "seed/settings.local.json"
     "seed/.mcp.json"
     "seed/day-rhythm-config.yaml"
-    "memory/protocol-open.md"
-    "memory/protocol-close.md"
-    "memory/protocol-work.md"
-    "memory/navigation.md"
-    "memory/roles.md"
+    "persistent-memory/protocol-open.md"
+    "persistent-memory/protocol-close.md"
+    "persistent-memory/protocol-work.md"
+    "persistent-memory/navigation.md"
+    "persistent-memory/roles.md"
   )
   for f in $CHECK_FILES; do
     if [ -f "$ROOT_DIR/$f" ]; then
@@ -82,24 +82,54 @@ if $VALIDATE_ONLY; then
     fi
   done
 
-  # Check the required symlink .claude/settings.local.json --> workspaces/CURRENT_WORKSPACE/.mcp.json
-  if [ ! -L ".claude/settings.local.json"]; then
-    echo " ⚠ Symlink .claude/settings.local.json not found"
-  fi
-  if [ "$(readlink ".claude/settings.local.json")" = "../workspaces/CURRENT_WORKSPACE/.claude/settings.local.json" ]; then
-    echo " ✓ Symlink .claude/settings.local.json == ../workspaces/CURRENT_WORKSPACE/.claude/settings.local.json"
+  # Check workspace runtime (ADR-004: canonical workspace topology)
+  echo "[2/4] Workspace runtime..."
+  WS_LINK="$ROOT_DIR/workspaces/CURRENT_WORKSPACE"
+  if [ -L "$WS_LINK" ]; then
+    WS_DIR="$(cd "$WS_LINK" 2>/dev/null && pwd)"
+    if [ -n "$WS_DIR" ] && [ -d "$WS_DIR" ]; then
+      echo "  ✓ workspaces/CURRENT_WORKSPACE → $(readlink "$WS_LINK")"
+      for wf in memory/MEMORY.md memory/day-rhythm-config.yaml; do
+        if [ -f "$WS_DIR/$wf" ]; then
+          echo "  ✓ $wf"
+        else
+          echo "  ✗ $wf отсутствует"
+          ERRORS=$((ERRORS + 1))
+        fi
+      done
+      if [ -L "$WS_DIR/memory/persistent-memory" ]; then
+        echo "  ✓ memory/persistent-memory symlink ($(readlink "$WS_DIR/memory/persistent-memory"))"
+      else
+        echo "  ✗ memory/persistent-memory symlink отсутствует"
+        ERRORS=$((ERRORS + 1))
+      fi
+    else
+      echo "  ✗ workspaces/CURRENT_WORKSPACE — dangling symlink"
+      ERRORS=$((ERRORS + 1))
+    fi
   else
-    echo " ⚠ Symlink .claude/settings.local.json != ../workspaces/CURRENT_WORKSPACE/.claude/settings.local.json"
+    echo "  ⚠ workspaces/CURRENT_WORKSPACE symlink не найден (настройте через iwe-workspace)"
   fi
 
-  # Check the required symlink ./.mcp.json --> workspaces/CURRENT_WORKSPACE/.mcp.json
-  if [ ! -L ".mcp.json"]; then
-    echo " ⚠ Symlink .mcp.json not found"
-  fi
-  if [ "$(readlink ".mcp.json")" == "workspaces/CURRENT_WORKSPACE/.mcp.json" ]; then
-    echo " ✓ Symlink .mcp.json == workspaces/CURRENT_WORKSPACE/.mcp.json"
+  # Check root-level symlinks
+  echo "[3/4] Root symlinks..."
+  if [ -L ".claude/settings.local.json" ]; then
+    if [ "$(readlink ".claude/settings.local.json")" = "../workspaces/CURRENT_WORKSPACE/.claude/settings.local.json" ]; then
+      echo "  ✓ .claude/settings.local.json → ../workspaces/CURRENT_WORKSPACE/.claude/settings.local.json"
+    else
+      echo "  ⚠ .claude/settings.local.json → $(readlink ".claude/settings.local.json") (expected ../workspaces/CURRENT_WORKSPACE/.claude/settings.local.json)"
+    fi
   else
-    echo " ⚠ Symlink .mcp.json != workspaces/CURRENT_WORKSPACE/.mcp.json"
+    echo "  ⚠ .claude/settings.local.json symlink not found"
+  fi
+  if [ -L ".mcp.json" ]; then
+    if [ "$(readlink ".mcp.json")" = "workspaces/CURRENT_WORKSPACE/.mcp.json" ]; then
+      echo "  ✓ .mcp.json → workspaces/CURRENT_WORKSPACE/.mcp.json"
+    else
+      echo "  ⚠ .mcp.json → $(readlink ".mcp.json") (expected workspaces/CURRENT_WORKSPACE/.mcp.json)"
+    fi
+  else
+    echo "  ⚠ .mcp.json symlink not found"
   fi
 
   # Check MCP accessibility
@@ -130,7 +160,7 @@ echo ""
 # === Detect template directory ===
 missing=()
 files=(
-  "$ROO_DIR/CLAUDE.md"
+  "$ROOT_DIR/CLAUDE.md"
   "$ROOT_DIR/persistent-memory"
   "$ROOT_DIR/seed"
   "$ROOT_DIR/seed/CLAUDE.md"
@@ -139,10 +169,10 @@ files=(
 )
 for f in "${files[@]}"; do
   if [[ ! -e "$f" ]]; then
-    misssng+=("$f")
+    missing+=("$f")
   fi
 done
-if [[ "$missing[@]" -gt 0 ]]; then
+if [[ ${#missing[@]} -gt 0 ]]; then
   echo "  ERROR: files not found" >&2
   printf '  - %s\n' "${missing[@]}" >&2
   echo ""
