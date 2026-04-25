@@ -1,8 +1,11 @@
 #!/bin/bash
-# day-close.sh — Автоматические шаги Day Close (backup + reindex + linear sync)
+# day-close.sh — Механические шаги Day Close (backup + reindex + linear sync)
 #
-# Вызывается Claude из протокола Day Close (protocol-close.md § День, шаг 4).
-# Объединяет три механических операции в одну команду.
+# Вызывается из .claude/skills/day-close/SKILL.md (шаг 4).
+# НЕ содержит бизнес-логику Day Close — только механические операции.
+#
+# Backup: копирует workspace memory/ (MEMORY.md, day-rhythm-config.yaml, etc.)
+# в DS-strategy/exocortex/. Symlinks (persistent-memory) пропускаются.
 #
 # Использование:
 #   day-close.sh              # все три шага
@@ -10,31 +13,10 @@
 #   day-close.sh --reindex    # только reindex
 #   day-close.sh --linear     # только linear sync
 #
-# Конфигурация: Пути заданы через переменные ниже — настроить при установке.
+# Конфигурация: WORKSPACE_DIR через env var или --workspace-dir.
 
 set -euo pipefail
 
-# === КОНФИГУРАЦИЯ (настроить при установке) ===
-WORKSPACE_DIR="${WORKSPACE_DIR:-$HOME/IWE}"
-DS_STRATEGY="$WORKSPACE_DIR/DS-strategy"
-MEMORY_SRC="$HOME/.claude/projects/-Users-$(whoami)-IWE/memory"
-EXOCORTEX_DST="$DS_STRATEGY/exocortex"
-SELECTIVE_REINDEX="$WORKSPACE_DIR/DS-MCP/knowledge-mcp/scripts/selective-reindex.sh"
-SOURCES_JSON="$WORKSPACE_DIR/DS-MCP/knowledge-mcp/scripts/sources.json"
-SOURCES_PERSONAL_JSON="$WORKSPACE_DIR/DS-MCP/knowledge-mcp/scripts/sources-personal.json"
-# Linear sync: путь читается из params.yaml (ключ linear_sync_path)
-PARAMS_YAML="$WORKSPACE_DIR/params.yaml"
-LINEAR_SYNC=""
-if [ -f "$PARAMS_YAML" ]; then
-  _raw=$(python3 -c "import yaml,sys; d=yaml.safe_load(open(sys.argv[1])); print(d.get('linear_sync_path',''))" "$PARAMS_YAML" 2>/dev/null || echo "")
-  if [ -n "$_raw" ]; then
-    LINEAR_SYNC="${_raw/#\~/$HOME}"
-  fi
-fi
-LOG_FILE="$WORKSPACE_DIR/DS-agent-workspace/scheduler/day-close.log"
-# === /КОНФИГУРАЦИЯ ===
-
-# Цвета
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
@@ -44,23 +26,71 @@ log() { echo -e "${GREEN}[day-close]${NC} $1"; }
 warn() { echo -e "${YELLOW}[day-close]${NC} $1"; }
 err() { echo -e "${RED}[day-close]${NC} $1" >&2; }
 
-# --- Шаг 1: Backup memory/ + CLAUDE.md → exocortex/ ---
-do_backup() {
-  log "Шаг 1/3: Backup memory/ → exocortex/"
+show_usage() {
+  echo "Использование: day-close.sh [--backup] [--reindex] [--linear] [--workspace-dir DIR]"
+  echo "  Без аргументов — все три шага"
+}
 
-  if [ ! -d "$MEMORY_SRC" ]; then
-    err "Memory source not found: $MEMORY_SRC"
-    return 1
+resolve_paths() {
+  DS_STRATEGY="$WORKSPACE_DIR/DS-strategy"
+
+  SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+  FMT_DIR="$(dirname "$SCRIPT_DIR")"
+
+  WORKSPACE_LINK="$FMT_DIR/workspaces/CURRENT_WORKSPACE"
+  WORKSPACE_MEMORY=""
+  if [ -L "$WORKSPACE_LINK" ]; then
+    local ws_target
+    ws_target="$(readlink "$WORKSPACE_LINK")"
+    local ws_dir=""
+    if [ -d "$FMT_DIR/workspaces/$ws_target" ]; then
+      ws_dir="$FMT_DIR/workspaces/$ws_target"
+    elif [ -d "$ws_target" ]; then
+      ws_dir="$ws_target"
+    fi
+    if [ -n "$ws_dir" ] && [ -d "$ws_dir/memory" ]; then
+      WORKSPACE_MEMORY="$ws_dir/memory"
+    fi
   fi
+  EXOCORTEX_DST="$DS_STRATEGY/exocortex"
+  SELECTIVE_REINDEX="$WORKSPACE_DIR/DS-MCP/knowledge-mcp/scripts/selective-reindex.sh"
+  SOURCES_JSON="$WORKSPACE_DIR/DS-MCP/knowledge-mcp/scripts/sources.json"
+  SOURCES_PERSONAL_JSON="$WORKSPACE_DIR/DS-MCP/knowledge-mcp/scripts/sources-personal.json"
+  PARAMS_YAML="$WORKSPACE_DIR/params.yaml"
+
+  LINEAR_SYNC=""
+  if [ -f "$PARAMS_YAML" ]; then
+    local raw
+    raw=$(python3 -c "import yaml,sys; d=yaml.safe_load(open(sys.argv[1])); print(d.get('linear_sync_path',''))" "$PARAMS_YAML" 2>/dev/null || echo "")
+    if [ -n "$raw" ]; then
+      LINEAR_SYNC="${raw/#\~/$HOME}"
+    fi
+  fi
+  LOG_FILE="$WORKSPACE_DIR/DS-agent-workspace/scheduler/day-close.log"
+}
+
+do_backup() {
+  log "Шаг 1/3: Backup workspace memory/ → exocortex/"
 
   mkdir -p "$EXOCORTEX_DST"
 
   local count=0
-  for f in "$MEMORY_SRC"/*.md "$MEMORY_SRC"/*.yaml "$MEMORY_SRC"/*.yml; do
-    [ -f "$f" ] || continue
-    cp "$f" "$EXOCORTEX_DST/"
-    count=$((count + 1))
-  done
+
+  if [ -d "$WORKSPACE_MEMORY" ]; then
+    for f in "$WORKSPACE_MEMORY"/*; do
+      [ -f "$f" ] || continue
+      local bname
+      bname=$(basename "$f")
+      case "$bname" in
+        *.md|*.yaml|*.yml|*.json) ;;
+        *) continue ;;
+      esac
+      cp "$f" "$EXOCORTEX_DST/"
+      count=$((count + 1))
+    done
+  else
+    warn "  workspace memory/ not found: $WORKSPACE_MEMORY"
+  fi
 
   if [ -f "$WORKSPACE_DIR/CLAUDE.md" ]; then
     cp "$WORKSPACE_DIR/CLAUDE.md" "$EXOCORTEX_DST/CLAUDE.md"
@@ -70,7 +100,6 @@ do_backup() {
   log "  Скопировано: $count файлов → $EXOCORTEX_DST/"
 }
 
-# --- Шаг 2: Knowledge-MCP reindex ---
 do_reindex() {
   log "Шаг 2/3: Knowledge-MCP reindex"
 
@@ -79,8 +108,6 @@ do_reindex() {
     return 0
   fi
 
-  # Маппинг dir→source+config из L2 (sources.json) и L4 (sources-personal.json)
-  # Python резолвит path→git-root, чтобы связать dirname репо с source-именем.
   local dir_map
   dir_map=$(python3 - "$SOURCES_JSON" "$SOURCES_PERSONAL_JSON" << 'PYEOF'
 import sys, json, os
@@ -97,7 +124,6 @@ for config_path in sys.argv[1:]:
 PYEOF
   ) || { warn "  Mapping build failed — пропуск reindex"; return 0; }
 
-  # Определяем, какие Pack/DS были изменены сегодня
   local l2_sources="" l4_sources=""
   for repo in "$WORKSPACE_DIR"/PACK-* "$WORKSPACE_DIR"/DS-*; do
     [ -d "$repo/.git" ] || continue
@@ -128,14 +154,12 @@ PYEOF
     return 0
   fi
 
-  # Вызов 1: L2 источники (sources.json — дефолт selective-reindex)
   if [ -n "$l2_sources" ]; then
     log "  L2 источники:$l2_sources"
     # shellcheck disable=SC2086
     "$SELECTIVE_REINDEX" $l2_sources
   fi
 
-  # Вызов 2: L4 источники (sources-personal.json через SOURCES_CONFIG)
   if [ -n "$l4_sources" ]; then
     log "  L4 источники:$l4_sources"
     # shellcheck disable=SC2086
@@ -143,19 +167,17 @@ PYEOF
   fi
 }
 
-# --- Шаг 3: Linear sync ---
 do_linear() {
   log "Шаг 3/3: Linear sync"
 
   if [ ! -x "$LINEAR_SYNC" ]; then
-    warn "  linear-sync.sh не найден: $LINEAR_SYNC — пропуск"
+    warn "  linear-sync.sh не найден — пропуск"
     return 0
   fi
 
   "$LINEAR_SYNC"
 }
 
-# --- Лог ---
 write_log() {
   local date_str
   date_str=$(date "+%Y-%m-%d %H:%M")
@@ -163,29 +185,30 @@ write_log() {
   echo "$date_str | day-close | backup=$1 reindex=$2 linear=$3" >> "$LOG_FILE"
 }
 
-# --- Main ---
 main() {
   local do_all=true
   local run_backup=false
   local run_reindex=false
   local run_linear=false
 
-  for arg in "$@"; do
-    case "$arg" in
-      --backup)  run_backup=true; do_all=false ;;
-      --reindex) run_reindex=true; do_all=false ;;
-      --linear)  run_linear=true; do_all=false ;;
+  WORKSPACE_DIR="${WORKSPACE_DIR:-$HOME/IWE}"
+
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --backup)  run_backup=true; do_all=false; shift ;;
+      --reindex) run_reindex=true; do_all=false; shift ;;
+      --linear)  run_linear=true; do_all=false; shift ;;
+      --workspace-dir)
+        if [ $# -lt 2 ]; then err "--workspace-dir требует аргумент"; exit 1; fi
+        WORKSPACE_DIR="$2"; shift 2 ;;
       --help|-h)
-        echo "Использование: day-close.sh [--backup] [--reindex] [--linear]"
-        echo "  Без аргументов — все три шага"
-        exit 0
-        ;;
+        show_usage; exit 0 ;;
       *)
-        err "Неизвестный аргумент: $arg"
-        exit 1
-        ;;
+        err "Неизвестный аргумент: $1"; exit 1 ;;
     esac
   done
+
+  resolve_paths
 
   if $do_all; then
     run_backup=true
@@ -193,7 +216,7 @@ main() {
     run_linear=true
   fi
 
-  log "=== Day Close (автоматические шаги) ==="
+  log "=== Day Close (механические шаги) ==="
 
   local backup_status="skip" reindex_status="skip" linear_status="skip"
 
@@ -213,6 +236,10 @@ main() {
 
   log "=== Готово ==="
   log "  backup=$backup_status  reindex=$reindex_status  linear=$linear_status"
+
+  if [[ "$backup_status" == "fail" || "$reindex_status" == "fail" || "$linear_status" == "fail" ]]; then
+    exit 1
+  fi
 }
 
 main "$@"
