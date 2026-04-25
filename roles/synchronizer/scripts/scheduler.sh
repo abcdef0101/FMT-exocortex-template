@@ -333,7 +333,7 @@ dispatch() {
     elapsed=$(last_run_seconds_ago "extractor-inbox-check")
     if [ "$elapsed" -ge 10800 ]; then
       log "→ extractor inbox-check (${elapsed}s since last)"
-      if timeout "$TASK_TIMEOUT_LONG" "$EXTRACTOR_SH" --root="$ROOT_DIR" --workspace="$WORKSPACE_NAME" --agent-ai-path="$CLAUDE_PATH" inbox-check >>"$LOG_FILE" 2>&1; then
+      if timeout "$TASK_TIMEOUT_LONG" "$EXTRACTOR_SH" --root-dir "$ROOT_DIR" --workspace "$WORKSPACE_NAME" --agent-ai-path "$CLAUDE_PATH" inbox-check >>"$LOG_FILE" 2>&1; then
         mark_interval "extractor-inbox-check"
       else
         log "WARN: extractor inbox-check failed (will retry next dispatch)"

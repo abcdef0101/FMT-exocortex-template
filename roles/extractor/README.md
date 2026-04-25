@@ -36,8 +36,8 @@
 ### 2. (Опционально) Установи автоматический inbox-check
 
 ```bash
-cd {{WORKSPACE_DIR}}/FMT-exocortex-template/roles/extractor
-bash install.sh
+cd roles/extractor
+bash install.sh --workspace-dir /path/to/workspace --root-dir /path/to/root
 ```
 
 Это установит launchd-агент для проверки inbox каждые 3 часа.
@@ -46,10 +46,10 @@ bash install.sh
 
 ```bash
 # Inbox-check (без launchd)
-bash {{WORKSPACE_DIR}}/FMT-exocortex-template/roles/extractor/scripts/extractor.sh inbox-check
+bash scripts/extractor.sh --root-dir /path/to/root --workspace my-workspace --agent-ai-path $(which claude) inbox-check
 
 # Knowledge Audit
-bash {{WORKSPACE_DIR}}/FMT-exocortex-template/roles/extractor/scripts/extractor.sh audit
+bash scripts/extractor.sh --root-dir /path/to/root --workspace my-workspace --agent-ai-path $(which claude) audit
 ```
 
 ## Как работает

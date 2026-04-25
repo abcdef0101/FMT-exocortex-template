@@ -22,8 +22,8 @@
 
 ### Шаг 0: Прочитать конфигурацию
 
-1. Прочитай `{{WORKSPACE_DIR}}/FMT-exocortex-template/roles/extractor/config/routing.md` — таблицы маршрутизации.
-2. Прочитай `{{WORKSPACE_DIR}}/FMT-exocortex-template/roles/extractor/config/feedback-log.md` — лог отклонённых кандидатов. Если capture похож на ранее отклонённый → пропусти.
+1. Прочитай `{{ROOT_DIR}}/roles/extractor/config/routing.md` — таблицы маршрутизации.
+2. Прочитай `{{ROOT_DIR}}/roles/extractor/config/feedback-log.md` — лог отклонённых кандидатов. Если capture похож на ранее отклонённый → пропусти.
 
 ### Шаг 1: Проверить inbox
 
@@ -47,9 +47,9 @@
 | Failure mode | Типовая ошибка | `fm` |
 | Правило | Ограничение, 1-3 строки | `rule` |
 
-**2b. Маршрутизация (по `config/routing.md`):**
+**2b. Маршрутизация (по `{{SCRIPT_DIR}}/config/routing.md`):**
 
-1. Определи Pack по домену
+1. Определи Pack по домен
 2. Определи директорию по типу
 3. Прочитай `00-pack-manifest.md` ТОЛЬКО целевого Pack'а → проверь bounded context
 
@@ -57,7 +57,7 @@
 
 1. Прочитай целевую директорию ТОЛЬКО нужного Pack'а → найди существующие файлы → назначь ID
 2. Имя файла: по конвенции из routing.md § 3
-3. Создай содержимое по шаблону (шаблоны — в `prompts/session-close.md`, шаг 4d)
+3. Создай содержимое по шаблону (шаблоны — в `{{PROMPTS_DIR}}/session-close.md`, шаг 4d)
 
 **2d. Валидация:**
 
@@ -135,7 +135,7 @@ remaining: M
 
 ### Шаг 4: Пометить captures как проанализированные
 
-В `DS-strategy/inbox/captures.md` — для каждого проанализированного capture добавь метку `[analyzed YYYY-MM-DD]` к заголовку:
+В `{{WORKSPACE_DIR}}/DS-strategy/inbox/captures.md` — для каждого проанализированного capture добавь метку `[analyzed YYYY-MM-DD]` к заголовку:
 
 **Было:** `### Паттерн X`
 **Стало:** `### Паттерн X [analyzed 2026-02-12]`
@@ -162,7 +162,7 @@ remaining: M
 
 > Когда пользователь говорит «review extraction report» или «apply KE report»:
 
-1. Прочитай последний отчёт из `DS-strategy/inbox/extraction-reports/`
+1. Прочитай последний отчёт из `{{WORKSPACE_DIR}}/DS-strategy/inbox/extraction-reports/`
 2. Покажи каждый кандидат пользователю
 3. Для accept — создай файл, закоммить в целевой Pack
 4. Для reject — записать причину в feedback-log.md
