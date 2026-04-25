@@ -9,7 +9,7 @@ version: 1.1.0
 
 > **Роль:** R1 Стратег. **Два выхода:** DayPlan (git, 80+ строк) + compact dashboard (VS Code, 20-30 строк).
 > **Порядок:** сначала DayPlan → потом compact. **Дата:** ПЕРВОЕ действие = `date`.
-> **Режим:** `memory/day-rhythm-config.yaml` → `interactive: false` = одним блоком, решения → «Требует внимания».
+> **Режим:** `./workspaces/CURRENT_WORKSPACE/memory/day-rhythm-config.yaml` → `interactive: false` = одним блоком, решения → «Требует внимания».
 > **Фильтр свежести:** issues, видео, заметки — за 2 дня. Urgent — всегда.
 > **Issues — только actionable:** пропускать read-only репо (CLAUDE.md) и upstream без push-доступа (Base, чужие fork).
 > **Шаблоны:** ниже (после алгоритма).

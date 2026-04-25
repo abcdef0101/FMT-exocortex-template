@@ -15,11 +15,11 @@ argument-hint: "[open|close] [day|session]"
 
 | Аргумент | Файл | Skill (полный алгоритм) |
 |----------|------|------------------------|
-| `day-open` / `open day` | `memory/protocol-open.md § День` | `.claude/skills/day-open/SKILL.md` |
-| `open session` или задание | `memory/protocol-open.md § Сессия` | — |
-| `day-close` / `close day` | `memory/protocol-close.md § День` | `.claude/skills/day-close/SKILL.md` |
-| `close session` | `memory/protocol-close.md § Сессия` | — |
-| `week-close` | `memory/protocol-close.md § Неделя` | `.claude/skills/week-close/SKILL.md` |
+| `day-open` / `open day` | `./workspaces/CURRENT_WORKSPACE/memory/persistent-memory/protocol-open.md § День` | `.claude/skills/day-open/SKILL.md` |
+| `open session` или задание | `./workspaces/CURRENT_WORKSPACE/memory/persistent-memory/protocol-open.md § Сессия` | — |
+| `day-close` / `close day` | `./workspaces/CURRENT_WORKSPACE/memory/persistent-memory/protocol-close.md § День` | `.claude/skills/day-close/SKILL.md` |
+| `close session` | `./workspaces/CURRENT_WORKSPACE/memory/persistent-memory/protocol-close.md § Сессия` | — |
+| `week-close` | `./workspaces/CURRENT_WORKSPACE/memory/persistent-memory/protocol-close.md § Неделя` | `.claude/skills/week-close/SKILL.md` |
 
 Если есть Skill-файл → читай его (содержит полный алгоритм + шаблоны). Protocol-файл = краткий маршрутизатор.
 

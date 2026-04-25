@@ -10,4 +10,4 @@ version: 1.0.0
 > **Симметрия:** `/day-open` открывает, `/week-close` закрывает неделю.
 > **Реализация:** делегирует в `/run-protocol week-close`.
 
-Выполни `/run-protocol week-close` с полным алгоритмом из `memory/protocol-close.md § Неделя`.
+Выполни `/run-protocol week-close` с полным алгоритмом из `./workspaces/CURRENT_WORKSPACE/memory/persistent-memory/protocol-close.md § Неделя`.

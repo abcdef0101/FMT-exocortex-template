@@ -75,7 +75,7 @@ argument-hint: "[описание решения]"
 2. **DDD Strategic** (DP.SOTA.001): BC определён? UL консистентен? Context Map есть?
 3. **Coupling Model** (DP.SOTA.011): knowledge/distance/volatility coupling оценены?
 
-Полный справочник: `memory/sota-reference.md`.
+Полный справочник: `./workspaces/CURRENT_WORKSPACE/memory/persistent-memory/sota-reference.md`.
 
 ## Шаг 3. Вето-фильтр (conjunctive screening)
 

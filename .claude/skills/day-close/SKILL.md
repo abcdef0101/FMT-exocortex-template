@@ -10,4 +10,4 @@ version: 1.0.0
 > **Симметрия:** `/day-open` открывает день, `/day-close` закрывает.
 > **Реализация:** делегирует в `/run-protocol close day`.
 
-Выполни `/run-protocol close day` с полным алгоритмом из `memory/protocol-close.md § День`.
+Выполни `/run-protocol close day` с полным алгоритмом из `./workspaces/CURRENT_WORKSPACE/memory/persistent-memory/protocol-close.md § День`.

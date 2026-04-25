@@ -61,7 +61,7 @@ cat {{WORKSPACE_DIR}}/params.yaml 2>/dev/null
 | `telegram_notifications` | Все роли | `true` | Telegram уведомления |
 | `extensions_dir` | Все протоколы | `extensions` | Директория расширений |
 
-#### Day Open (memory/day-rhythm-config.yaml)
+#### Day Open (./workspaces/CURRENT_WORKSPACE/memory/day-rhythm-config.yaml)
 
 | Параметр | Описание |
 |----------|----------|

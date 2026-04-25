@@ -17,7 +17,7 @@ argument-hint: "[что извлечь]"
 | Доменное (архитектура, паттерны) | Соответствующий Pack | Close | Да |
 | Различение, метод, FM, WP | Соответствующий Pack | Close | Да |
 | Реализационное (вендор, стек, деплой) | DS docs/ | Close | Да (KE → DS) |
-| Крупный урок | `memory/<topic>.md` | Close | Нет |
+| Крупный урок | `./workspaces/CURRENT_WORKSPACE/memory/<topic>.md` | Close | Нет |
 | Зерно для поста | `DS-strategy/drafts/draft-list.md` | Close | Нет |
 
 ## Шаг 2. Маршрутизация
@@ -35,4 +35,4 @@ argument-hint: "[что извлечь]"
 
 Выведи: *«Capture: [что] → [куда]»*
 
-Если это различение — предложи формулировку для `memory/hard-distinctions.md`.
+Если это различение — предложи формулировку для `./workspaces/CURRENT_WORKSPACE/memory/persistent-memory/hard-distinctions.md`.
