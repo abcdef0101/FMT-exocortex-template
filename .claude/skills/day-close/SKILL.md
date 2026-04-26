@@ -57,7 +57,7 @@ done
 
 ### 4. Автоматические шаги (helper script)
 
-Вызвать: `bash ./scripts/day-close.sh`
+Вызвать: `bash "${CLAUDE_SKILL_DIR}/scripts/day-close.sh"`
 
 Это выполнит:
 - Backup workspace memory/ (MEMORY.md, day-rhythm-config.yaml и др.) → exocortex/

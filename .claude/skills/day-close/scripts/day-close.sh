@@ -35,7 +35,7 @@ resolve_paths() {
   DS_STRATEGY="$WORKSPACE_DIR/DS-strategy"
 
   SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-  FMT_DIR="$(dirname "$SCRIPT_DIR")"
+  FMT_DIR="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
 
   WORKSPACE_LINK="$FMT_DIR/workspaces/CURRENT_WORKSPACE"
   WORKSPACE_MEMORY=""
