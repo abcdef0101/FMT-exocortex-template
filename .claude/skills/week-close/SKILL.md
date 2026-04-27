@@ -37,7 +37,7 @@ Week Close = протокол. Исполнять ТОЛЬКО пошагово 
 ### 2. Сбор данных недели
 
 ```bash
-WORKSPACE_DIR="$(cd "workspaces/CURRENT_WORKSPACE" && pwd)"
+WORKSPACE_DIR="$(cd "${CLAUDE_SKILL_DIR}/../../../workspaces/CURRENT_WORKSPACE" && pwd)"
 for repo in "$WORKSPACE_DIR"/*/; do
   [ -d "$repo/.git" ] || continue
   name=$(basename "$repo")
