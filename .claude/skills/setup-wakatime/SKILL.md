@@ -2,110 +2,135 @@
 name: setup-wakatime
 description: Настройка WakaTime time-tracking для Claude Code и VS Code
 user_invocable: true
+allowed-tools: Bash(bash "${CLAUDE_SKILL_DIR}/scripts/setup-wakatime.sh" *)
 ---
 
 # Setup WakaTime Time Tracking
 
 Автоматическая настройка WakaTime для отслеживания рабочего времени.
 
+**Безопасно запускать повторно** — каждая подкоманда проверяет состояние и пропускается если уже сделано.
+
 ## Что устанавливается
 
 1. **wakatime-cli** — CLI для отправки heartbeat'ов
-2. **Хук Claude Code** — автоматический трекинг при работе с Claude (категория "AI Coding")
-3. **WakaTime Desktop App** (опционально) — трекинг фокуса окна (чтение, браузер)
+2. **`.wakatime-project`** — имя проекта в WakaTime для выбранного workspace
+3. **Хуки Claude Code** — автоматический трекинг (категория "AI Coding")
+4. **WakaTime Desktop App** (опционально, macOS) — трекинг фокуса окна
+
+## Архитектура
+
+Вся техническая логика — в `scripts/setup-wakatime.sh`. SKILL.md только:
+1. Спрашивает пользователя что нужно
+2. Вызывает соответствующую подкоманду скрипта
+3. Парсит вывод: `✓` — успех, `✗ FAIL: <причина>` — стоп, сообщи пользователю причину
+
+Состояние `WORKSPACE_DIR` сохраняется в `/tmp/wakatime-setup-state.env` между вызовами.
 
 ## Инструкция для Claude
 
-Выполни шаги последовательно. На каждом шаге проверяй, не сделано ли уже.
-
-### Шаг 1: wakatime-cli
+### Шаг 1: Pre-flight + установка wakatime-cli
 
 ```bash
-# Проверить наличие
-~/.wakatime/wakatime-cli --version 2>/dev/null || wakatime-cli --version 2>/dev/null
+bash "${CLAUDE_SKILL_DIR}/scripts/setup-wakatime.sh" preflight
+bash "${CLAUDE_SKILL_DIR}/scripts/setup-wakatime.sh" cli
 ```
 
-Если не установлен:
+Если `preflight` упал на `jq`/`curl` — попроси пользователя установить и вернуться.
+
+### Шаг 2: Workspace + имя проекта
+
+Покажи варианты:
 ```bash
-brew install wakatime-cli
-mkdir -p ~/.wakatime
-ln -sf $(which wakatime-cli) ~/.wakatime/wakatime-cli
+ls workspaces/
+readlink workspaces/CURRENT_WORKSPACE 2>/dev/null
 ```
 
-### Шаг 2: API Key
+Спроси: «Для какого workspace настраиваем? Enter — текущий (CURRENT_WORKSPACE), или введи имя из списка».
+
+Передай ответ в скрипт (Enter → `current`):
+```bash
+bash "${CLAUDE_SKILL_DIR}/scripts/setup-wakatime.sh" workspace "<имя или current>"
+```
+
+Проверь существующее имя проекта:
+```bash
+cat "$(. /tmp/wakatime-setup-state.env && echo "$WORKSPACE_DIR/.wakatime-project")" 2>/dev/null
+```
+
+- Если файл существует и непустой — спроси: «Оставить `<текущее>` или изменить?»
+- Если пустой/нет — спроси: «Как назвать workspace в WakaTime? (например: IWE-main)»
 
 ```bash
-cat ~/.wakatime.cfg 2>/dev/null
+bash "${CLAUDE_SKILL_DIR}/scripts/setup-wakatime.sh" project "<имя проекта>"
 ```
 
-Если файл не существует или нет `api_key`:
-1. Скажи пользователю: «Нужен WakaTime API-ключ. Получи его на https://wakatime.com/settings/api-key (нужна регистрация). Вставь ключ сюда.»
-2. Дождись ответа
-3. Запиши:
+### Шаг 3: API ключ
+
+Спроси: «WakaTime API-ключ? Получи на https://wakatime.com/settings/api-key (нужна регистрация). Вставь ключ.»
+
 ```bash
-# ~/.wakatime.cfg
-[settings]
-api_key = <ключ от пользователя>
+bash "${CLAUDE_SKILL_DIR}/scripts/setup-wakatime.sh" apikey "<ключ>"
 ```
 
-### Шаг 3: Хук-скрипт
+Если скрипт ответил `API key уже установлен` — отлично, шаг пропущен.
 
-Скопируй хук-скрипт из шаблона в глобальную директорию:
+### Шаг 4: Хуки в settings.json
+
 ```bash
-mkdir -p ~/.claude/hooks
-cp .claude/hooks/wakatime-heartbeat.sh ~/.claude/hooks/wakatime-heartbeat.sh
-chmod +x ~/.claude/hooks/wakatime-heartbeat.sh
+bash "${CLAUDE_SKILL_DIR}/scripts/setup-wakatime.sh" hooks
 ```
 
-### Шаг 4: Настройка хуков в settings.json
+Атомарно: бэкап → jq → подмена. При сбое jq бэкап восстанавливается автоматически.
 
-Прочитай `~/.claude/settings.json`. Добавь в секцию `hooks` (не затирая существующие хуки):
+### Шаг 5: Симлинки
 
-- **UserPromptSubmit** — добавь hook group:
-  ```json
-  {"hooks": [{"type": "command", "command": "~/.claude/hooks/wakatime-heartbeat.sh"}]}
-  ```
-- **PostToolUse** — добавь:
-  ```json
-  {"hooks": [{"type": "command", "command": "~/.claude/hooks/wakatime-heartbeat.sh", "async": true}]}
-  ```
-- **Stop** — добавь:
-  ```json
-  {"hooks": [{"type": "command", "command": "~/.claude/hooks/wakatime-heartbeat.sh", "async": true}]}
-  ```
+```bash
+bash "${CLAUDE_SKILL_DIR}/scripts/setup-wakatime.sh" symlinks
+```
 
-### Шаг 5: WakaTime Desktop App (спроси пользователя)
+Создаёт три симлинки идемпотентно:
+- `<repo>/.wakatime-project` → `workspaces/CURRENT_WORKSPACE/.wakatime-project`
+- `<repo>/.wakatime.cfg` → `workspaces/CURRENT_WORKSPACE/.wakatime.cfg`
+- `~/.wakatime.cfg` → `<repo>/.wakatime.cfg`
 
-Спроси: «Установить WakaTime Desktop App? Он трекает время фокуса окна (когда читаешь ответы, работаешь в браузере). Требует Accessibility-разрешение в macOS.»
+### Шаг 6: WakaTime Desktop App (только macOS)
+
+На macOS спроси: «Установить WakaTime Desktop App? Он трекает время фокуса окна. Требует Accessibility-разрешение.»
 
 Если да:
 ```bash
-brew install --cask wakatime
-open -a WakaTime
+bash "${CLAUDE_SKILL_DIR}/scripts/setup-wakatime.sh" desktop
 ```
-Скажи: «Разреши Accessibility доступ в System Settings → Privacy & Security → Accessibility.»
 
-### Шаг 6: Тест
+После установки скажи: «Разреши Accessibility в System Settings → Privacy & Security → Accessibility.»
+
+### Шаг 7: Тесты
 
 ```bash
-echo '{"cwd": "'$(pwd)'", "hook_event_name": "UserPromptSubmit", "prompt": "test"}' | ~/.claude/hooks/wakatime-heartbeat.sh
-sleep 3
-~/.wakatime/wakatime-cli --today
+bash "${CLAUDE_SKILL_DIR}/scripts/setup-wakatime.sh" test
 ```
 
-Покажи результат пользователю. Скажи: «Хуки подхватятся при следующем запуске Claude Code (хуки загружаются при старте сессии).»
+Тест 7.1 — heartbeat: посылает тестовый heartbeat через хук-скрипт.
+Тест 7.2 — API ключ: запрашивает `users/current` у WakaTime API, проверяет HTTP 200.
 
-### Шаг 7: Итог
+Если тест провален — выведи причину пользователю и предложи действия:
+- `heartbeat` падает → проверь `~/.wakatime.cfg` симлинку (Шаг 5)
+- `API вернул HTTP 401` → ключ неверный, обнови (Шаг 3)
+- `API вернул HTTP 5xx` → проблема на стороне WakaTime, попробуй позже
 
-Покажи таблицу:
+### Шаг 8: Итог
 
-| Компонент | Статус |
-|-----------|--------|
-| wakatime-cli | ✅/❌ |
-| API key | ✅/❌ |
-| Хук-скрипт | ✅/❌ |
-| Хуки в settings.json | ✅/❌ |
-| Desktop App | ✅/❌/пропущен |
-| Тест heartbeat | ✅/❌ |
+```bash
+bash "${CLAUDE_SKILL_DIR}/scripts/setup-wakatime.sh" summary
+```
 
-Скажи: «Дашборд: https://wakatime.com/dashboard. Данные появятся через 5-15 минут.»
+Скажи пользователю: «Дашборд: https://wakatime.com/dashboard. Данные появятся через 5–15 минут. Хуки активируются при следующем запуске Claude Code.»
+
+## Обработка ошибок
+
+Скрипт всегда выходит с явным статусом:
+- `exit 0` + строка `✓ <что сделано>` — успех, идём дальше
+- `exit 1` + строка `✗ FAIL: <причина>` — стоп, разбери причину и помоги пользователю
+
+При сбое не перезапускай скилл целиком — повтори только проблемный шаг (всё идемпотентно).
