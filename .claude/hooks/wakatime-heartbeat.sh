@@ -8,9 +8,12 @@ CWD=$(echo "$INPUT" | jq -r '.cwd // empty')
 EVENT=$(echo "$INPUT" | jq -r '.hook_event_name // empty')
 TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty')
 
-# Detect project from git or folder name
+# Detect project: .wakatime-project → git remote → folder name
 if [ -n "$CWD" ] && [ -d "$CWD" ]; then
-  PROJECT=$(cd "$CWD" && git config --local remote.origin.url 2>/dev/null | sed 's#.*/\([^.]*\)#\1#;s#\.git$##')
+  PROJECT=$(cat "$CWD/.wakatime-project" 2>/dev/null | tr -d '[:space:]')
+  if [ -z "$PROJECT" ]; then
+    PROJECT=$(cd "$CWD" && git config --local remote.origin.url 2>/dev/null | sed 's#.*/\([^.]*\)#\1#;s#\.git$##')
+  fi
   PROJECT=${PROJECT:-$(basename "$CWD")}
 else
   PROJECT="Unknown"
