@@ -21,6 +21,7 @@ Week Close = протокол. Исполнять ТОЛЬКО пошагово 
 
 ### 0. Extensions (before)
 
+Условие: `params.yaml → week_close_before_enabled: true`. Если `false` → пропустить.
 Проверить: `ls extensions/week-close.before.md`. Если существует → `Read extensions/week-close.before.md` → выполнить содержимое как первые шаги. Не существует → пропустить.
 
 ### 1. Ротация уроков
@@ -36,6 +37,7 @@ Week Close = протокол. Исполнять ТОЛЬКО пошагово 
 ### 2. Сбор данных недели
 
 ```bash
+WORKSPACE_DIR="$(cd "workspaces/CURRENT_WORKSPACE" && pwd)"
 for repo in "$WORKSPACE_DIR"/*/; do
   [ -d "$repo/.git" ] || continue
   name=$(basename "$repo")
@@ -122,6 +124,7 @@ content_plan: null
 
 ### 8b. Extensions (after)
 
+Условие: `params.yaml → week_close_after_enabled: true`. Если `false` → пропустить.
 Проверить: `ls extensions/week-close.after.md`. Если существует → `Read extensions/week-close.after.md` → выполнить содержимое. Не существует → пропустить.
 
 ### 9. Commit + Push
