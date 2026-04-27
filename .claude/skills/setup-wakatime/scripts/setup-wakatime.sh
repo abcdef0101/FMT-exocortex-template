@@ -51,23 +51,43 @@ cmd_cli() {
 
   mkdir -p ~/.wakatime
 
+  local bin=""
+
   if command -v brew >/dev/null 2>&1; then
     brew install wakatime-cli
+    # Свежий brew install — PATH может быть не обновлён в текущем shell.
+    # Сначала пробуем brew --prefix (надёжный путь к бинарю), потом PATH.
+    local brew_prefix
+    if brew_prefix=$(brew --prefix wakatime-cli 2>/dev/null); then
+      bin="$brew_prefix/bin/wakatime-cli"
+    fi
+    if [ ! -x "$bin" ]; then
+      hash -r
+      bin=$(command -v wakatime-cli || true)
+    fi
+    [ -n "$bin" ] && [ -x "$bin" ] \
+      || fail "brew install прошёл, но wakatime-cli не найден (ни через brew --prefix, ни в PATH)"
+  elif command -v pip3 >/dev/null 2>&1 \
+       || command -v pip  >/dev/null 2>&1 \
+       || command -v python3 >/dev/null 2>&1; then
+    # Linux/любой Unix: пробуем pip3 → pip → python3 -m pip
+    local pip_cmd
+    if   command -v pip3   >/dev/null 2>&1; then pip_cmd="pip3 install --user wakatime"
+    elif command -v pip    >/dev/null 2>&1; then pip_cmd="pip  install --user wakatime"
+    else                                         pip_cmd="python3 -m pip install --user wakatime"
+    fi
+    eval "$pip_cmd"
     hash -r
-    local bin
-    bin=$(command -v wakatime-cli || true)
-    [ -n "$bin" ] || fail "brew install прошёл, но wakatime-cli не в PATH (попробуй новый shell)"
-    ln -sf "$bin" ~/.wakatime/wakatime-cli
-  elif command -v pip3 >/dev/null 2>&1; then
-    pip3 install --user wakatime
-    hash -r
-    local bin
     bin=$(command -v wakatime || true)
-    [ -n "$bin" ] || fail "pip3 install прошёл, но wakatime не в PATH"
-    ln -sf "$bin" ~/.wakatime/wakatime-cli
+    # pip --user ставит бинарь в ~/.local/bin (не всегда в PATH)
+    [ -n "$bin" ] || { [ -x "$HOME/.local/bin/wakatime" ] && bin="$HOME/.local/bin/wakatime"; }
+    [ -n "$bin" ] && [ -x "$bin" ] \
+      || fail "pip install прошёл, но wakatime не найден (PATH или ~/.local/bin)"
   else
-    fail "Не найден ни brew, ни pip3. Установи вручную: https://wakatime.com/help/editors/cli"
+    fail "Не найден ни brew, ни pip3/pip/python3. Скачай бинарь вручную: https://github.com/wakatime/wakatime-cli/releases"
   fi
+
+  ln -sf "$bin" ~/.wakatime/wakatime-cli
 
   ~/.wakatime/wakatime-cli --version >/dev/null 2>&1 \
     || fail "Установка не удалась: ~/.wakatime/wakatime-cli не работает"
@@ -140,14 +160,17 @@ cmd_hooks() {
   # Бэкап + атомарная подмена через jq
   cp "$settings" "$settings.bak" || fail "не могу создать бэкап $settings.bak"
 
-  if jq '
+  # Абсолютный путь к хуку — не зависит от CWD при запуске Claude Code
+  local hook_path="$REPO_ROOT/.claude/hooks/wakatime-heartbeat.sh"
+
+  if jq --arg hook "$hook_path" '
       .hooks //= {}
     | .hooks.UserPromptSubmit //= []
     | .hooks.PostToolUse //= []
     | .hooks.Stop //= []
-    | .hooks.UserPromptSubmit += [{"hooks": [{"type": "command", "command": ".claude/hooks/wakatime-heartbeat.sh"}]}]
-    | .hooks.PostToolUse     += [{"hooks": [{"type": "command", "command": ".claude/hooks/wakatime-heartbeat.sh", "async": true}]}]
-    | .hooks.Stop            += [{"hooks": [{"type": "command", "command": ".claude/hooks/wakatime-heartbeat.sh", "async": true}]}]
+    | .hooks.UserPromptSubmit += [{"hooks": [{"type": "command", "command": $hook}]}]
+    | .hooks.PostToolUse     += [{"hooks": [{"type": "command", "command": $hook, "async": true}]}]
+    | .hooks.Stop            += [{"hooks": [{"type": "command", "command": $hook, "async": true}]}]
   ' "$settings" > "$settings.new" 2>/dev/null; then
     mv "$settings.new" "$settings"
     rm -f "$settings.bak"
@@ -161,6 +184,10 @@ cmd_hooks() {
 
 cmd_symlinks() {
   require_workspace
+
+  # ВНИМАНИЕ: симлинка ~/.wakatime.cfg хранит АБСОЛЮТНЫЙ путь к репо.
+  # Если репо переместить — симлинка станет битой. Запусти 'symlinks' заново
+  # после перемещения: предыдущая симлинка перезапишется (ln -sf).
 
   # 1. Симлинка .wakatime-project в корне репо → workspaces/CURRENT_WORKSPACE/.wakatime-project
   cd "$REPO_ROOT"
@@ -235,9 +262,10 @@ cmd_test() {
     "$WORKSPACE_DIR/.wakatime.cfg")
   [ -n "$key" ] || fail "API key не найден в $WORKSPACE_DIR/.wakatime.cfg"
 
+  # Authorization: Basic <key:>  — ключ в заголовке, не в URL (не светится в логах/истории)
   local response http_code body
-  response=$(curl -sS -w "\n%{http_code}" \
-    "https://wakatime.com/api/v1/users/current?api_key=$key" 2>&1) \
+  response=$(curl -sS -w "\n%{http_code}" -u "$key:" \
+    "https://wakatime.com/api/v1/users/current" 2>&1) \
     || fail "curl не отработал: $response"
   http_code=$(printf '%s\n' "$response" | tail -n1)
   body=$(printf '%s\n' "$response" | sed '$d')
@@ -302,7 +330,7 @@ Usage: $0 <command> [args]
 
 Commands:
   preflight              Проверить jq, curl, bash, hook-script
-  cli                    Установить wakatime-cli (brew или pip3)
+  cli                    Установить wakatime-cli (brew → pip3 → pip → python3 -m pip)
   workspace [<имя>]      Выбрать workspace (по умолчанию CURRENT_WORKSPACE)
   project <имя>          Записать имя проекта в .wakatime-project
   apikey <ключ>          Записать API ключ в .wakatime.cfg
