@@ -4,20 +4,63 @@
 # update.sh НЕ перезаписывает этот файл — ваши настройки в безопасности.
 #
 # Формат: YAML. Протоколы читают params.yaml и адаптируют поведение.
+#
+# Расширения (extensions/) управляются двумя механизмами:
+#   1. Наличие файла — инструкции для Claude (как выполнить шаг)
+#   2. Toggle в params.yaml — включён ли шаг (false = пропустить даже если файл есть)
+# Это позволяет хранить расширение в файле, но временно отключать без удаления.
 
-# === Протоколы ===
+# === Day Open ===
 
-# Day Open: проверка видео за предыдущий день
+# Проверка видео за предыдущий день
 video_check: true
 
-# Day Close: расчёт мультипликатора IWE (требует WakaTime API key)
+# Day Open before-extension (утренние ритуалы)
+day_open_before_enabled: true
+
+# Day Open after-extension (smoke-тесты, доп. проверки)
+day_open_after_enabled: true
+
+# Day Open checks-extension (БЛОКИРУЮЩЕЕ перед commit)
+day_open_checks_enabled: true
+
+# === Day Close ===
+
+# Day Close before-extension (первые шаги перед алгоритмом)
+day_close_before_enabled: true
+
+# Расчёт мультипликатора IWE (требует WakaTime API key)
 multiplier_enabled: true
 
-# Day Close: рефлексия (вопросы в конце дня)
-reflection_enabled: false
+# Day Close checks-extension (БЛОКИРУЮЩЕЕ перед commit)
+day_close_checks_enabled: true
 
-# Week Close: ротация уроков в MEMORY.md
+# Day Close after-extension (рефлексия, доп. проверки)
+day_close_after_enabled: false
+
+# === Week Close ===
+
+# Week Close before-extension
+week_close_before_enabled: true
+
+# Week Close after-extension
+week_close_after_enabled: true
+
+# Ротация уроков в MEMORY.md
 lesson_rotation: true
+
+# === Protocol Open ===
+
+# Protocol Open after-extension
+protocol_open_after_enabled: true
+
+# === Protocol Close ===
+
+# Protocol Close checks-extension
+protocol_close_checks_enabled: true
+
+# Protocol Close after-extension
+protocol_close_after_enabled: true
 
 # === Верификация ===
 
@@ -39,13 +82,6 @@ telegram_notifications: true
 #   propose — агент предлагает capture, пользователь подтверждает одним кликом (default)
 #   auto    — агент пишет без подтверждения
 capture_autonomy: propose
-
-# === Интеграции ===
-
-# Путь к скрипту синхронизации Linear (day-close.sh шаг 3)
-# Пустой или отсутствует → шаг пропускается
-# Пример: "~/IWE/path/to/linear-sync.sh"
-linear_sync_path: ""
 
 # === Расширения ===
 
