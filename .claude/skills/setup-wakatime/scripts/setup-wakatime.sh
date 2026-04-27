@@ -243,40 +243,58 @@ cmd_test() {
   local hook="$REPO_ROOT/.claude/hooks/wakatime-heartbeat.sh"
   [ -f "$hook" ] || fail "хук-скрипт не найден: $hook"
 
-  # 7.1: heartbeat — JSON через jq, не строковая конкатенация
-  local payload
-  payload=$(jq -n --arg cwd "$REPO_ROOT" \
-    '{cwd: $cwd, hook_event_name: "UserPromptSubmit", prompt: "test"}')
-  if echo "$payload" | bash "$hook"; then
-    ok "heartbeat: exit 0"
-  else
-    fail "heartbeat провален (exit $?)"
-  fi
-
-  # Даём heartbeat'у долететь до WakaTime
-  sleep 2
-
-  # 7.2: API ключ — с проверкой HTTP-статуса
+  # Извлекаем API ключ (нужен для обеих проверок)
   local key
   key=$(awk -F= '/^api_key/ {gsub(/[ \t]/, "", $2); print $2; exit}' \
     "$WORKSPACE_DIR/.wakatime.cfg")
   [ -n "$key" ] || fail "API key не найден в $WORKSPACE_DIR/.wakatime.cfg"
 
-  # Authorization: Basic <key:>  — ключ в заголовке, не в URL (не светится в логах/истории)
-  local response http_code body
+  # --- 7.1: валидация API ключа ---
+  # HTTP Basic — ключ в заголовке, не в URL (не светится в логах/истории)
+  local response http_code body username
   response=$(curl -sS -w "\n%{http_code}" -u "$key:" \
     "https://wakatime.com/api/v1/users/current" 2>&1) \
-    || fail "curl не отработал: $response"
+    || fail "curl /users/current не отработал: $response"
   http_code=$(printf '%s\n' "$response" | tail -n1)
   body=$(printf '%s\n' "$response" | sed '$d')
-
-  if [ "$http_code" != "200" ]; then
-    fail "API вернул HTTP $http_code. Тело: $body"
-  fi
-
-  local username
+  [ "$http_code" = "200" ] \
+    || fail "API /users/current вернул HTTP $http_code. Тело: $body"
   username=$(printf '%s' "$body" | jq -r '.data.username // "unknown"')
-  ok "API: пользователь $username"
+  ok "API ключ валиден: пользователь $username"
+
+  # --- 7.2: end-to-end доставка heartbeat ---
+  # Фиксируем момент ДО отправки — потом ищем heartbeats с time >= t0
+  local t0 payload
+  t0=$(date +%s)
+
+  payload=$(jq -n --arg cwd "$REPO_ROOT" \
+    '{cwd: $cwd, hook_event_name: "UserPromptSubmit", prompt: "test"}')
+  echo "$payload" | bash "$hook" \
+    || fail "хук-скрипт упал (exit $?)"
+
+  # wakatime-cli отправляет heartbeat в фоне — даём время долететь
+  sleep 3
+
+  # Запрашиваем heartbeats за сегодня
+  local hb_response hb_code hb_body found
+  hb_response=$(curl -sS -w "\n%{http_code}" -u "$key:" \
+    "https://wakatime.com/api/v1/users/current/heartbeats?date=$(date +%Y-%m-%d)" 2>&1) \
+    || fail "curl /heartbeats не отработал: $hb_response"
+  hb_code=$(printf '%s\n' "$hb_response" | tail -n1)
+  hb_body=$(printf '%s\n' "$hb_response" | sed '$d')
+  [ "$hb_code" = "200" ] \
+    || fail "API /heartbeats вернул HTTP $hb_code. Тело: $hb_body"
+
+  # Считаем сколько heartbeats пришло после t0 (с учётом float-timestamp)
+  found=$(printf '%s' "$hb_body" \
+    | jq --argjson t0 "$t0" '[.data[]? | select(.time >= $t0)] | length' \
+       2>/dev/null || echo "0")
+
+  if [ "${found:-0}" -gt 0 ]; then
+    ok "heartbeat доставлен в WakaTime ($found новых записей с момента теста)"
+  else
+    fail "heartbeat отправлен, но не найден в API после 3с. Проверь: системные часы, доступ wakatime-cli в интернет, права API ключа на запись."
+  fi
 }
 
 cmd_summary() {
