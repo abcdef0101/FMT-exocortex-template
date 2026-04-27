@@ -67,15 +67,39 @@ bash "${CLAUDE_SKILL_DIR}/scripts/setup-wakatime.sh" current-project
 bash "${CLAUDE_SKILL_DIR}/scripts/setup-wakatime.sh" project "<имя проекта>"
 ```
 
-### Шаг 3: API ключ
+### Шаг 3: Backend + API ключ
 
-Спроси: «WakaTime API-ключ? Получи на https://wakatime.com/settings/api-key (нужна регистрация). Вставь ключ.»
+**3.1 Выбор backend.** Спроси:
+> «Какой WakaTime backend используешь?
+> 1. **WakaTime Cloud** (https://wakatime.com) — основной, default
+> 2. **wakapi.dev** (self-hosted-as-a-service, https://wakapi.dev)
+> 3. **Свой self-hosted instance** — введи URL вида `https://my-wakapi.example.com/api/compat/wakatime/v1`
+>
+> Выбери 1, 2 или вставь URL.»
+
+В зависимости от ответа:
+```bash
+# Вариант 1 (WakaTime Cloud):
+bash "${CLAUDE_SKILL_DIR}/scripts/setup-wakatime.sh" apiurl default
+
+# Вариант 2 (wakapi.dev):
+bash "${CLAUDE_SKILL_DIR}/scripts/setup-wakatime.sh" apiurl wakapi
+
+# Вариант 3 (custom):
+bash "${CLAUDE_SKILL_DIR}/scripts/setup-wakatime.sh" apiurl "https://my-instance.example.com/api/compat/wakatime/v1"
+```
+
+**3.2 API ключ.** Спроси:
+> «API ключ? Получи на:
+> - WakaTime Cloud → https://wakatime.com/settings/api-key
+> - wakapi.dev → залогинься на https://wakapi.dev → Profile → Settings → API Key
+> - Self-hosted → admin вашего instance»
 
 ```bash
 bash "${CLAUDE_SKILL_DIR}/scripts/setup-wakatime.sh" apikey "<ключ>"
 ```
 
-Если скрипт ответил `API key уже установлен` — отлично, шаг пропущен.
+Принимаются оба формата: `waka_<uuid>` (WakaTime Cloud) и bare `<uuid>` (wakapi/self-hosted). Если скрипт ответил `API key не изменился` — отлично, шаг пропущен.
 
 ### Шаг 4: Хуки в settings.json
 

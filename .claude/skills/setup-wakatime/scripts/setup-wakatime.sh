@@ -37,6 +37,68 @@ require_workspace() {
     || fail "WORKSPACE_DIR не установлен. Сначала запусти подкоманду 'workspace'."
 }
 
+# === Helpers для .wakatime.cfg (INI-формат) ===
+# Атомарно читают/пишут одну пару key=value в [settings], сохраняя остальное.
+
+cfg_get() {
+  local key="$1"
+  local cfg="$WORKSPACE_DIR/.wakatime.cfg"
+  [ -f "$cfg" ] || return 0
+  awk -F= -v key="$key" '
+    $0 ~ "^[[:space:]]*"key"[[:space:]]*=" {
+      gsub(/^[ \t]+|[ \t]+$/, "", $2)
+      print $2
+      exit
+    }
+  ' "$cfg"
+}
+
+cfg_set() {
+  local key="$1"
+  local value="$2"
+  local cfg="$WORKSPACE_DIR/.wakatime.cfg"
+  local tmp="$cfg.tmp.$$"
+
+  if [ ! -f "$cfg" ]; then
+    printf '[settings]\n%s = %s\n' "$key" "$value" > "$tmp"
+    mv "$tmp" "$cfg"
+    return
+  fi
+
+  # awk: при встрече [settings] вставляет key=value сразу после header,
+  # пропускает старую строку с этим key, остальное копирует as-is.
+  awk -v key="$key" -v value="$value" '
+    BEGIN { written = 0 }
+    /^\[settings\]/ {
+      print
+      print key " = " value
+      written = 1
+      next
+    }
+    $0 ~ "^[[:space:]]*"key"[[:space:]]*=" { next }
+    { print }
+    END {
+      if (!written) {
+        print "[settings]"
+        print key " = " value
+      }
+    }
+  ' "$cfg" > "$tmp"
+  mv "$tmp" "$cfg"
+}
+
+cfg_unset() {
+  local key="$1"
+  local cfg="$WORKSPACE_DIR/.wakatime.cfg"
+  [ -f "$cfg" ] || return 0
+  local tmp="$cfg.tmp.$$"
+  awk -v key="$key" '
+    $0 ~ "^[[:space:]]*"key"[[:space:]]*=" { next }
+    { print }
+  ' "$cfg" > "$tmp"
+  mv "$tmp" "$cfg"
+}
+
 # === Подкоманды ===
 
 cmd_preflight() {
@@ -154,33 +216,64 @@ cmd_apikey() {
   local key="${1:-}"
   [ -n "$key" ] || fail "usage: $0 apikey <ключ>"
 
-  # Грубая валидация формата: waka_<8>-<4>-<4>-<4>-<12> (UUID v4)
+  # Валидация формата: WakaTime cloud (waka_<uuid>) или bare UUID (wakapi.dev / self-hosted)
   case "$key" in
     waka_[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*) : ;;
-    *) fail "ключ не похож на WakaTime API key (ожидается формат waka_<uuid>): $key" ;;
+    [0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*)      : ;;
+    *) fail "ключ не похож на UUID API key (ожидается waka_<uuid> для WakaTime cloud или <uuid> для wakapi/self-hosted): $key" ;;
   esac
 
-  # Сравнить с текущим. Если идентично — пропустить (true idempotency).
-  # Если отличается — обновить (force-update вместо молчаливого пропуска).
-  local current=""
-  if [ -f "$WORKSPACE_DIR/.wakatime.cfg" ]; then
-    current=$(awk -F= '/^api_key/ {gsub(/[ \t]/, "", $2); print $2; exit}' \
-      "$WORKSPACE_DIR/.wakatime.cfg")
-  fi
+  local current
+  current=$(cfg_get "api_key")
   if [ "$current" = "$key" ]; then
     ok "API key не изменился (уже записан)"
     return
   fi
 
-  # Атомарная запись через tmp-файл
-  local tmp="$WORKSPACE_DIR/.wakatime.cfg.tmp.$$"
-  printf '[settings]\napi_key = %s\n' "$key" > "$tmp"
-  mv "$tmp" "$WORKSPACE_DIR/.wakatime.cfg"
+  cfg_set "api_key" "$key"
 
   if [ -n "$current" ]; then
     ok "API key обновлён в $WORKSPACE_DIR/.wakatime.cfg"
   else
     ok "API key записан в $WORKSPACE_DIR/.wakatime.cfg"
+  fi
+}
+
+cmd_apiurl() {
+  require_workspace
+  local arg="${1:-}"
+
+  # Сброс на дефолт WakaTime cloud (api.wakatime.com)
+  if [ -z "$arg" ] || [ "$arg" = "default" ] || [ "$arg" = "wakatime" ]; then
+    if [ -z "$(cfg_get api_url)" ]; then
+      ok "api_url не задан (используется default api.wakatime.com)"
+    else
+      cfg_unset "api_url"
+      ok "api_url сброшен → default api.wakatime.com"
+    fi
+    return
+  fi
+
+  # Шорткаты + валидация URL
+  local url="$arg"
+  case "$arg" in
+    wakapi) url="https://wakapi.dev/api/compat/wakatime/v1" ;;
+    https://*|http://*) : ;;
+    *) fail "ожидается полный URL (https://...), 'wakapi' (для wakapi.dev), или 'default'/'wakatime' для сброса. Получено: $arg" ;;
+  esac
+
+  local current
+  current=$(cfg_get "api_url")
+  if [ "$current" = "$url" ]; then
+    ok "api_url не изменился (уже $url)"
+    return
+  fi
+  cfg_set "api_url" "$url"
+
+  if [ -n "$current" ]; then
+    ok "api_url обновлён: $url"
+  else
+    ok "api_url установлен: $url"
   fi
 }
 
@@ -300,25 +393,27 @@ cmd_test() {
   local hook="$REPO_ROOT/.claude/hooks/wakatime-heartbeat.sh"
   [ -f "$hook" ] || fail "хук-скрипт не найден: $hook"
 
-  # Извлекаем API ключ (нужен для обеих проверок)
-  local key
-  key=$(awk -F= '/^api_key/ {gsub(/[ \t]/, "", $2); print $2; exit}' \
-    "$WORKSPACE_DIR/.wakatime.cfg")
+  # Извлекаем API ключ + URL backend'а (нужны для обеих проверок).
+  # Если api_url не задан — используем default WakaTime cloud.
+  local key api_url
+  key=$(cfg_get "api_key")
   [ -n "$key" ] || fail "API key не найден в $WORKSPACE_DIR/.wakatime.cfg"
+  api_url=$(cfg_get "api_url")
+  : "${api_url:=https://api.wakatime.com/api/v1}"
 
   # --- 7.1: валидация API ключа ---
   # HTTP Basic — ключ в заголовке, не в URL (не светится в логах/истории)
   local response http_code body username
   response=$(curl -sS --connect-timeout 10 --max-time 30 \
       -w "\n%{http_code}" -u "$key:" \
-      "https://wakatime.com/api/v1/users/current" 2>&1) \
-    || fail "curl /users/current не отработал: $response"
+      "$api_url/users/current" 2>&1) \
+    || fail "curl $api_url/users/current не отработал: $response"
   http_code=$(printf '%s\n' "$response" | tail -n1)
   body=$(printf '%s\n' "$response" | sed '$d')
   [ "$http_code" = "200" ] \
-    || fail "API /users/current вернул HTTP $http_code. Тело: $body"
+    || fail "API $api_url/users/current вернул HTTP $http_code. Тело: $body"
   username=$(printf '%s' "$body" | jq -r '.data.username // "unknown"')
-  ok "API ключ валиден: пользователь $username"
+  ok "API ключ валиден: пользователь $username (backend: $api_url)"
 
   # --- 7.2: end-to-end доставка heartbeat ---
   # Фиксируем момент ДО отправки — потом ищем heartbeats с time >= t0
@@ -337,8 +432,8 @@ cmd_test() {
   local hb_response hb_code hb_body found
   hb_response=$(curl -sS --connect-timeout 10 --max-time 30 \
       -w "\n%{http_code}" -u "$key:" \
-      "https://wakatime.com/api/v1/users/current/heartbeats?date=$(date +%Y-%m-%d)" 2>&1) \
-    || fail "curl /heartbeats не отработал: $hb_response"
+      "$api_url/users/current/heartbeats?date=$(date +%Y-%m-%d)" 2>&1) \
+    || fail "curl $api_url/heartbeats не отработал: $hb_response"
   hb_code=$(printf '%s\n' "$hb_response" | tail -n1)
   hb_body=$(printf '%s\n' "$hb_response" | sed '$d')
   [ "$hb_code" = "200" ] \
@@ -389,7 +484,11 @@ cmd_summary() {
   printf '| .wakatime-project | %s |\n' \
     "$(status "[ -s '$proj' ]" "[ -f '$proj' ]")"
   printf '| API key | %s |\n' \
-    "$(status "grep -q '^api_key = waka_' '$cfg'" "[ -f '$cfg' ]")"
+    "$(status "grep -qE '^[[:space:]]*api_key[[:space:]]*=[[:space:]]*[^[:space:]]+' '$cfg'" "[ -f '$cfg' ]")"
+  local api_url
+  api_url=$(cfg_get "api_url")
+  printf '| Backend (api_url) | %s |\n' \
+    "${api_url:-default (api.wakatime.com)}"
   printf '| Хуки в settings.json | %s |\n' \
     "$(status "jq -e '.. | strings? | select(contains(\"wakatime-heartbeat\"))' '$settings'" "[ -f '$settings' ]")"
   printf '| Симлинка .wakatime.cfg в репо | %s |\n' \
@@ -413,6 +512,7 @@ case "${1:-help}" in
   project)         shift; cmd_project "$@" ;;
   current-project) shift; cmd_current_project "$@" ;;
   apikey)          shift; cmd_apikey "$@" ;;
+  apiurl)          shift; cmd_apiurl "$@" ;;
   hooks)     shift; cmd_hooks "$@" ;;
   symlinks)  shift; cmd_symlinks "$@" ;;
   desktop)   shift; cmd_desktop "$@" ;;
@@ -429,6 +529,7 @@ Commands:
   project <имя>          Записать имя проекта в .wakatime-project
   current-project        Вывести текущее имя проекта (для SKILL.md, без падения если нет)
   apikey <ключ>          Записать API ключ в .wakatime.cfg (валидация формата + force-update)
+  apiurl <url|wakapi|default>  Установить api_url (для wakapi.dev / self-hosted; default — WakaTime cloud)
   hooks                  Добавить хуки в settings.json (атомарно через jq)
   symlinks               Создать 3 симлинки идемпотентно
   desktop                Установить WakaTime Desktop App (только macOS)
