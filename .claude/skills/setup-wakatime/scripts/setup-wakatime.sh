@@ -7,14 +7,20 @@
 
 set -euo pipefail
 
-# === Пути ===
-SKILL_DIR="${CLAUDE_SKILL_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
-REPO_ROOT="$(cd "$SKILL_DIR/../../.." && pwd)"
-STATE_FILE="${TMPDIR:-/tmp}/wakatime-setup-state.env"
-
 # === Утилиты ===
 ok()   { echo "✓ $*"; }
 fail() { echo "✗ FAIL: $*" >&2; exit 1; }
+
+# === Пути ===
+# Bash <4.4 не пропускает ошибку из $() через assignment под set -e —
+# поэтому проверяем результат явно после каждой подстановки.
+SKILL_DIR="${CLAUDE_SKILL_DIR:-$(cd "$(dirname "$0")/.." 2>/dev/null && pwd)}"
+[ -n "$SKILL_DIR" ] && [ -d "$SKILL_DIR" ] \
+  || fail "не могу определить SKILL_DIR (CLAUDE_SKILL_DIR пуст, dirname \$0 не работает)"
+REPO_ROOT="$(cd "$SKILL_DIR/../../.." 2>/dev/null && pwd)"
+[ -n "$REPO_ROOT" ] && [ -d "$REPO_ROOT" ] \
+  || fail "не могу определить REPO_ROOT от $SKILL_DIR"
+STATE_FILE="${TMPDIR:-/tmp}/wakatime-setup-state.env"
 
 load_state() {
   [ -f "$STATE_FILE" ] && . "$STATE_FILE" || true
@@ -99,8 +105,13 @@ cmd_workspace() {
   if [ -z "$arg" ] || [ "$arg" = "current" ]; then
     local current_link="$REPO_ROOT/workspaces/CURRENT_WORKSPACE"
     [ -L "$current_link" ] || fail "Симлинка $current_link не найдена. Используй iwe-workspace."
-    WORKSPACE_DIR="$(cd "$current_link" && pwd -P)"
+    WORKSPACE_DIR="$(cd "$current_link" && pwd -P)" \
+      || fail "не могу разрешить симлинку $current_link"
   else
+    # Защита от path-traversal: имя workspace не должно содержать .. или /
+    case "$arg" in
+      *..*|*/*) fail "недопустимое имя workspace: '$arg' (запрещены '..' и '/')" ;;
+    esac
     WORKSPACE_DIR="$REPO_ROOT/workspaces/$arg"
   fi
 
@@ -190,7 +201,7 @@ cmd_symlinks() {
   # после перемещения: предыдущая симлинка перезапишется (ln -sf).
 
   # 1. Симлинка .wakatime-project в корне репо → workspaces/CURRENT_WORKSPACE/.wakatime-project
-  cd "$REPO_ROOT"
+  cd "$REPO_ROOT" || fail "cd $REPO_ROOT не отработал"
   local target1="workspaces/CURRENT_WORKSPACE/.wakatime-project"
   if [ "$(readlink ".wakatime-project" 2>/dev/null || true)" = "$target1" ]; then
     ok "симлинка .wakatime-project уже корректна"
@@ -252,8 +263,9 @@ cmd_test() {
   # --- 7.1: валидация API ключа ---
   # HTTP Basic — ключ в заголовке, не в URL (не светится в логах/истории)
   local response http_code body username
-  response=$(curl -sS -w "\n%{http_code}" -u "$key:" \
-    "https://wakatime.com/api/v1/users/current" 2>&1) \
+  response=$(curl -sS --connect-timeout 10 --max-time 30 \
+      -w "\n%{http_code}" -u "$key:" \
+      "https://wakatime.com/api/v1/users/current" 2>&1) \
     || fail "curl /users/current не отработал: $response"
   http_code=$(printf '%s\n' "$response" | tail -n1)
   body=$(printf '%s\n' "$response" | sed '$d')
@@ -277,8 +289,9 @@ cmd_test() {
 
   # Запрашиваем heartbeats за сегодня
   local hb_response hb_code hb_body found
-  hb_response=$(curl -sS -w "\n%{http_code}" -u "$key:" \
-    "https://wakatime.com/api/v1/users/current/heartbeats?date=$(date +%Y-%m-%d)" 2>&1) \
+  hb_response=$(curl -sS --connect-timeout 10 --max-time 30 \
+      -w "\n%{http_code}" -u "$key:" \
+      "https://wakatime.com/api/v1/users/current/heartbeats?date=$(date +%Y-%m-%d)" 2>&1) \
     || fail "curl /heartbeats не отработал: $hb_response"
   hb_code=$(printf '%s\n' "$hb_response" | tail -n1)
   hb_body=$(printf '%s\n' "$hb_response" | sed '$d')
@@ -304,7 +317,7 @@ cmd_summary() {
     if eval "$1" >/dev/null 2>&1; then echo "✅"; else echo "❌"; fi
   }
 
-  cd "$REPO_ROOT"
+  cd "$REPO_ROOT" || fail "cd $REPO_ROOT не отработал"
 
   printf '\n'
   printf '| Компонент | Статус |\n'
