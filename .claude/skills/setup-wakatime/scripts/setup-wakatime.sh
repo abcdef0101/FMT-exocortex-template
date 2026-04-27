@@ -102,22 +102,28 @@ cmd_cli() {
 
 cmd_workspace() {
   local arg="${1:-current}"
-  if [ -z "$arg" ] || [ "$arg" = "current" ]; then
-    local current_link="$REPO_ROOT/workspaces/CURRENT_WORKSPACE"
-    [ -L "$current_link" ] || fail "Симлинка $current_link не найдена. Используй iwe-workspace."
-    WORKSPACE_DIR="$(cd "$current_link" && pwd -P)" \
-      || fail "не могу разрешить симлинку $current_link"
-  else
-    # Защита от path-traversal: имя workspace не должно содержать .. или /
-    case "$arg" in
-      *..*|*/*) fail "недопустимое имя workspace: '$arg' (запрещены '..' и '/')" ;;
-    esac
-    WORKSPACE_DIR="$REPO_ROOT/workspaces/$arg"
+  local current_link="$REPO_ROOT/workspaces/CURRENT_WORKSPACE"
+  [ -L "$current_link" ] || fail "Симлинка $current_link не найдена. Используй iwe-workspace."
+
+  WORKSPACE_DIR="$(cd "$current_link" && pwd -P)" \
+    || fail "не могу разрешить симлинку $current_link"
+  local current_name
+  current_name=$(basename "$WORKSPACE_DIR")
+
+  # Защита от path-traversal в имени
+  case "$arg" in
+    *..*|*/*) fail "недопустимое имя workspace: '$arg' (запрещены '..' и '/')" ;;
+  esac
+
+  # Skill настраивает то, на что указывают симлинки в репо — то есть CURRENT_WORKSPACE.
+  # Настройка другого workspace создаст рассинхрон между .wakatime.cfg в выбранном
+  # workspace и симлинкой ~/.wakatime.cfg → CURRENT_WORKSPACE → другой workspace.
+  if [ "$arg" != "current" ] && [ "$arg" != "$current_name" ]; then
+    fail "Выбран workspace '$arg', но CURRENT_WORKSPACE → '$current_name'. Симлинки завязаны на CURRENT_WORKSPACE — рассинхрон сломает heartbeat. Сначала переключись: iwe-workspace switch $arg"
   fi
 
-  [ -d "$WORKSPACE_DIR" ] || fail "Workspace не найден: $WORKSPACE_DIR"
   save_state
-  ok "WORKSPACE_DIR=$WORKSPACE_DIR"
+  ok "WORKSPACE_DIR=$WORKSPACE_DIR (CURRENT_WORKSPACE → $current_name)"
 }
 
 cmd_project() {
@@ -136,14 +142,33 @@ cmd_project() {
   ok "имя проекта записано: $name"
 }
 
+cmd_current_project() {
+  # Печатает имя проекта из выбранного workspace (для использования в SKILL.md
+  # как замена ручному парсингу state-файла). Не падает если файла нет.
+  require_workspace
+  cat "$WORKSPACE_DIR/.wakatime-project" 2>/dev/null || true
+}
+
 cmd_apikey() {
   require_workspace
   local key="${1:-}"
   [ -n "$key" ] || fail "usage: $0 apikey <ключ>"
 
-  # Идемпотентность: если ключ уже валидный — пропустить
-  if grep -q "^api_key = waka_" "$WORKSPACE_DIR/.wakatime.cfg" 2>/dev/null; then
-    ok "API key уже установлен"
+  # Грубая валидация формата: waka_<8>-<4>-<4>-<4>-<12> (UUID v4)
+  case "$key" in
+    waka_[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*) : ;;
+    *) fail "ключ не похож на WakaTime API key (ожидается формат waka_<uuid>): $key" ;;
+  esac
+
+  # Сравнить с текущим. Если идентично — пропустить (true idempotency).
+  # Если отличается — обновить (force-update вместо молчаливого пропуска).
+  local current=""
+  if [ -f "$WORKSPACE_DIR/.wakatime.cfg" ]; then
+    current=$(awk -F= '/^api_key/ {gsub(/[ \t]/, "", $2); print $2; exit}' \
+      "$WORKSPACE_DIR/.wakatime.cfg")
+  fi
+  if [ "$current" = "$key" ]; then
+    ok "API key не изменился (уже записан)"
     return
   fi
 
@@ -151,7 +176,12 @@ cmd_apikey() {
   local tmp="$WORKSPACE_DIR/.wakatime.cfg.tmp.$$"
   printf '[settings]\napi_key = %s\n' "$key" > "$tmp"
   mv "$tmp" "$WORKSPACE_DIR/.wakatime.cfg"
-  ok "API key записан в $WORKSPACE_DIR/.wakatime.cfg"
+
+  if [ -n "$current" ]; then
+    ok "API key обновлён в $WORKSPACE_DIR/.wakatime.cfg"
+  else
+    ok "API key записан в $WORKSPACE_DIR/.wakatime.cfg"
+  fi
 }
 
 cmd_hooks() {
@@ -313,11 +343,27 @@ cmd_test() {
 cmd_summary() {
   require_workspace
 
+  # status <строгая_проверка> [мягкая_проверка]
+  #   строгая ✓ → ✅ (полностью настроено)
+  #   строгая ✗, мягкая ✓ → ⚠ (файл/симлинка есть, но содержимое не валидно)
+  #   обе ✗ → ❌ (не настроено)
   status() {
-    if eval "$1" >/dev/null 2>&1; then echo "✅"; else echo "❌"; fi
+    local strict="$1"
+    local lenient="${2:-}"
+    if eval "$strict" >/dev/null 2>&1; then
+      echo "✅"
+    elif [ -n "$lenient" ] && eval "$lenient" >/dev/null 2>&1; then
+      echo "⚠"
+    else
+      echo "❌"
+    fi
   }
 
   cd "$REPO_ROOT" || fail "cd $REPO_ROOT не отработал"
+
+  local cfg="$WORKSPACE_DIR/.wakatime.cfg"
+  local proj="$WORKSPACE_DIR/.wakatime-project"
+  local settings="$WORKSPACE_DIR/.claude/settings.json"
 
   printf '\n'
   printf '| Компонент | Статус |\n'
@@ -325,20 +371,20 @@ cmd_summary() {
   printf '| wakatime-cli | %s |\n' \
     "$(status '~/.wakatime/wakatime-cli --version')"
   printf '| .wakatime-project | %s |\n' \
-    "$(status "[ -s '$WORKSPACE_DIR/.wakatime-project' ]")"
+    "$(status "[ -s '$proj' ]" "[ -f '$proj' ]")"
   printf '| API key | %s |\n' \
-    "$(status "grep -q '^api_key = waka_' '$WORKSPACE_DIR/.wakatime.cfg'")"
+    "$(status "grep -q '^api_key = waka_' '$cfg'" "[ -f '$cfg' ]")"
   printf '| Хуки в settings.json | %s |\n' \
-    "$(status "jq -e '.. | strings? | select(contains(\"wakatime-heartbeat\"))' '$WORKSPACE_DIR/.claude/settings.json'")"
+    "$(status "jq -e '.. | strings? | select(contains(\"wakatime-heartbeat\"))' '$settings'" "[ -f '$settings' ]")"
   printf '| Симлинка .wakatime.cfg в репо | %s |\n' \
-    "$(status "[ -L .wakatime.cfg ]")"
+    "$(status "[ -L .wakatime.cfg ] && [ -e .wakatime.cfg ]" "[ -L .wakatime.cfg ]")"
   printf '| Глобальная ~/.wakatime.cfg | %s |\n' \
-    "$(status "[ -L $HOME/.wakatime.cfg ]")"
+    "$(status "[ -L \"$HOME/.wakatime.cfg\" ] && [ -e \"$HOME/.wakatime.cfg\" ]" "[ -L \"$HOME/.wakatime.cfg\" ]")"
   if [ "$(uname -s)" = "Darwin" ]; then
     printf '| WakaTime Desktop App | %s |\n' \
-      "$(status "brew list --cask wakatime")"
+      "$(status 'brew list --cask wakatime')"
   fi
-  printf '\n'
+  printf '\nЛегенда: ✅ — настроено, ⚠ — файл/симлинка есть но не валидно (битая, пустая), ❌ — не настроено\n'
   printf 'Дашборд: https://wakatime.com/dashboard\n'
 }
 
@@ -347,9 +393,10 @@ cmd_summary() {
 case "${1:-help}" in
   preflight) shift; cmd_preflight "$@" ;;
   cli)       shift; cmd_cli "$@" ;;
-  workspace) shift; cmd_workspace "${1:-current}" ;;
-  project)   shift; cmd_project "$@" ;;
-  apikey)    shift; cmd_apikey "$@" ;;
+  workspace)       shift; cmd_workspace "${1:-current}" ;;
+  project)         shift; cmd_project "$@" ;;
+  current-project) shift; cmd_current_project "$@" ;;
+  apikey)          shift; cmd_apikey "$@" ;;
   hooks)     shift; cmd_hooks "$@" ;;
   symlinks)  shift; cmd_symlinks "$@" ;;
   desktop)   shift; cmd_desktop "$@" ;;
@@ -364,7 +411,8 @@ Commands:
   cli                    Установить wakatime-cli (brew → pip3 → pip → python3 -m pip)
   workspace [<имя>]      Выбрать workspace (по умолчанию CURRENT_WORKSPACE)
   project <имя>          Записать имя проекта в .wakatime-project
-  apikey <ключ>          Записать API ключ в .wakatime.cfg
+  current-project        Вывести текущее имя проекта (для SKILL.md, без падения если нет)
+  apikey <ключ>          Записать API ключ в .wakatime.cfg (валидация формата + force-update)
   hooks                  Добавить хуки в settings.json (атомарно через jq)
   symlinks               Создать 3 симлинки идемпотентно
   desktop                Установить WakaTime Desktop App (только macOS)

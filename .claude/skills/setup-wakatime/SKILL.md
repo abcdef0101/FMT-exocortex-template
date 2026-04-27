@@ -48,18 +48,20 @@ readlink workspaces/CURRENT_WORKSPACE 2>/dev/null
 
 Спроси: «Для какого workspace настраиваем? Enter — текущий (CURRENT_WORKSPACE), или введи имя из списка».
 
-Передай ответ в скрипт (Enter → `current`):
+Передай ответ в скрипт (Enter или явное имя CURRENT_WORKSPACE → `current`):
 ```bash
 bash "${CLAUDE_SKILL_DIR}/scripts/setup-wakatime.sh" workspace "<имя или current>"
 ```
 
+Скрипт откажет с понятным сообщением если выбранный workspace ≠ CURRENT_WORKSPACE — это намеренная защита от рассинхрона симлинок.
+
 Проверь существующее имя проекта:
 ```bash
-cat "$(. /tmp/wakatime-setup-state.env && echo "$WORKSPACE_DIR/.wakatime-project")" 2>/dev/null
+bash "${CLAUDE_SKILL_DIR}/scripts/setup-wakatime.sh" current-project
 ```
 
-- Если файл существует и непустой — спроси: «Оставить `<текущее>` или изменить?»
-- Если пустой/нет — спроси: «Как назвать workspace в WakaTime? (например: IWE-main)»
+- Если вывод непустой — спроси: «Оставить `<текущее>` или изменить?»
+- Если пустой — спроси: «Как назвать workspace в WakaTime? (например: IWE-main)»
 
 ```bash
 bash "${CLAUDE_SKILL_DIR}/scripts/setup-wakatime.sh" project "<имя проекта>"
