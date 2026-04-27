@@ -191,31 +191,47 @@ cmd_hooks() {
   mkdir -p "$WORKSPACE_DIR/.claude"
   [ -f "$settings" ] || echo '{}' > "$settings"
 
-  # Идемпотентность через jq (точный поиск по командам хуков)
-  if jq -e '.. | strings? | select(contains("wakatime-heartbeat"))' "$settings" \
-       >/dev/null 2>&1; then
-    ok "хуки wakatime уже настроены"
+  # Абсолютный путь к хуку — не зависит от CWD при запуске Claude Code
+  local hook_path="$REPO_ROOT/.claude/hooks/wakatime-heartbeat.sh"
+
+  # Идемпотентность по точному пути: если уже зарегистрирован с current $hook_path — выходим
+  if jq -e --arg hook "$hook_path" \
+       '.. | .command? // empty | select(. == $hook)' \
+       "$settings" >/dev/null 2>&1; then
+    ok "хуки wakatime уже настроены (точный путь)"
     return
   fi
 
-  # Бэкап + атомарная подмена через jq
-  cp "$settings" "$settings.bak" || fail "не могу создать бэкап $settings.bak"
+  # Есть ли stale-хуки с wakatime-heartbeat по ДРУГОМУ пути (например после перемещения репо)?
+  local has_stale="false"
+  if jq -e '.. | .command? // empty | select(tostring | contains("wakatime-heartbeat"))' \
+       "$settings" >/dev/null 2>&1; then
+    has_stale="true"
+  fi
 
-  # Абсолютный путь к хуку — не зависит от CWD при запуске Claude Code
-  local hook_path="$REPO_ROOT/.claude/hooks/wakatime-heartbeat.sh"
+  # Бэкап + атомарная подмена через jq.
+  # Шаги: чистим stale wakatime-heartbeat записи (любые пути) → добавляем свежие с current $hook_path.
+  cp "$settings" "$settings.bak" || fail "не могу создать бэкап $settings.bak"
 
   if jq --arg hook "$hook_path" '
       .hooks //= {}
     | .hooks.UserPromptSubmit //= []
     | .hooks.PostToolUse //= []
     | .hooks.Stop //= []
+    | .hooks.UserPromptSubmit |= map(select((.hooks // []) | map(.command // "") | all(contains("wakatime-heartbeat") | not)))
+    | .hooks.PostToolUse     |= map(select((.hooks // []) | map(.command // "") | all(contains("wakatime-heartbeat") | not)))
+    | .hooks.Stop            |= map(select((.hooks // []) | map(.command // "") | all(contains("wakatime-heartbeat") | not)))
     | .hooks.UserPromptSubmit += [{"hooks": [{"type": "command", "command": $hook}]}]
     | .hooks.PostToolUse     += [{"hooks": [{"type": "command", "command": $hook, "async": true}]}]
     | .hooks.Stop            += [{"hooks": [{"type": "command", "command": $hook, "async": true}]}]
   ' "$settings" > "$settings.new" 2>/dev/null; then
     mv "$settings.new" "$settings"
     rm -f "$settings.bak"
-    ok "хуки добавлены в $settings"
+    if [ "$has_stale" = "true" ]; then
+      ok "хуки обновлены: stale-путь заменён на $hook_path"
+    else
+      ok "хуки добавлены в $settings"
+    fi
   else
     rm -f "$settings.new"
     mv "$settings.bak" "$settings"
