@@ -28,7 +28,7 @@ for json_file in "$MCPS_DIR"/*.json; do
 
   basename_file="$(basename "$json_file")"
 
-  if ! python3 -c "import json,sys; json.load(open('$json_file'))" 2>/dev/null; then
+  if ! python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$json_file" 2>/dev/null; then
     echo "SKIP (невалидный JSON): $basename_file"
     skipped=$((skipped + 1))
     continue
@@ -36,14 +36,14 @@ for json_file in "$MCPS_DIR"/*.json; do
 
   has_mcp_servers=$(python3 -c "
 import json, sys
-data = json.load(open('$json_file'))
+data = json.load(open(sys.argv[1]))
 if not isinstance(data, dict) or 'mcpServers' not in data:
     sys.exit(1)
 servers = data['mcpServers']
 if not isinstance(servers, dict) or len(servers) == 0:
     sys.exit(1)
 print('ok')
-" 2>/dev/null || echo "")
+" "$json_file" 2>/dev/null || echo "")
 
   if [ "$has_mcp_servers" != "ok" ]; then
     echo "SKIP (нет mcpServers): $basename_file"
@@ -52,8 +52,8 @@ print('ok')
   fi
 
   entries=$(python3 -c "
-import json
-data = json.load(open('$json_file'))
+import json, sys
+data = json.load(open(sys.argv[1]))
 for name, config in data['mcpServers'].items():
     print(f'{name}\t{json.dumps(config)}')
 " "$json_file")

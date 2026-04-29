@@ -3,7 +3,7 @@
 #   bash .claude/skills/iwe-workspace/workspace.sh --get-workspaces
 #   bash .claude/skills/iwe-workspace/workspace.sh --get-current
 #   bash .claude/skills/iwe-workspace/workspace.sh --set-workspace=<name>
-set -e
+set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 
 list_workspaces() {
