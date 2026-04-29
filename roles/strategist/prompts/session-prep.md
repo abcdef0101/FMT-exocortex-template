@@ -45,7 +45,7 @@ DS-strategy/
 
 - Прочитай `DS-strategy/inbox/fleeting-notes.md`
 - Прочитай ВСЕ файлы из `DS-strategy/inbox/` (кроме .DS_Store и .docx)
-- Прочитай QA-отчёт бота: `DS-agent-workspace/scheduler/feedback-triage/` (последний по дате) — **структурированный отчёт** из feedback_triage DB: замечания (✏️) первые, urgent (high/critical) вторые, кластеры проблем третьи. Auto-triage уже выполнен ботом → Session-Prep проверяет кластеры (≥3 = **urgent** → WP-debt) и помечает resolved
+- Прочитай QA-отчёт бота: `{{WORKSPACE_DIR}}/DS-agent-workspace/scheduler/feedback-triage/` (последний по дате) — **структурированный отчёт** из feedback_triage DB: замечания (✏️) первые, urgent (high/critical) вторые, кластеры проблем третьи. Auto-triage уже выполнен ботом → Session-Prep проверяет кластеры (≥3 = **urgent** → WP-debt) и помечает resolved
 - Для каждой заметки/файла определи: → в план недели? → capture в Pack? → в повестку для обсуждения? → удалить?
 - **Недельная агрегация Inbox Triage:**
   > Это НЕ дубль ежедневного triage Note-Review. Note-Review классифицирует заметки и пишет предложения в целевые документы. Session-Prep агрегирует результаты за неделю из этих документов + добавляет unsatisfied-questions.
@@ -93,8 +93,9 @@ DS-strategy/
 
 #### 6.5. Контент-план недели (→ секция «Контент-план» в WeekPlan)
 
-- Выполни процесс из `prompts/content-plan.md`
-- Собери мероприятия, итоги, fleeting notes, готовые черновики → 5-10 постов
+- Собери Content ideas за неделю: draft-list, fleeting notes, Close-отчёты
+- Сопоставь с backlog публикаций из Стратегии маркетинга §7
+- Предложи 3–5 постов: что адаптировать, для кого (С1/С2/С3), куда (Habr/LinkedIn/TG)
 - Результат включи в черновик WeekPlan как секцию `## Контент-план W{N}`
 
 #### 7. Сформировать черновик WeekPlan
