@@ -18,13 +18,13 @@ Pack (предметное) → SPF (корректность) → FPF (перв
 
 | Режим | Триггер | Что делать |
 |-------|---------|-----------|
-| **lookup** | Запрос содержит код паттерна (A.7, B.5, F.18) или конкретный термин | Grep по FPF → точная секция. Объясни в engineering-языке (см. `./workspaces/CURRENT_WORKSPACE/memory/persistent-memory/fpf-reference.md` § Трансляция) |
+| **lookup** | Запрос содержит код паттерна (A.7, B.5, F.18) или конкретный термин | Grep по FPF → точная секция. Объясни в engineering-языке (см. `$WORKSPACE_DIR/memory/persistent-memory/fpf-reference.md` § Трансляция) |
 | **review** | «Проверь», «сверь с FPF», артефакт для проверки | Загрузи артефакт + релевантные принципы → сверка пункт за пунктом → findings |
 | **design** | «Спроектируй», «как сделать по FPF», задача проектирования | Подбери применимые паттерны (A.1 границы, A.6 состав, A.7 различения, B.5 ADI) → конкретные рекомендации |
 | **characterize** | «Сравни», «оцени варианты», «как выбрать» | A.17-A.19 (Lawful Comparison): критерии → индикаторы → оценка вариантов по одинаковой шкале |
 
 **БЛОКИРУЮЩЕЕ — No-Jargon:** Каждый FPF-термин в output → engineering-эквивалент в скобках или вместо. Без исключений.
-- Известные: `./workspaces/CURRENT_WORKSPACE/memory/persistent-memory/fpf-reference.md` § Трансляция (Holon, F-G-R, Alpha, Mereology, Affordance, ADI...)
+- Известные: `$WORKSPACE_DIR/memory/persistent-memory/fpf-reference.md` § Трансляция (Holon, F-G-R, Alpha, Mereology, Affordance, ADI...)
 - Неизвестные (TransformerRole, senseFamily, Γ_*, ReferencePlane и т.п.): перевести по контексту, добавить `(FPF: <оригинал>)`. Не оставлять FPF-термин без перевода.
 - **Тест перед выводом:** пробежать output — есть ли термин, непонятный инженеру без FPF? Если да — перевести.
 
@@ -44,8 +44,8 @@ Pack (предметное) → SPF (корректность) → FPF (перв
    - Если первый уровень не дал результатов -- спускайся по fallback chain
 
 4. **Если iwe-knowledge недоступен** (нет в `/mcp`):
-   - Pack: читай файлы `PACK-*/pack/` через Glob + Read
-   - SPF: читай `SPF/docs/` через Glob + Read
-   - FPF: читай `FPF/Readme.md` (обзор) или ищи через Grep по `FPF/`
+   - Pack: читай файлы `$WORKSPACE_DIR/PACK-*/pack/` через Glob + Read
+   - SPF: читай `$WORKSPACE_DIR/SPF/docs/` через Glob + Read
+   - FPF: читай `$WORKSPACE_DIR/FPF/Readme.md` (обзор) или ищи через Grep по `$WORKSPACE_DIR/FPF/`
 
 5. **Покажи** релевантные принципы с пояснением, как они применимы к задаче. Включай ссылку на источник (github_url из результата поиска или путь к файлу). **Переводи FPF-термины** в engineering-язык.

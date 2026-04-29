@@ -16,7 +16,7 @@ version: 1.0.0
 
 ### 1. Загрузить правила
 
-Прочитать `PACK-digital-platform/pack/digital-platform/03-methods/DP.M.008-iwe-operating-rules.md` → §2 Реестр (14 элементов культуры работы).
+Прочитать `$WORKSPACE_DIR/PACK-digital-platform/pack/digital-platform/03-methods/DP.M.008-iwe-operating-rules.md` → §2 Реестр (14 элементов культуры работы).
 
 ### 2. Четыре вопроса (по каждому правилу)
 

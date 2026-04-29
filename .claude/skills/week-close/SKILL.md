@@ -19,39 +19,51 @@ Week Close = протокол. Исполнять ТОЛЬКО пошагово 
 
 ## Алгоритм
 
-### 0. Extensions (before)
+### 0. Разрешить WORKSPACE_DIR и FMT_DIR
 
-Условие: `params.yaml → week_close_before_enabled: true`. Если `false` → пропустить.
-Проверить: `ls extensions/week-close.before.md`. Если существует → `Read extensions/week-close.before.md` → выполнить содержимое как первые шаги. Не существует → пропустить.
-
-### 1. Ротация уроков
-
-Условие: `params.yaml → lesson_rotation: true`. Если `false` → пропустить.
-
-Для каждого урока в MEMORY.md → секция «Уроки»:
-1. Применялся за последние 2 недели? (инцидент, упоминание в Close-отчётах, или урок < 2 недель)
-2. **Да** → оставить
-3. **Нет** → вынести в `memory/lessons-archive.md` (не загружается автоматически)
-4. Цель: ≤15 актуальных уроков в MEMORY.md
-
-### 2. Сбор данных недели
+Выполнить блок ниже, запомнить `FMT_DIR` и `WORKSPACE_DIR` из вывода. Использовать во всех последующих шагах.
 
 ```bash
-WORKSPACE_DIR="$(cd "${CLAUDE_SKILL_DIR}/../../../workspaces/CURRENT_WORKSPACE" && pwd)"
+source "${CLAUDE_SKILL_DIR}/scripts/resolve-workspace.sh"
+resolve_fmt_dir && resolve_workspace
+echo "FMT_DIR=$FMT_DIR"
+echo "WORKSPACE_DIR=$WORKSPACE_DIR"
+```
+
+### 1. Extensions (before)
+
+Условие: `$WORKSPACE_DIR/params.yaml → week_close_before_enabled: true`. Если `false` → пропустить.
+Проверить: `ls "$WORKSPACE_DIR/extensions/week-close.before.md"`. Если существует → `Read` → выполнить содержимое как первые шаги. Не существует → пропустить.
+
+### 2. Ротация уроков
+
+Условие: `$WORKSPACE_DIR/params.yaml → lesson_rotation: true`. Если `false` → пропустить.
+
+Для каждого урока в `$WORKSPACE_DIR/memory/MEMORY.md` → секция «Уроки»:
+1. Применялся за последние 2 недели? (инцидент, упоминание в Close-отчётах, или урок < 2 недель)
+2. **Да** → оставить
+3. **Нет** → вынести в `$WORKSPACE_DIR/memory/lessons-archive.md` (не загружается автоматически)
+4. Цель: ≤15 актуальных уроков в MEMORY.md
+
+### 3. Сбор данных недели
+
+```bash
+MONDAY=$(date -d "last monday" +%Y-%m-%d)
+SUNDAY=$(date +%Y-%m-%d)
 for repo in "$WORKSPACE_DIR"/*/; do
   [ -d "$repo/.git" ] || continue
   name=$(basename "$repo")
-  commits=$(git -C "$repo" log --since="last monday 00:00" --until="today 00:00" --oneline --no-merges 2>/dev/null)
+  commits=$(git -C "$repo" log --since="$MONDAY 00:00" --until="$SUNDAY 23:59:59" --oneline --no-merges 2>/dev/null)
   [ -n "$commits" ] && echo "=== $name ===" && echo "$commits"
 done
 ```
 
 - Пройти по ВСЕМ репозиториям
-- Загрузить текущий WeekPlan из `DS-strategy/current/`
+- Загрузить текущий WeekPlan из `$WORKSPACE_DIR/DS-strategy/current/`
 - Сопоставить коммиты с РП из WeekPlan
 - Определить статус каждого РП: done / partial / not started
 
-### 3. Статистика
+### 4. Статистика
 
 - Completion rate: X/Y РП (N%)
 - Коммитов всего
@@ -59,16 +71,16 @@ done
 - По репозиториям (таблица)
 - По системам (если применимо)
 
-### 4. Инсайты
+### 5. Инсайты
 
 - Что получилось хорошо
 - Что можно улучшить
 - Блокеры (если были)
 - Carry-over на следующую неделю
 
-### 4b. Контент-план на следующую неделю
+### 6. Контент-план на следующую неделю
 
-1. Собрать Content ideas за неделю (из draft-list.md, captures, Close-отчётов)
+1. Собрать Content ideas за неделю (из `$WORKSPACE_DIR/DS-strategy/drafts/draft-list.md`, captures, Close-отчётов)
 2. Сопоставить с backlog публикаций из Стратегии маркетинга
 3. Предложить 2-3 публикации:
    - Что адаптировать (источник)
@@ -76,26 +88,28 @@ done
    - Куда (канал)
 4. Записать контент-план в секцию «Итоги W{N}»
 
-### 5. Свежая таблица РП в MEMORY.md
+### 7. Свежая таблица РП в MEMORY.md
 
-1. Удалить ВСЕ РП прошлой недели из MEMORY.md
-2. Заполнить таблицу из нового WeekPlan:
-   - in_progress и pending → перенести
+1. Удалить ВСЕ РП прошлой недели из `$WORKSPACE_DIR/memory/MEMORY.md`
+2. Проверить `$WORKSPACE_DIR/DS-strategy/current/Plan\ W{N+1}*.md`:
+   - Если WeekPlan на новую неделю создан (strategy session) → заполнить таблицу из него
+   - Если WeekPlan отсутствует → оставить таблицу пустой с пометкой «ожидает strategy session»
+3. Перенести из старого WeekPlan:
+   - in_progress и pending → в новую таблицу
    - done → НЕ переносить (уже в WP-REGISTRY)
-3. Обновить заголовок: `W{N+1}: DD мес – DD мес`
+4. Обновить заголовок: `W{N+1}: DD мес – DD мес`
 
-### 6. Запись итогов в WeekPlan
+### 8. Запись итогов в WeekPlan
 
-1. Открыть текущий `WeekPlan W{N}*.md`
+1. Открыть текущий `$WORKSPACE_DIR/DS-strategy/current/Plan\ W{N}*.md`
 2. Найти или создать секцию `## Итоги W{N}`
 3. Записать: метрики, таблицу по репо, статусы РП, инсайты, carry-over, контент-план
-4. Использовать шаблон из `roles/strategist/prompts/week-review.md § Шаблон секции`
+4. Использовать шаблон из `$FMT_DIR/roles/strategist/prompts/week-review.md § Шаблон секции`
 
-### 7. Создать пост для клуба
+### 9. Создать пост для клуба
 
-1. Переключиться на роль Автора (R4)
-2. На основе секции «Итоги W{N}» сформировать пост
-3. Frontmatter:
+1. На основе секции «Итоги W{N}» сформировать пост
+2. Frontmatter:
 ```yaml
 ---
 type: post
@@ -110,11 +124,11 @@ content_plan: null
 ---
 ```
 
-4. Записать ссылку на пост в WeekPlan
+3. Записать ссылку на пост в WeekPlan
 
-### 8. Аудит memory-файлов
+### 10. Аудит memory-файлов
 
-1. Количество: ≤11 файлов? Лишние → объединить или удалить
+1. Количество файлов в `$WORKSPACE_DIR/memory/`: ≤11 файлов? Лишние → объединить или удалить
 2. Лимиты строк:
    - Справочники (hard-distinctions, navigation, roles, sota) ≤ 100
    - Протоколы (protocol-*) ≤ 150
@@ -122,18 +136,38 @@ content_plan: null
 3. Устаревшие записи → обновить или удалить
 4. Результат: отчёт «Memory audit: N файлов, M строк суммарно, K обновлено»
 
-### 8b. Extensions (after)
+### 11. Extensions (after)
 
-Условие: `params.yaml → week_close_after_enabled: true`. Если `false` → пропустить.
-Проверить: `ls extensions/week-close.after.md`. Если существует → `Read extensions/week-close.after.md` → выполнить содержимое. Не существует → пропустить.
+Условие: `$WORKSPACE_DIR/params.yaml → week_close_after_enabled: true`. Если `false` → пропустить.
+Проверить: `ls "$WORKSPACE_DIR/extensions/week-close.after.md"`. Если существует → `Read` → выполнить содержимое. Не существует → пропустить.
 
-### 9. Commit + Push
+### 12. Верификация (Haiku R23)
 
-1. `git add` все изменения
-2. `git commit -m "week-close: W{N} YYYY-MM-DD"`
-3. `git push`
+> Условный шаг: если `$WORKSPACE_DIR/params.yaml → verify_quick_close: false` → пропустить.
 
-### 10. Compact dashboard (VS Code)
+Запустить sub-agent Haiku в роли R23 (context isolation). Передать:
+- Чеклист Week Close (ниже)
+- WeekPlan (секция «Итоги W{N}»)
+- Список изменённых файлов: `git -C "$WORKSPACE_DIR/DS-strategy" diff --cached --name-only`
+
+По ❌ — исправить до завершения. **Commit запрещён до прохождения.**
+
+### 13. Commit + Push
+
+```bash
+DS="$WORKSPACE_DIR/DS-strategy"
+TODAY=$(date +%Y-%m-%d)
+
+if git -C "$DS" rev-parse --git-dir >/dev/null 2>&1; then
+  git -C "$DS" add current/Plan\ W*.md docs/WP-REGISTRY.md
+  git -C "$DS" commit -m "week-close: W{N} $TODAY" 2>&1 || echo "(нет изменений)"
+  git -C "$DS" push 2>&1 || echo "(push не удался, коммит сохранён локально)"
+else
+  echo "DS-strategy не git-репозиторий — governance commit пропущен"
+fi
+```
+
+### 14. Compact dashboard (VS Code)
 
 Вывести краткую сводку:
 
@@ -154,13 +188,6 @@ Memory audit: N файлов, M строк, K обновлено
 Git: закоммичено и запушено ✅
 ```
 
-### 11. Верификация (Haiku R23)
-
-Запустить sub-agent Haiku в роли R23 (context isolation). Передать:
-- Чеклист Week Close
-- WeekPlan (секция «Итоги W{N}»)
-- `git diff --name-only`
-
 ### Чеклист Week Close (для верификатора)
 
 - [ ] Уроки: ротация выполнена (или отключена)
@@ -172,5 +199,5 @@ Git: закоммичено и запушено ✅
 - [ ] Пост для клуба создан
 - [ ] Ссылка на пост в WeekPlan
 - [ ] Memory audit выполнен (≤11 файлов, лимиты соблюдены)
+- [ ] Extensions пройдены (если есть)
 - [ ] Все изменения закоммичены и запушены
-- [ ] extensions пройдены (если есть)

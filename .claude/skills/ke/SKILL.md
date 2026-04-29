@@ -12,13 +12,13 @@ argument-hint: "[что извлечь]"
 
 | Тип | Куда | Когда | Через KE? |
 |-----|------|-------|-----------|
-| Правило для всех репо (1-3 строки) | `CLAUDE.md` (корень workspace) | Сразу | Нет |
-| Правило для одного репо (1-3 строки) | `<repo>/CLAUDE.md` | Сразу | Нет |
+| Правило для всех репо (1-3 строки) | `$WORKSPACE_DIR/CLAUDE.md` (корень workspace) | Сразу | Нет |
+| Правило для одного репо (1-3 строки) | `$WORKSPACE_DIR/<repo>/CLAUDE.md` | Сразу | Нет |
 | Доменное (архитектура, паттерны) | Соответствующий Pack | Close | Да |
 | Различение, метод, FM, WP | Соответствующий Pack | Close | Да |
 | Реализационное (вендор, стек, деплой) | DS docs/ | Close | Да (KE → DS) |
-| Крупный урок | `./workspaces/CURRENT_WORKSPACE/memory/<topic>.md` | Close | Нет |
-| Зерно для поста | `DS-strategy/drafts/draft-list.md` | Close | Нет |
+| Крупный урок | `$WORKSPACE_DIR/memory/<topic>.md` | Close | Нет |
+| Зерно для поста | `$WORKSPACE_DIR/DS-strategy/drafts/draft-list.md` | Close | Нет |
 
 ## Шаг 2. Маршрутизация
 
@@ -35,4 +35,4 @@ argument-hint: "[что извлечь]"
 
 Выведи: *«Capture: [что] → [куда]»*
 
-Если это различение — предложи формулировку для `./workspaces/CURRENT_WORKSPACE/memory/persistent-memory/hard-distinctions.md`.
+Если это различение — предложи формулировку для `$WORKSPACE_DIR/memory/persistent-memory/hard-distinctions.md`.

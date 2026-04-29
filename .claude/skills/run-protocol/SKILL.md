@@ -16,11 +16,11 @@ version: 2.0.0
 
 | Аргумент | Полный алгоритм (Skill) | Описание (protocol-файл) |
 |----------|------------------------|--------------------------|
-| `day-open` / `open day` | `.claude/skills/day-open/SKILL.md` | `persistent-memory/protocol-open.md § День` |
-| `open session` или задание | — (inline в `protocol-open.md § Сессия`) | `persistent-memory/protocol-open.md § Сессия` |
-| `day-close` / `close day` | `.claude/skills/day-close/SKILL.md` | `persistent-memory/protocol-close.md § День` |
-| `close session` / `close` | — (inline в `protocol-close.md § Quick Close`) | `persistent-memory/protocol-close.md` |
-| `week-close` | `.claude/skills/week-close/SKILL.md` | `persistent-memory/protocol-close.md § Неделя` |
+| `day-open` / `open day` | `.claude/skills/day-open/SKILL.md` | `$WORKSPACE_DIR/memory/persistent-memory/protocol-open.md § День` |
+| `open session` или задание | — (inline в `protocol-open.md § Сессия`) | `$WORKSPACE_DIR/memory/persistent-memory/protocol-open.md § Сессия` |
+| `day-close` / `close day` | `.claude/skills/day-close/SKILL.md` | `$WORKSPACE_DIR/memory/persistent-memory/protocol-close.md § День` |
+| `close session` / `close` | — (inline в `protocol-close.md § Quick Close`) | `$WORKSPACE_DIR/memory/persistent-memory/protocol-close.md` |
+| `week-close` | `.claude/skills/week-close/SKILL.md` | `$WORKSPACE_DIR/memory/persistent-memory/protocol-close.md § Неделя` |
 
 **Правило:** Если есть Skill-файл → читать ЕГО. Skill содержит полный алгоритм + шаблоны. Protocol-файл = краткий маршрутизатор (для контекстной справки, не для исполнения).
 
@@ -29,11 +29,11 @@ version: 2.0.0
 Определи имя протокола: `day-open`, `day-close`, `week-close`, `protocol-close`, `protocol-open`.
 
 Проверь и прочитай (если существуют):
-1. `extensions/{protocol}.before.md` → добавить как **первые** шаги в TodoWrite
-2. `extensions/{protocol}.after.md` → добавить как шаги **после** основного алгоритма, **перед** верификацией
-3. `extensions/{protocol}.checks.md` → добавить как шаг **перед git commit** (БЛОКИРУЮЩЕЕ: commit запрещён до прохождения checks)
+1. `$WORKSPACE_DIR/extensions/{protocol}.before.md` → добавить как **первые** шаги в TodoWrite
+2. `$WORKSPACE_DIR/extensions/{protocol}.after.md` → добавить как шаги **после** основного алгоритма, **перед** верификацией
+3. `$WORKSPACE_DIR/extensions/{protocol}.checks.md` → добавить как шаг **перед git commit** (БЛОКИРУЮЩЕЕ: commit запрещён до прохождения checks)
 
-**Toggle-условие:** перед загрузкой каждого расширения проверить соответствующий toggle в `params.yaml`. Формат: `{protocol}_{hook}_enabled`. Если `false` → пропустить, даже если файл существует. Если toggle отсутствует → считать `true` (обратная совместимость).
+**Toggle-условие:** перед загрузкой каждого расширения проверить соответствующий toggle в `$WORKSPACE_DIR/params.yaml`. Формат: `{protocol}_{hook}_enabled`. Если `false` → пропустить, даже если файл существует. Если toggle отсутствует → считать `true` (обратная совместимость).
 
 Не существует → пропустить молча. Существует → прочитать и включить в план.
 
@@ -45,8 +45,8 @@ version: 2.0.0
 1. Extensions `.before.md` (если есть)
 2. Основные шаги из алгоритма (Skill-файл)
 3. Extensions `.after.md` (если есть)
-4. Extensions `.checks.md` + git commit (если есть артефакт для коммита)
-5. Верификация по чеклисту
+4. Extensions `.checks.md` + Верификация по чеклисту (если есть артефакт)
+5. git commit + push
 
 - Каждый основной шаг = отдельная задача
 - Последняя задача ВСЕГДА = «Верификация по чеклисту»

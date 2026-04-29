@@ -2,7 +2,6 @@
 name: setup-wakatime
 description: Настройка WakaTime time-tracking для Claude Code и VS Code
 user_invocable: true
-allowed-tools: Bash(bash "${CLAUDE_SKILL_DIR}/scripts/setup-wakatime.sh" *)
 ---
 
 # Setup WakaTime Time Tracking

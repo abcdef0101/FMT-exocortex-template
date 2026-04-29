@@ -8,6 +8,16 @@ argument-hint: "[название РП]"
 
 Новый рабочий продукт: $ARGUMENTS
 
+## Шаг 0. Разрешить WORKSPACE_DIR
+
+Выполнить блок ниже, запомнить `WORKSPACE_DIR` из вывода. Использовать во всех последующих шагах.
+
+```bash
+source "${CLAUDE_SKILL_DIR}/scripts/resolve-workspace.sh"
+resolve_fmt_dir && resolve_workspace
+echo "WORKSPACE_DIR=$WORKSPACE_DIR"
+```
+
 ## Шаг 1. Сбор информации
 
 Запроси или определи:
@@ -15,24 +25,24 @@ argument-hint: "[название РП]"
 - **Репо:** целевой репозиторий
 - **Бюджет:** оценка в часах
 - **Приоритет:** критический / высокий / средний / низкий
-- **Результат месяца:** (только для РП ≥3h) к какому результату месяца (R1, R2, …) привязан? Допустимые ответы: R{N}, поддержка, off-plan. Source-of-truth маппинга: `DS-strategy/docs/Strategy.md` → «РП → Результаты»
+- **Результат месяца:** (только для РП ≥3h) к какому результату месяца (R1, R2, …) привязан? Допустимые ответы: R{N}, поддержка, off-plan. Source-of-truth маппинга: `$WORKSPACE_DIR/DS-strategy/docs/Strategy.md` → «РП → Результаты»
 - **Критерий готовности:** что должно получиться
 
 ## Шаг 2. Нумерация
 
-Найди последний номер РП в `MEMORY.md` → следующий порядковый номер. Только целые числа (74, 75…). Буквенные суффиксы (73a, 73b) запрещены.
+Найди последний номер РП в `$WORKSPACE_DIR/memory/MEMORY.md` → следующий порядковый номер. Только целые числа (74, 75…). Буквенные суффиксы (73a, 73b) запрещены.
 
 ## Шаг 3. Проверка бюджета
 
-Прочитай текущий бюджет недели из WeekPlan. Предупреди если превышение.
+Прочитай текущий бюджет недели из `$WORKSPACE_DIR/DS-strategy/current/Plan\ W*.md`. Предупреди если превышение.
 
 ## Шаг 4. Атомарная запись в 5 мест
 
-1. **MEMORY.md** → таблица «РП текущей недели» (новая строка)
-2. **DS-strategy/docs/WP-REGISTRY.md** → новая строка (сортировка: от последнего к первому)
-3. **DS-strategy/current/WeekPlan W{N}...** → таблица РП (новая строка)
-4. **DS-strategy/docs/Strategy.md** → таблица «РП → Результаты» (только для РП ≥3h, добавить строку с маппингом)
-5. **DS-strategy/inbox/WP-{N}-{slug}.md** → context file:
+1. **MEMORY.md** → таблица «РП текущей недели» в `$WORKSPACE_DIR/memory/MEMORY.md` (новая строка)
+2. **DS-strategy/docs/WP-REGISTRY.md** → новая строка в `$WORKSPACE_DIR/DS-strategy/docs/WP-REGISTRY.md` (сортировка: от последнего к первому)
+3. **DS-strategy/current/WeekPlan W{N}...** → таблица РП в `$WORKSPACE_DIR/DS-strategy/current/Plan\ W*.md` (новая строка)
+4. **DS-strategy/docs/Strategy.md** → таблица «РП → Результаты» в `$WORKSPACE_DIR/DS-strategy/docs/Strategy.md` (только для РП ≥3h, добавить строку с маппингом)
+5. **DS-strategy/inbox/WP-{N}-{slug}.md** → context file в `$WORKSPACE_DIR/DS-strategy/inbox/WP-{N}-{slug}.md`:
 
 ```markdown
 ---

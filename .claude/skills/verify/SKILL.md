@@ -57,7 +57,7 @@ argument-hint: "[code|archgate|capture|wp|chain|adversarial|auto] [путь ил
 - Модель sub-agent'а: Sonnet
 
 **Для `wp`:**
-- Прочитать WP context file (`DS-strategy/inbox/WP-{N}-*.md`)
+- Прочитать WP context file (`$WORKSPACE_DIR/DS-strategy/inbox/WP-{N}-*.md`)
 - Прочитать артефакт РП
 - Передать sub-agent'у: артефакт + критерии done + чеклист wp
 - Модель sub-agent'а: по verification_class

@@ -18,7 +18,7 @@ version: 1.0.0
 Запустить update.sh в режиме превью:
 
 ```bash
-cd "$IWE_TEMPLATE" && bash update.sh --check 2>&1
+[ -f "$FMT_DIR/update.sh" ] && bash "$FMT_DIR/update.sh" --check 2>&1 || echo "update.sh не найден — проверка пропущена"
 ```
 
 Из вывода извлечь:
@@ -31,7 +31,7 @@ cd "$IWE_TEMPLATE" && bash update.sh --check 2>&1
 
 ### 2. CHANGELOG — что изменилось
 
-Прочитать `FMT-exocortex-template/CHANGELOG.md`. Найти записи между текущей и новой версией.
+Прочитать `$FMT_DIR/CHANGELOG.md`. Найти записи между текущей и новой версией.
 
 **Объяснить пользователю на человеческом языке:**
 - Что добавлено и зачем (не список файлов, а **польза**)
@@ -59,12 +59,12 @@ cd "$IWE_TEMPLATE" && bash update.sh --check 2>&1
 
 **3a. Extensions:**
 ```bash
-ls extensions/*.md 2>/dev/null
+ls "$WORKSPACE_DIR/extensions/"*.md 2>/dev/null
 ```
 Если есть extension-файлы → проверить, не конфликтуют ли новые extension points с существующими файлами.
 
 **3b. params.yaml:**
-Прочитать `params.yaml`. Если обновление добавляет новые параметры → сообщить пользователю:
+Прочитать `$WORKSPACE_DIR/params.yaml`. Если обновление добавляет новые параметры → сообщить пользователю:
 > «Появился новый параметр `X` (default: Y). Хотите изменить?»
 
 **3c. CLAUDE.md:**
@@ -77,7 +77,7 @@ ls extensions/*.md 2>/dev/null
 Если пользователь одобрил (или `--yes`):
 
 ```bash
-cd "$IWE_TEMPLATE" && bash update.sh --yes 2>&1
+[ -f "$FMT_DIR/update.sh" ] && bash "$FMT_DIR/update.sh" --yes 2>&1 || echo "update.sh не найден"
 ```
 
 Из вывода извлечь результат:

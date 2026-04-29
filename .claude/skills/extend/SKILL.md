@@ -21,8 +21,8 @@ version: 1.0.0
 ### 2. Показать текущее состояние кастомизаций
 
 ```bash
-ls {{WORKSPACE_DIR}}/extensions/*.md 2>/dev/null || echo "(нет расширений)"
-cat {{WORKSPACE_DIR}}/params.yaml 2>/dev/null
+ls "$WORKSPACE_DIR/extensions/"*.md 2>/dev/null || echo "(нет расширений)"
+cat "$WORKSPACE_DIR/params.yaml" 2>/dev/null
 ```
 
 Сообщить:
@@ -37,13 +37,13 @@ cat {{WORKSPACE_DIR}}/params.yaml 2>/dev/null
 |----------|------|-------------------|-------------------|
 | `protocol-close` | `checks` | `extensions/protocol-close.checks.md` | После commit+push, перед статусами |
 | `protocol-close` | `after` | `extensions/protocol-close.after.md` | После чеклиста, перед верификацией |
-| `day-open` | `before` | `extensions/day-open.before.md` | Перед шагом 1 — утренние ритуалы |
+| `day-open` | `before` | `extensions/day-open.before.md` | Перед шагом 2 — утренние ритуалы |
 | `day-open` | `after` | `extensions/day-open.after.md` | После «Требует внимания», перед DayPlan |
 | `day-open` | `checks` | `extensions/day-open.checks.md` | Перед commit DayPlan (БЛОКИРУЮЩЕЕ) |
 | `day-close` | `before` | `extensions/day-close.before.md` | Перед шагом 1 |
-| `day-close` | `multiplier` | `extensions/day-close.multiplier.md` | Расчёт мультипликатора IWE (шаг 5) |
-| `day-close` | `checks` | `extensions/day-close.checks.md` | После governance batch, перед архивацией |
-| `day-close` | `after` | `extensions/day-close.after.md` | После итогов дня, перед верификацией |
+| `day-close` | `multiplier` | `extensions/day-close.multiplier.md` | Расчёт мультипликатора IWE (шаг 9) |
+| `day-close` | `checks` | `extensions/day-close.checks.md` | Перед commit (БЛОКИРУЮЩЕЕ, шаг 13) |
+| `day-close` | `after` | `extensions/day-close.after.md` | После итогов дня, после commit (шаг 17) |
 | `week-close` | `before` | `extensions/week-close.before.md` | Перед ротацией уроков |
 | `week-close` | `after` | `extensions/week-close.after.md` | После аудита memory |
 | `protocol-open` | `after` | `extensions/protocol-open.after.md` | После ритуала согласования |
@@ -77,7 +77,7 @@ cat {{WORKSPACE_DIR}}/params.yaml 2>/dev/null
 | `linear_sync_path` | Day Close | `""` | Путь к external linear-sync.sh |
 | `extensions_dir` | Все протоколы | `extensions` | Директория расширений |
 
-#### Day Open (./workspaces/CURRENT_WORKSPACE/memory/day-rhythm-config.yaml)
+#### Day Open ($WORKSPACE_DIR/memory/day-rhythm-config.yaml)
 
 | Параметр | Описание |
 |----------|----------|
