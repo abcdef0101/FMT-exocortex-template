@@ -39,11 +39,16 @@ cat {{WORKSPACE_DIR}}/params.yaml 2>/dev/null
 | `protocol-close` | `after` | `extensions/protocol-close.after.md` | После чеклиста, перед верификацией |
 | `day-open` | `before` | `extensions/day-open.before.md` | Перед шагом 1 — утренние ритуалы |
 | `day-open` | `after` | `extensions/day-open.after.md` | После «Требует внимания», перед DayPlan |
+| `day-open` | `checks` | `extensions/day-open.checks.md` | Перед commit DayPlan (БЛОКИРУЮЩЕЕ) |
+| `day-close` | `before` | `extensions/day-close.before.md` | Перед шагом 1 |
+| `day-close` | `multiplier` | `extensions/day-close.multiplier.md` | Расчёт мультипликатора IWE (шаг 5) |
 | `day-close` | `checks` | `extensions/day-close.checks.md` | После governance batch, перед архивацией |
 | `day-close` | `after` | `extensions/day-close.after.md` | После итогов дня, перед верификацией |
 | `week-close` | `before` | `extensions/week-close.before.md` | Перед ротацией уроков |
 | `week-close` | `after` | `extensions/week-close.after.md` | После аудита memory |
 | `protocol-open` | `after` | `extensions/protocol-open.after.md` | После ритуала согласования |
+
+**Управление:** каждый extension point имеет toggle в `params.yaml` (формат: `{protocol}_{hook}_enabled`). `false` = шаг пропускается даже если файл существует. Toggle отсутствует → считается `true`.
 
 **Несколько файлов одного hook** — загружаются в алфавитном порядке.
 Пример: `day-close.after.md` + `day-close.after.health.md` — оба выполнятся.
@@ -53,12 +58,23 @@ cat {{WORKSPACE_DIR}}/params.yaml 2>/dev/null
 | Параметр | Протокол | Default | Описание |
 |----------|----------|---------|----------|
 | `video_check` | Day Open | `true` | Проверка видео за предыдущий день |
+| `day_open_before_enabled` | Day Open | `true` | Before-extension (утренние ритуалы) |
+| `day_open_after_enabled` | Day Open | `true` | After-extension |
+| `day_open_checks_enabled` | Day Open | `true` | Checks-extension (БЛОКИРУЮЩЕЕ перед commit) |
+| `day_close_before_enabled` | Day Close | `true` | Before-extension |
 | `multiplier_enabled` | Day Close | `true` | Расчёт мультипликатора IWE (требует WakaTime) |
-| `reflection_enabled` | Day Close | `false` | Рефлексия дня через `day-close.after.md` |
+| `day_close_checks_enabled` | Day Close | `true` | Checks-extension (БЛОКИРУЮЩЕЕ перед commit) |
+| `day_close_after_enabled` | Day Close | `false` | After-extension (рефлексия, доп. проверки) |
+| `week_close_before_enabled` | Week Close | `true` | Before-extension |
+| `week_close_after_enabled` | Week Close | `true` | After-extension |
 | `lesson_rotation` | Week Close | `true` | Ротация уроков в MEMORY.md |
+| `protocol_open_after_enabled` | Protocol Open | `true` | After-extension |
+| `protocol_close_checks_enabled` | Protocol Close | `true` | Checks-extension |
+| `protocol_close_after_enabled` | Protocol Close | `true` | After-extension |
 | `auto_verify_code` | Quick Close | `true` | Автоверификация кода sub-agent Haiku |
 | `verify_quick_close` | Quick Close | `true` | Верификация чеклиста sub-agent Haiku |
 | `telegram_notifications` | Все роли | `true` | Telegram уведомления |
+| `linear_sync_path` | Day Close | `""` | Путь к external linear-sync.sh |
 | `extensions_dir` | Все протоколы | `extensions` | Директория расширений |
 
 #### Day Open (./workspaces/CURRENT_WORKSPACE/memory/day-rhythm-config.yaml)
