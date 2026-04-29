@@ -66,4 +66,3 @@ done
 | `current/` | Регулярно обновляемые: WeekPlan (с секцией «Итоги W{N}»), DayPlan |
 | `archive/` | Старые планы и отчёты |
 | `inbox/` | Входящие заметки, черновики |
-| `exocortex/` | Backup memory/ + CLAUDE.md |
