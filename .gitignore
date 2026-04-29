@@ -6,3 +6,6 @@
 
 # Директория с рабочими пространствами пользователя
 workspaces/
+.wakatime-project
+.wakatime.cfg
+.mcp.json
