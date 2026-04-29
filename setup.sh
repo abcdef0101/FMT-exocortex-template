@@ -572,7 +572,7 @@ fi
 if $CORE_ONLY; then
   echo "[6/6] Автоматизация... пропущена (core mode)"
 else
-  echo "  Роли используют launchd (macOS). На Linux используйте cron/systemd вручную."
+  echo "  Роли используют launchd (macOS) / systemd user timers (Linux)."
   echo "  См. $ROOT_DIR/roles/ROLE-CONTRACT.md"
   echo "[6/6] Installing roles..."
 
@@ -594,7 +594,15 @@ else
           chmod +x "$role_dir/install.sh"
           runner=$(grep '^runner:' "$role_yaml" | sed 's/runner: *//' | tr -d '"' | tr -d "'")
           [ -n "$runner" ] && chmod +x "$role_dir/$runner" 2>/dev/null || true
-          bash "$role_dir/install.sh"
+          if [ "$role_name" = "strategist" ]; then
+            bash "$role_dir/install.sh" \
+              --workspace-dir "$WORKSPACE_FULL_PATH" \
+              --claude-path "$CLAUDE_PATH" \
+              --timezone-hour "$TIMEZONE_HOUR" \
+              --namespace "$WORKSPACE_NAME"
+          else
+            bash "$role_dir/install.sh"
+          fi
           echo "  ✓ $role_name installed"
         fi
       else

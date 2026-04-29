@@ -68,9 +68,12 @@ chmod +x "$SCRIPT_DIR/scripts/templates/"*.sh 2>/dev/null || true
 
 # Выгружаем старые агенты
 launchctl unload "$PLIST_DST" 2>/dev/null || true
-# Выгружаем также legacy Стратег-агенты (если были)
-launchctl unload "$HOME/Library/LaunchAgents/com.strategist.morning.plist" 2>/dev/null || true
-launchctl unload "$HOME/Library/LaunchAgents/com.strategist.weekreview.plist" 2>/dev/null || true
+# Выгружаем также все legacy Стратег-агенты (по маске)
+for plist in "$HOME/Library/LaunchAgents"/com.strategist.*; do
+  [ -f "$plist" ] || continue
+  launchctl unload "$plist" 2>/dev/null || true
+  rm -f "$plist"
+done
 
 # Создаём директории состояния
 mkdir -p "$WORKSPACE_DIR/state"
