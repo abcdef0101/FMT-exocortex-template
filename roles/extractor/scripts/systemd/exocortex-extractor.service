@@ -1,0 +1,11 @@
+[Unit]
+Description=Extractor inbox-check — {{NAMESPACE}}
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart={{ROOT_DIR}}/roles/extractor/scripts/extractor.sh --root-dir {{ROOT_DIR}} --workspace-dir {{WORKSPACE_DIR}} --agent-ai-path {{CLAUDE_PATH}} inbox-check
+StandardOutput=append:{{WORKSPACE_DIR}}/logs/extractor/systemd-inbox-check.log
+StandardError=append:{{WORKSPACE_DIR}}/logs/extractor/systemd-inbox-check-error.log
+Environment=HOME={{HOME}}
+Environment=PATH=/usr/local/bin:/usr/bin:/bin:/usr/local/sbin

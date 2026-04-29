@@ -10,7 +10,7 @@ display_name: "Экстрактор"
 runner: scripts/extractor.sh
 
 install:
-  auto: false
+  auto: true
   priority: 2
 
 notify_template: extractor.sh

@@ -600,6 +600,12 @@ else
               --claude-path "$CLAUDE_PATH" \
               --timezone-hour "$TIMEZONE_HOUR" \
               --namespace "$WORKSPACE_NAME"
+          elif [ "$role_name" = "extractor" ]; then
+            bash "$role_dir/install.sh" \
+              --workspace-dir "$WORKSPACE_FULL_PATH" \
+              --root-dir "$ROOT_DIR" \
+              --agent-ai-path "$CLAUDE_PATH" \
+              --namespace "$WORKSPACE_NAME"
           else
             bash "$role_dir/install.sh"
           fi

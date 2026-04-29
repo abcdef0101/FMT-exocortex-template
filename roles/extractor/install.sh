@@ -1,11 +1,13 @@
 #!/bin/bash
-# Extractor: установка launchd-агента для inbox-check
-# Запускает inbox-check каждые 3 часа
-set -e
+# Extractor: установка агента inbox-check
+# Targets: macOS (launchd), Linux (systemd user timer)
+set -euo pipefail
 
 # === Named parameters ===
 WORKSPACE_DIR=""
 ROOT_DIR=""
+AGENT_AI_PATH=""
+NAMESPACE=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -17,6 +19,14 @@ while [[ $# -gt 0 ]]; do
     ROOT_DIR="$2"
     shift 2
     ;;
+  --agent-ai-path)
+    AGENT_AI_PATH="$2"
+    shift 2
+    ;;
+  --namespace)
+    NAMESPACE="$2"
+    shift 2
+    ;;
   *)
     echo "Неизвестный аргумент: $1" >&2
     exit 1
@@ -24,12 +34,13 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-MISSING=()
-[ -z "$WORKSPACE_DIR" ] && MISSING+=("--workspace-dir")
-[ -z "$ROOT_DIR" ] && MISSING+=("--root-dir")
-if [ ${#MISSING[@]} -gt 0 ]; then
-  echo "Ошибка: обязательные параметры: ${MISSING[*]}" >&2
-  echo "Usage: bash install.sh --workspace-dir /path/to/workspace --root-dir /path/to/root" >&2
+missing=()
+[ -z "$WORKSPACE_DIR" ] && missing+=("--workspace-dir")
+[ -z "$ROOT_DIR" ] && missing+=("--root-dir")
+
+if [ "${#missing[@]}" -gt 0 ]; then
+  echo "Ошибка: обязательные параметры не указаны:" >&2
+  printf '  - %s\n' "${missing[@]}" >&2
   exit 1
 fi
 
@@ -43,44 +54,71 @@ if [ ! -d "$ROOT_DIR" ]; then
   exit 1
 fi
 
+# Default agent AI path = auto-detect claude
+if [ -z "$AGENT_AI_PATH" ]; then
+  AGENT_AI_PATH="$(command -v claude 2>/dev/null || echo claude)"
+fi
+
+# Default namespace = workspace directory name, sanitised
+if [ -z "$NAMESPACE" ]; then
+  NAMESPACE="$(basename "$WORKSPACE_DIR" | tr -c '[:alnum:]._-' '-')"
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-ROLES_DIR="$ROOT_DIR/roles"
-CLAUDE_PATH="$(command -v claude 2>/dev/null || echo claude)"
-ENV_FILE="$WORKSPACE_DIR/.env"
+LAUNCHD_DIR="$SCRIPT_DIR/scripts/launchd"
+SYSTEMD_SRC="$SCRIPT_DIR/scripts/systemd"
+CLAUDE_PATH="$AGENT_AI_PATH"
 
-if [ ! -f "$ENV_FILE" ]; then
-  echo "Ошибка: ENV_FILE не существует: $ENV_FILE" >&2
-  exit 1
-fi
+echo "Installing Extractor Agent..."
 
-PLIST_SRC="$SCRIPT_DIR/scripts/launchd/com.extractor.inbox-check.plist"
-PLIST_DST="$HOME/Library/LaunchAgents/com.extractor.inbox-check.plist"
-
-echo "Installing Extractor launchd agent..."
-
-if [ ! -f "$PLIST_SRC" ]; then
-  echo "ERROR: $PLIST_SRC not found"
-  exit 1
-fi
-
+# Make scripts executable
 chmod +x "$SCRIPT_DIR/scripts/extractor.sh"
 
-launchctl unload "$PLIST_DST" 2>/dev/null || true
-
+# Create log directory in workspace
 mkdir -p "$WORKSPACE_DIR/logs/extractor"
 
-sed \
-  -e "s|{{ROOT_DIR}}|$ROOT_DIR|g" \
-  -e "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g" \
-  -e "s|{{ROLES_DIR}}|$ROLES_DIR|g" \
-  -e "s|{{CLAUDE_PATH}}|$CLAUDE_PATH|g" \
-  "$PLIST_SRC" >"$PLIST_DST"
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  # === macOS: launchd ===
+  TARGET_DIR="$HOME/Library/LaunchAgents"
 
-launchctl load "$PLIST_DST"
+  # Unload old agent if present
+  launchctl unload "$TARGET_DIR/com.extractor.inbox-check.plist" 2>/dev/null || true
 
-echo "  ✓ Installed: com.extractor.inbox-check"
-echo "  ✓ Interval: every 3 hours"
-echo "  ✓ Logs: $WORKSPACE_DIR/logs/extractor/"
-echo ""
-echo "Verify: launchctl list | grep extractor"
-echo "Uninstall: launchctl unload $PLIST_DST && rm $PLIST_DST"
+  # Copy plist with placeholder substitution + namespaced filename
+  basename_plist="com.extractor.${NAMESPACE}.inbox-check.plist"
+  sed \
+    -e "s|{{ROOT_DIR}}|$ROOT_DIR|g" \
+    -e "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g" \
+    -e "s|{{CLAUDE_PATH}}|$CLAUDE_PATH|g" \
+    -e "s|{{NAMESPACE}}|$NAMESPACE|g" \
+    "$LAUNCHD_DIR/com.extractor.inbox-check.plist" >"$TARGET_DIR/$basename_plist"
+
+  # Load agent
+  launchctl load "$TARGET_DIR/$basename_plist"
+
+  echo "Done. Agent loaded:"
+  launchctl list | grep "com.extractor.${NAMESPACE}" || true
+else
+  # === Linux: systemd user timer ===
+  SYSTEMD_DIR="$HOME/.config/systemd/user"
+  mkdir -p "$SYSTEMD_DIR"
+
+  # Copy service/timer files with placeholder substitution
+  for unit in "$SYSTEMD_SRC"/*.{service,timer}; do
+    [ -f "$unit" ] || continue
+    basename_unit="$(basename "$unit")"
+    sed \
+      -e "s|{{ROOT_DIR}}|$ROOT_DIR|g" \
+      -e "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g" \
+      -e "s|{{CLAUDE_PATH}}|$CLAUDE_PATH|g" \
+      -e "s|{{NAMESPACE}}|$NAMESPACE|g" \
+      -e "s|{{HOME}}|$HOME|g" \
+      "$unit" >"$SYSTEMD_DIR/$basename_unit"
+  done
+
+  systemctl --user daemon-reload
+  systemctl --user enable --now exocortex-extractor.timer
+
+  echo "Done. Timer installed:"
+  systemctl --user list-timers | grep exocortex-extractor || true
+fi

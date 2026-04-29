@@ -37,7 +37,8 @@
 
 ```bash
 cd roles/extractor
-bash install.sh --workspace-dir /path/to/workspace --root-dir /path/to/root
+bash install.sh --workspace-dir /path/to/workspace --root-dir /path/to/root --agent-ai-path $(which claude)
+# Опционально: --namespace my-workspace (по умолчанию — имя директории workspace)
 ```
 
 Это установит launchd/systemd-агент для проверки inbox каждые 3 часа.

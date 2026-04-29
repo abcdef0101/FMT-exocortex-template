@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.extractor.inbox-check</string>
+    <string>com.extractor.{{NAMESPACE}}.inbox-check</string>
 
     <key>ProgramArguments</key>
     <array>
-        <string>{{ROOT_DIR}}/extractor/scripts/extractor.sh</string>
+        <string>{{ROOT_DIR}}/roles/extractor/scripts/extractor.sh</string>
         <string>--root-dir</string>
         <string>{{ROOT_DIR}}</string>
         <string>--workspace-dir</string>
