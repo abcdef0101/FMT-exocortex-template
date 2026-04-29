@@ -1,0 +1,5 @@
+kb_path: /abs/path/to/knowledge-base
+index_mode: if-present
+git_mode: ask
+subdir_mode: existing-first
+session_label_mode: datetime
