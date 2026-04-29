@@ -169,10 +169,11 @@ echo "## Daily Reflection
 **Parameters (params.yaml)** — toggle protocol steps:
 
 ```yaml
-reflection_enabled: true    # Enable reflection
+day_close_after_enabled: true    # Enable reflection
 video_check: false          # Disable video check
-multiplier_enabled: true    # IWE multiplier
 ```
+
+Delete `extensions/day-close.multiplier.md` to disable IWE multiplier calculation.
 
 **Updates** — `bash update.sh` updates the platform while preserving your extensions/, params.yaml, and CLAUDE.md edits (3-way merge).
 

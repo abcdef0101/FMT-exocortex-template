@@ -1596,7 +1596,7 @@ DS-strategy/
 | # | Слой | Механизм | Кросс-ОС |
 |---|------|----------|-----------|
 | 1 | Репо (код, Pack, DS) | git push/pull | Да |
-| 2 | Экзокортекс (CLAUDE.md, memory/) | git backup в DS-strategy → restore на втором устройстве | Да |
+| 2 | Экзокортекс (CLAUDE.md, memory/) | backup memory в workspace-репо → restore на втором устройстве | Да |
 | 3 | Claude Code конфиг (.claude/) | Часть в git (exocortex backup), часть локальная | Да (JSON) |
 | 4 | VS Code | Settings Sync (встроенный, через GitHub) | Да |
 | 5 | MCP серверы | Шаблон конфига + envsubst (пути различаются между ОС) | Шаблон + platform-specific |

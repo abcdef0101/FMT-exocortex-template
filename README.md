@@ -169,10 +169,11 @@ echo "## Рефлексия дня
 **Параметры (params.yaml)** — включайте/выключайте шаги протоколов:
 
 ```yaml
-reflection_enabled: true    # Включить рефлексию
+day_close_after_enabled: true    # Включить рефлексию
 video_check: false          # Отключить проверку видео
-multiplier_enabled: true    # Мультипликатор IWE
 ```
+
+Удалите `extensions/day-close.multiplier.md`, чтобы отключить расчёт мультипликатора IWE.
 
 **Обновления** — `bash update.sh` обновляет платформу, сохраняя ваши extensions/, params.yaml и правки в CLAUDE.md (3-way merge).
 
