@@ -206,7 +206,7 @@ A: Для полной установки (Claude Code) — рекомендуе
 A: Частично. Все знания хранятся в открытых форматах (Markdown, YAML, Git) -- они переживут смену любого вендора. Но автоматика (протоколы ОРЗ, скиллы, хуки, роли) заточена под Claude Code CLI. Для Codex (OpenAI), Aider или других AI CLI потребуется адаптация `.claude/` и скриптов ролей. Минимальная установка (`setup.sh --core`) работает без привязки к конкретному LLM.
 
 **Q: Работает ли на Linux/Windows?**
-A: Да. Ядро работает на любой ОС. Автоматизация Стратега: macOS — launchd, Linux — cron, Windows — WSL. Подробнее: [SETUP-GUIDE.md](docs/SETUP-GUIDE.md).
+A: Да. Ядро работает на любой ОС. Автоматизация Стратега: macOS — launchd, Linux — systemd user timer, Windows — WSL. Подробнее: [SETUP-GUIDE.md](docs/SETUP-GUIDE.md).
 
 **Q: Что если компьютер выключен или спит — автоматика остановится?**
 A: Cloud Scheduler (GitHub Actions) работает в облаке даже при выключенном компьютере. Для локальных агентов: скрипты автоматически предотвращают сон на время работы (macOS: `caffeinate`, Linux: `systemd-inhibit`). Для ноутбуков рекомендуется настроить автоматическое пробуждение и запрет idle sleep — см. [SETUP-GUIDE.md](docs/SETUP-GUIDE.md).

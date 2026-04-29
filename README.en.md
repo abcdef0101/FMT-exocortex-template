@@ -206,7 +206,7 @@ A: For full installation (Claude Code) — Claude Pro ($20/mo) is recommended. Y
 A: Partially. All knowledge is stored in open formats (Markdown, YAML, Git) — it will survive any vendor switch. But automation (OWC protocols, skills, hooks, roles) is built for Claude Code CLI. For Codex (OpenAI), Aider, or other AI CLIs, you'll need to adapt `.claude/` and role scripts. Minimal installation (`setup.sh --core`) works without vendor lock-in.
 
 **Q: Does it work on Linux/Windows?**
-A: Yes. The core works on any OS. Strategist automation: macOS — launchd, Linux — cron, Windows — WSL. More: [SETUP-GUIDE.md](docs/SETUP-GUIDE.md).
+A: Yes. The core works on any OS. Strategist automation: macOS — launchd, Linux — systemd user timer, Windows — WSL. More: [SETUP-GUIDE.md](docs/SETUP-GUIDE.md).
 
 **Q: What if my computer is off or sleeping — will automation stop?**
 A: Cloud Scheduler (GitHub Actions) runs in the cloud even when your computer is off. For local agents: scripts automatically prevent sleep during execution (macOS: `caffeinate`, Linux: `systemd-inhibit`). For laptops, it's recommended to set up automatic wake and disable idle sleep — see [SETUP-GUIDE.md](docs/SETUP-GUIDE.md).

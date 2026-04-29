@@ -152,7 +152,7 @@ bash update.sh --check  # проверить без применения
 
 **Claude Code не запускается** — проверь подписку Anthropic и `claude --version`. Начинать можно с Pro plan ($20/мес). При необходимости — Max (~$100/мес).
 
-**Стратег не формирует план** — проверь `launchctl list | grep strategist` (macOS). Если нет — `bash roles/strategist/install.sh`.
+**Стратег не формирует план** — macOS: `launchctl list | grep strategist`. Linux: `systemctl --user list-timers | grep exocortex-strategist`. Если нет — `bash roles/strategist/install.sh --workspace-dir <путь> --claude-path $(which claude) --timezone-hour <час>`.
 
 **MEMORY.md не загружается** — проверь путь: `~/IWE/FMT-exocortex-template/workspaces/<ws>/memory/MEMORY.md`. Workspace = имя из `workspaces/CURRENT_WORKSPACE`.
 

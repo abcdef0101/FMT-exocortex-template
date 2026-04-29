@@ -14,7 +14,7 @@
 
 | Скрипт | Что делает | Триггер |
 |--------|-----------|---------|
-| `scheduler.sh` | Центральный диспетчер: проверяет расписание, запускает агентов | launchd (10 раз/день) |
+| `scheduler.sh` | Центральный диспетчер: проверяет расписание, запускает агентов | launchd / systemd (10 раз/день) |
 | `code-scan.sh` | Сканирует DS-* репо на коммиты за 24ч | scheduler (00:00) |
 | `daily-report.sh` | Отчёт здоровья: светофор, ошибки, рекомендации | scheduler (после утра) |
 | `sync-files.sh` | Точечная синхронизация файлов из remote | scheduler (каждые 2 мин) |
@@ -72,6 +72,8 @@ roles/synchronizer/
 │   │   └── synchronizer.sh        # Шаблон TG для Синхронизатора
 │   └── launchd/
 │       └── com.exocortex.scheduler.plist
+│   └── systemd/
+│       └── exocortex-scheduler.service + .timer
 └── configs/
     └── systems/
         └── .gitkeep               # Будущие системные конфигурации

@@ -58,20 +58,31 @@ FMT-exocortex-template/              DS-strategy/ (отдельный репо)
 
 ---
 
-## Расписание (launchd, macOS)
+## Расписание
 
-| Время (UTC) | День | Сценарий | Plist |
-|-------------|------|----------|-------|
-| {{TIMEZONE_HOUR}}:00 | Понедельник | `session-prep` (headless) | `com.strategist.morning` |
-| {{TIMEZONE_HOUR}}:00 | Вт-Вс | `day-plan` | `com.strategist.morning` |
-| 00:00 | Понедельник | `week-review` | `com.strategist.weekreview` |
+| Время (UTC) | День | Сценарий | macOS (launchd) | Linux (systemd) |
+|-------------|------|----------|-----------------|-----------------|
+| {{TIMEZONE_HOUR}}:00 | Понедельник | `session-prep` (headless) | `com.strategist.*.morning` | `exocortex-strategist-morning.timer` |
+| {{TIMEZONE_HOUR}}:00 | Вт-Вс | `day-plan` | `com.strategist.*.morning` | `exocortex-strategist-morning.timer` |
+| 00:00 | Понедельник | `week-review` | `com.strategist.*.weekreview` | `exocortex-strategist-weekreview.timer` |
 
-> На Linux: настройте cron вручную (`crontab -e`). Без автоматизации Стратег запускается вручную.
+> `install.sh` автоматически определяет ОС и устанавливает launchd (macOS) или systemd user timer (Linux).
 
 ## Установка
 
 ```bash
-./install.sh          # Установить launchd агенты
+./install.sh --workspace-dir /path/to/workspace --claude-path /usr/bin/claude --timezone-hour 4
+# Опционально: --namespace my-workspace (по умолчанию — имя директории workspace)
+
+# Удаление (macOS)
+launchctl unload ~/Library/LaunchAgents/com.strategist.*.morning.plist
+launchctl unload ~/Library/LaunchAgents/com.strategist.*.weekreview.plist
+rm ~/Library/LaunchAgents/com.strategist.*.plist
+
+# Удаление (Linux)
+systemctl --user disable --now exocortex-strategist-morning.timer exocortex-strategist-weekreview.timer
+rm ~/.config/systemd/user/exocortex-strategist-*.{service,timer}
+systemctl --user daemon-reload
 
 # Ручной запуск
 ./scripts/strategist.sh morning           # session-prep (Пн) или day-plan (Вт-Вс)

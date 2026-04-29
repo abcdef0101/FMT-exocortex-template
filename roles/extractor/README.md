@@ -13,7 +13,7 @@
 | **Session-Close** | Закрытие сессии (протокол Close) | Интерактивный |
 | **On-Demand** | «Запиши это в Pack» | Интерактивный |
 | **Knowledge Audit** | «Аудит Pack» / ежемесячно | Интерактивный |
-| **Inbox-Check** | launchd каждые 3ч (опционально) | Headless (отчёт) |
+| **Inbox-Check** | launchd / systemd каждые 3ч (опционально) | Headless (отчёт) |
 
 ## Когда подключать
 
@@ -40,7 +40,7 @@ cd roles/extractor
 bash install.sh --workspace-dir /path/to/workspace --root-dir /path/to/root
 ```
 
-Это установит launchd-агент для проверки inbox каждые 3 часа.
+Это установит launchd/systemd-агент для проверки inbox каждые 3 часа.
 
 ### 3. Ручной запуск
 
@@ -82,6 +82,7 @@ Knowledge Extraction Pipeline:
 | `prompts/knowledge-audit.md` | Промпт: аудит Pack'ов |
 | `scripts/extractor.sh` | Скрипт запуска (аналог strategist.sh) |
 | `scripts/launchd/` | launchd plist для inbox-check |
+| `scripts/systemd/` | systemd service/timer для inbox-check |
 
 ## Принципы
 

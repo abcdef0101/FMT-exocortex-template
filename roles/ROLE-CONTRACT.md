@@ -12,7 +12,7 @@
 |------|-----------|
 | `role.yaml` | Машиночитаемый манифест: идентичность, тип, установка |
 | `README.md` | Человекочитаемое описание: назначение, сценарии, когда устанавливать |
-| `install.sh` | Точка входа установки (launchd/cron/no-op) |
+| `install.sh` | Точка входа установки (launchd/systemd/no-op) |
 
 ## Опциональная структура
 
@@ -21,6 +21,7 @@
 | `prompts/*.md` | Роль использует ИИ-агента (Grade 2+) |
 | `scripts/{role}.sh` | Роль имеет runner-скрипт |
 | `scripts/launchd/*.plist` | Роль использует macOS-расписание (независимо от синхронизатора) |
+| `scripts/systemd/*.service` / `.timer` | Роль использует Linux-расписание через systemd user timer |
 | `config/` | Роль-специфичная конфигурация |
 
 ## Полная структура
@@ -35,7 +36,10 @@ roles/{name}/
 ├── scripts/
 │   ├── {name}.sh          # Runner (вызывает AI CLI с промптом)
 │   └── launchd/           # macOS scheduling (опц.)
-│       └── com.exocortex.{name}.plist
+│   │   └── com.exocortex.{name}.plist
+│   └── systemd/            # Linux scheduling (опц.)
+│       ├── exocortex-{name}-{scenario}.service
+│       └── exocortex-{name}-{scenario}.timer
 └── config/                # Роль-специфичная конфигурация
 ```
 

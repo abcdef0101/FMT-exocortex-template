@@ -240,7 +240,7 @@ bash setup.sh
 2. Установит `CLAUDE.md` — правила для Claude Code
 3. Установит `persistent-memory/` (через symlink) и `memory/` — оперативную память для Claude Code
 4. Настроит разрешения (`.claude/settings.local.json`) и выведет инструкцию по подключению MCP
-5. Установит автоматический запуск Стратега (launchd на macOS)
+5. Установит автоматический запуск Стратега (launchd на macOS, systemd user timer на Linux)
 6. Создаст `DS-strategy/` — твой приватный стратегический репозиторий на GitHub
 
 ### 1.3 Проверь установку
@@ -257,8 +257,11 @@ ls ~/IWE/FMT-exocortex-template/workspaces/*/memory/
 # Должен быть стратегический хаб
 ls ~/IWE/DS-strategy/
 
-# Стратег должен быть в расписании (macOS)
+# Стратег должен быть в расписании
+# macOS
 launchctl list | grep strategist
+# Linux
+systemctl --user list-timers | grep exocortex-strategist
 ```
 
 Если всё есть — проверь MCP-подключение (1.3b) и переходи к Этапу 2. Дополнительные роли (1.4) можно установить позже.
@@ -339,10 +342,15 @@ cp ~/IWE/FMT-exocortex-template/seed/MEMORY.md ~/IWE/workspaces/default-project/
 ln -s ../../../persistent-memory/ ~/IWE/workspaces/default-project/memory/persistent-memory
 ```
 
-**launchd не загружен:**
+**launchd/systemd не загружен:**
 ```bash
+# macOS
 cd ~/IWE/FMT-exocortex-template/roles/strategist
-bash install.sh
+bash install.sh --workspace-dir ~/IWE/workspaces/default-project --claude-path $(which claude) --timezone-hour 4
+
+# Linux
+cd ~/IWE/FMT-exocortex-template/roles/strategist
+bash install.sh --workspace-dir ~/IWE/workspaces/default-project --claude-path $(which claude) --timezone-hour 4
 ```
 
 **DS-strategy не создан:**
@@ -559,7 +567,7 @@ bash setup/optional/setup-agent-workspace.sh
 
 **Рекомендуемый путь:**
 1. Начни без Agent Workspace (Этапы 0-2)
-2. Подключи Scheduler (launchd) — отчёты пойдут в DS-strategy
+2. Подключи Scheduler (launchd / systemd) — отчёты пойдут в DS-strategy
 3. Когда автокоммитов станет >5/день → создай Agent Workspace
 
 </details>
@@ -690,7 +698,7 @@ bash update.sh
 Скрипт скачивает манифест обновлений с GitHub, сравнивает с вашими файлами, показывает превью (что нового, что изменилось) и применяет после вашего подтверждения. Self-update: `update.sh` обновляет сам себя при каждом запуске.
 
 **Что обновляется (platform-space):**
-CLAUDE.md (§1-7), persistent-memory/ (протоколы, справочники), промпты и скрипты ролей, hooks, скиллы, setup-скрипты. Если скрипты ролей изменились — автоматически переустановятся launchd-агенты.
+CLAUDE.md (§1-7), persistent-memory/ (протоколы, справочники), промпты и скрипты ролей, hooks, скиллы, setup-скрипты. Если скрипты ролей изменились — автоматически переустановятся launchd/systemd-агенты.
 
 **Что НЕ трогается (user-space):**
 - CLAUDE.md — 3-way merge: ваши правки в любой секции сохраняются при обновлении
@@ -795,14 +803,18 @@ DS-strategy — приватный репо. MEMORY.md — локальный ф
 
 **Как удалить?**
 ```bash
-# Удалить launchd агенты
-launchctl unload ~/Library/LaunchAgents/com.strategist.morning.plist 2>/dev/null
-launchctl unload ~/Library/LaunchAgents/com.strategist.weekreview.plist 2>/dev/null
-launchctl unload ~/Library/LaunchAgents/com.extractor.inbox-check.plist 2>/dev/null
-launchctl unload ~/Library/LaunchAgents/com.exocortex.scheduler.plist 2>/dev/null
+# Удалить launchd агенты (macOS)
+launchctl unload ~/Library/LaunchAgents/com.strategist.*.plist 2>/dev/null
+launchctl unload ~/Library/LaunchAgents/com.extractor.*.plist 2>/dev/null
+launchctl unload ~/Library/LaunchAgents/com.exocortex.*.plist 2>/dev/null
 rm ~/Library/LaunchAgents/com.strategist.*.plist 2>/dev/null
 rm ~/Library/LaunchAgents/com.extractor.*.plist 2>/dev/null
 rm ~/Library/LaunchAgents/com.exocortex.*.plist 2>/dev/null
+
+# Удалить systemd юниты (Linux)
+systemctl --user disable --now exocortex-strategist-morning.timer exocortex-strategist-weekreview.timer 2>/dev/null
+rm ~/.config/systemd/user/exocortex-strategist-*.{service,timer} 2>/dev/null
+systemctl --user daemon-reload
 
 # Удалить файлы
 rm ~/IWE/CLAUDE.md

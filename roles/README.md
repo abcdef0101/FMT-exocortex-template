@@ -9,9 +9,9 @@
 
 | Роль | ID | Тип | Сценарии | Автоматизация |
 |------|----|-----|----------|---------------|
-| [Стратег](strategist/) | R1 | ИИ-агент (Claude) | 9 | launchd (утро, вечер, неделя) |
-| [Экстрактор](extractor/) | R2 | ИИ-агент (Claude) | 4 | launchd (каждые 3 часа) |
-| [Синхронизатор](synchronizer/) | R8 | Bash-инструмент | 5 скриптов | launchd (10 точек/день) |
+| [Стратег](strategist/) | R1 | ИИ-агент (Claude) | 9 | launchd / systemd (утро, вечер, неделя) |
+| [Экстрактор](extractor/) | R2 | ИИ-агент (Claude) | 4 | launchd / systemd (каждые 3 часа) |
+| [Синхронизатор](synchronizer/) | R8 | Bash-инструмент | 5 скриптов | launchd / systemd (10 точек/день) |
 
 ## Стратег (R1)
 
@@ -73,7 +73,7 @@ export TELEGRAM_CHAT_ID="your-id"
 
 **Установка:** `bash roles/synchronizer/install.sh`
 
-> **Важно:** Синхронизатор заменяет отдельные launchd-агенты Стратега единым scheduler. После установки все роли запускаются из одной точки (com.exocortex.scheduler).
+> **Важно:** Синхронизатор заменяет отдельные launchd/systemd-агенты Стратега единым scheduler. После установки все роли запускаются из одной точки (com.exocortex.scheduler / exocortex-scheduler.timer).
 
 ---
 
@@ -105,7 +105,7 @@ export TELEGRAM_CHAT_ID="your-id"
    └── Требует: хотя бы один Pack-репо + настроенный routing.md
 
 3. Синхронизатор (когда нужна оркестрация)
-   └── Заменяет отдельные launchd-агенты единым dispatcher
+   └── Заменяет отдельные launchd/systemd-агенты единым dispatcher
    └── Опционально: Telegram-уведомления
 ```
 
