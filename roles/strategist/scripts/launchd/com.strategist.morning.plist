@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.strategist.morning</string>
+    <string>com.strategist.{{NAMESPACE}}.morning</string>
 
     <key>ProgramArguments</key>
     <array>
-        <string>{{ROOT_DIR}}/roles/strategist/scripts/strategist.sh</string>
+        <string>{{WORKSPACE_DIR}}/roles/strategist/scripts/strategist.sh</string>
         <string>--workspace-dir</string>
         <string>{{WORKSPACE_DIR}}</string>
         <string>--claude-path</string>

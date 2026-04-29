@@ -1,0 +1,11 @@
+[Unit]
+Description=Strategist morning (day-plan / session-prep) — {{NAMESPACE}}
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart={{WORKSPACE_DIR}}/roles/strategist/scripts/strategist.sh --workspace-dir {{WORKSPACE_DIR}} --claude-path {{CLAUDE_PATH}} morning
+StandardOutput=append:{{WORKSPACE_DIR}}/logs/strategist/systemd-morning.log
+StandardError=append:{{WORKSPACE_DIR}}/logs/strategist/systemd-morning-error.log
+Environment=HOME={{HOME}}
+Environment=PATH=/usr/local/bin:/usr/bin:/bin:/usr/local/sbin

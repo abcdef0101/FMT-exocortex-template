@@ -1,0 +1,11 @@
+[Unit]
+Description=Strategist week-review (Monday midnight) — {{NAMESPACE}}
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart={{WORKSPACE_DIR}}/roles/strategist/scripts/strategist.sh --workspace-dir {{WORKSPACE_DIR}} --claude-path {{CLAUDE_PATH}} week-review
+StandardOutput=append:{{WORKSPACE_DIR}}/logs/strategist/systemd-weekreview.log
+StandardError=append:{{WORKSPACE_DIR}}/logs/strategist/systemd-weekreview-error.log
+Environment=HOME={{HOME}}
+Environment=PATH=/usr/local/bin:/usr/bin:/bin:/usr/local/sbin

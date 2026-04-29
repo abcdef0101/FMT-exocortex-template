@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.strategist.weekreview</string>
+    <string>com.strategist.{{NAMESPACE}}.weekreview</string>
 
     <key>ProgramArguments</key>
     <array>

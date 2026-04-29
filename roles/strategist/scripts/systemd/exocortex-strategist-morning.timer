@@ -1,0 +1,9 @@
+[Unit]
+Description=Strategist morning timer — {{NAMESPACE}} ({{TIMEZONE_HOUR}}:00 daily)
+
+[Timer]
+OnCalendar=*-*-* {{TIMEZONE_HOUR}}:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
