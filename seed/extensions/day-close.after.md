@@ -1,6 +1,6 @@
 ## Рефлексия дня
 
-> Условие: `params.yaml → reflection_enabled: true`. Иначе — пропустить.
+> Условие: `params.yaml → day_close_after_enabled: true`. Иначе — пропустить.
 
 Задать пользователю (после итогов, перед верификацией):
 

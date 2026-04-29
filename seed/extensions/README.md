@@ -16,7 +16,10 @@
 | `protocol-close` | `after` | После основного чеклиста, перед верификацией |
 | `day-open` | `before` | Перед шагом 1 (Вчера) — утренние ритуалы, подготовка |
 | `day-open` | `after` | После шага 6b (Требует внимания), перед записью DayPlan |
+| `day-open` | `checks` | Перед commit DayPlan (БЛОКИРУЮЩЕЕ) |
+| `day-close` | `before` | Перед шагом 1 |
 | `day-close` | `checks` | После governance batch, перед архивацией |
+| `day-close` | `multiplier` | После механических шагов (шаг 4), перед записью итогов (шаг 6) |
 | `day-close` | `after` | После итогов дня, перед верификацией |
 | `week-close` | `before` | Перед ротацией уроков (шаг 1) |
 | `week-close` | `after` | После аудита memory (шаг 4), перед финализацией |
@@ -36,6 +39,18 @@
 
 При Day Close агент автоматически подгрузит этот блок в соответствующую точку протокола.
 
+### Временное отключение
+
+Каждый extension point имеет toggle в `params.yaml` (формат: `{protocol}_{hook}_enabled`). Установите `false`, чтобы пропустить шаг без удаления файла:
+
+```yaml
+# Отключить мультипликатор без удаления файла
+multiplier_enabled: false
+
+# Отключить утренние ритуалы
+day_open_before_enabled: false
+```
+
 ### Пример: дополнительные проверки при закрытии сессии
 
 Файл `extensions/protocol-close.checks.md`:
@@ -52,12 +67,22 @@
 
 | Параметр | Протокол | Что управляет |
 |----------|----------|---------------|
-| `video_check` | Day Close | Проверка видео за день (ша�� 6д) |
-| `multiplier_enabled` | Day Close | Расчёт мультипликатора IWE (шаг 5) |
-| `reflection_enabled` | Day Close | Ре��лексия через `day-close.after.md` |
-| `lesson_rotation` | Week Close | Ротация уроков в MEMORY.md (шаг 1) |
-| `auto_verify_code` | Quick Close | Автоверификация кода Haiku (шаг 4b) |
-| `verify_quick_close` | Quick Close | Верификация чеклиста Haiku (шаг 7) |
+| `day_open_before_enabled` | Day Open | Before-extension (утренние ритуалы) |
+| `video_check` | Day Open | Проверка видео за прошлый день |
+| `day_open_after_enabled` | Day Open | After-extension |
+| `day_open_checks_enabled` | Day Open | Checks-extension |
+| `day_close_before_enabled` | Day Close | Before-extension |
+| `multiplier_enabled` | Day Close | Расчёт мультипликатора IWE |
+| `day_close_checks_enabled` | Day Close | Checks-extension |
+| `day_close_after_enabled` | Day Close | After-extension (рефлексия, доп. проверки) |
+| `week_close_before_enabled` | Week Close | Before-extension |
+| `week_close_after_enabled` | Week Close | After-extension |
+| `lesson_rotation` | Week Close | Ротация уроков в MEMORY.md |
+| `protocol_open_after_enabled` | Protocol Open | After-extension |
+| `protocol_close_checks_enabled` | Protocol Close | Checks-extension |
+| `protocol_close_after_enabled` | Protocol Close | After-extension |
+| `auto_verify_code` | Quick Close | Автоверификация кода Haiku |
+| `verify_quick_close` | Quick Close | Верификация чеклиста Haiku |
 | `telegram_notifications` | Все роли | Telegram уведомления от ролей |
 | `extensions_dir` | Все протоколы | Директория расширений (default: `extensions`) |
 
@@ -162,3 +187,11 @@ cp my-extension-pack/extensions/* ~/IWE/extensions/
 2. Содержимое: markdown, будет вставлен как блок в протокол
 3. `update.sh` не трогает `extensions/` — ваши файлы в безопасности
 4. Несколько расширений одного hook: загружаются в алфавитном порядке
+
+## Script Extensions
+
+Помимо markdown-расширений, `extensions/` может содержать исполняемые скрипты-обёртки для интеграций:
+
+| Скрипт | Протокол | Описание |
+|--------|----------|----------|
+| `linear-sync.sh` | day-close (шаг 4b) | Синхронизация с Linear. Читает `params.yaml → linear_sync_path` и вызывает внешний скрипт с `--workspace-dir`. Если путь не указан — тихо пропускается |
