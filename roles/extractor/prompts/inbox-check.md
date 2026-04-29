@@ -28,7 +28,7 @@
 ### Шаг 1: Проверить inbox
 
 1. Прочитай `{{WORKSPACE_DIR}}/DS-strategy/inbox/captures.md`
-2. Найди все pending записи (секции `### ...` без метки `[processed]`)
+2. Найди все pending записи (секции `### ...` без меток `[processed]` или `[analyzed]`)
 3. Если pending записей нет → напиши в лог `No pending captures in inbox` и **заверши работу**
 4. Если pending > 5 → возьми первые 5 (по порядку в файле)
 
@@ -47,7 +47,7 @@
 | Failure mode | Типовая ошибка | `fm` |
 | Правило | Ограничение, 1-3 строки | `rule` |
 
-**2b. Маршрутизация (по `{{SCRIPT_DIR}}/config/routing.md`):**
+**2b. Маршрутизация (по `{{ROOT_DIR}}/roles/extractor/config/routing.md`):**
 
 1. Определи Pack по домен
 2. Определи директорию по типу
