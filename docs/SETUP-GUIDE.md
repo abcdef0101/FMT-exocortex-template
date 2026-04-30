@@ -235,7 +235,7 @@ bash setup.sh
 | Strategist launch hour (UTC) | Час запуска Стратега | `4` (= 7:00 MSK, 8:00 Алматы) |
 | Timezone description | Описание времени | `7:00 MSK` |
 
-Скрипт выполнит 7 шагов:
+Скрипт выполнит 8 шагов:
 1. Подставит твои данные во все файлы (имя, пути, часовой пояс)
 2. Установит `CLAUDE.md` — правила для Claude Code
 3. Установит `persistent-memory/` (через symlink) и `memory/` — оперативную память для Claude Code
@@ -243,6 +243,7 @@ bash setup.sh
 5. Установит автоматический запуск ролей (launchd на macOS, systemd user timer на Linux)
 6. Создаст `DS-strategy/` — твой приватный стратегический репозиторий на GitHub
 7. Создаст `DS-agent-workspace/` — шину данных для агентов (отчёты, находки, extraction-reports)
+8. Склонирует `PACK-digital-platform/` — source-of-truth платформы (DP-сущности, методы, правила)
 
 ### 1.3 Проверь установку
 

@@ -589,6 +589,22 @@ else
   echo "  ✓ Agent workspace created: $AGENT_WS"
 fi
 
+# === 5.6. Clone PACK-digital-platform (platform knowledge) ===
+PACK_DIR="$WORKSPACE_FULL_PATH/PACK-digital-platform"
+if [ -d "$PACK_DIR/.git" ]; then
+  echo "[5.6/7] PACK-digital-platform already exists: $PACK_DIR"
+elif $DRY_RUN; then
+  echo "[5.6/7] Would clone PACK-digital-platform → $PACK_DIR"
+else
+  echo "[5.6/7] Cloning PACK-digital-platform..."
+  if git clone --depth 1 https://github.com/TserenTserenov/PACK-digital-platform.git "$PACK_DIR" 2>/dev/null; then
+    echo "  ✓ PACK-digital-platform cloned: $PACK_DIR"
+  else
+    echo "  ⚠ Clone failed — /iwe-rules-review будет недоступен без локального Pack"
+    echo "    Установи вручную: git clone https://github.com/TserenTserenov/PACK-digital-platform.git $PACK_DIR"
+  fi
+fi
+
 # TODO: refactoring
 # === 6. Install roles (autodiscovery via role.yaml) ===
 if $CORE_ONLY; then
