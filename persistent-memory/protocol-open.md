@@ -77,11 +77,11 @@
 
 **Шаг 2.** Дождаться согласования.
 
-**Шаг 3.** Определить файлы/репо. Context file (`<governance-repo>/inbox/WP-{N}*.md`, например DS-my-strategy) — прочитать. Иерархия доверия: код → документы → WP context.
+**Шаг 3.** Определить файлы/репо. Context file (`DS-strategy/inbox/WP-{N}*.md`) — прочитать. Иерархия доверия: код → документы → WP context.
 
-**Шаг 4.** Регистрация в `<governance-repo>/inbox/open-sessions.log` (например DS-my-strategy): `YYYY-MM-DD HH:MM | WP-N | модель | описание`. Исключения — не регистрировать.
+**Шаг 4.** Регистрация в `DS-strategy/inbox/open-sessions.log`: `YYYY-MM-DD HH:MM | WP-N | модель | описание`. Исключения — не регистрировать.
 
-**EXTENSION POINT:** Проверить `extensions/protocol-open.after.md`. Если существует → `Read` и выполнить.
+**EXTENSION POINT (protocol-open after):** `bash .claude/scripts/load-extensions.sh protocol-open after --sub-dir protocol-hooks` — exit 0 → `Read` каждый файл из вывода (alphabetic) → выполнить. Exit 1 → пропустить. Поддерживает `extensions/protocol-hooks/protocol-open.after.md` И `extensions/protocol-hooks/protocol-open.after.<suffix>.md`.
 
 > Продолжение работы над тем же РП — повторный Ритуал не нужен.
 

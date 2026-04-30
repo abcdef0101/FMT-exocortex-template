@@ -28,10 +28,10 @@ if ! echo "$TOOL_INPUT" | grep -qE 'git (add.*&&.*git )?commit'; then
   exit 0
 fi
 
-# Check if we're in DS-my-strategy (protocol governance repo)
+# Check if we're in DS-strategy (protocol governance repo)
 if ! echo "$TOOL_INPUT" | grep -q 'DayPlan\|day-open\|day-close\|WeekPlan'; then
   # Also check pwd context — look for staged DayPlan files
-  STAGED=$(cd ~/IWE/DS-my-strategy 2>/dev/null && git diff --cached --name-only 2>/dev/null || echo "")
+  STAGED=$(cd ~/IWE/DS-strategy 2>/dev/null && git diff --cached --name-only 2>/dev/null || echo "")
   if ! echo "$STAGED" | grep -qE 'DayPlan|WeekPlan'; then
     echo '{}'
     exit 0
@@ -39,7 +39,7 @@ if ! echo "$TOOL_INPUT" | grep -q 'DayPlan\|day-open\|day-close\|WeekPlan'; then
 fi
 
 # --- DayPlan Validation ---
-DAYPLAN=$(ls ~/IWE/DS-my-strategy/current/DayPlan\ *.md 2>/dev/null | head -1)
+DAYPLAN=$(ls ~/IWE/DS-strategy/current/DayPlan\ *.md 2>/dev/null | head -1)
 
 if [ -z "$DAYPLAN" ]; then
   echo '{}'
@@ -109,7 +109,7 @@ if ! grep -qE "~[0-9]+\.?[0-9]*h РП" "$DAYPLAN"; then
 fi
 
 # --- Ф3 Check 5: Carry-over цитата (если есть предыдущий DayPlan) ---
-PREV_DAYPLAN=$(ls ~/IWE/DS-my-strategy/current/DayPlan\ *.md 2>/dev/null | sort | tail -2 | head -1)
+PREV_DAYPLAN=$(ls ~/IWE/DS-strategy/current/DayPlan\ *.md 2>/dev/null | sort | tail -2 | head -1)
 if [ -n "$PREV_DAYPLAN" ] && [ "$PREV_DAYPLAN" != "$DAYPLAN" ]; then
   # Предыдущий DayPlan существует — текущий должен содержать Carry-over
   if ! grep -qiE 'carry.over|carry_over' "$DAYPLAN"; then
