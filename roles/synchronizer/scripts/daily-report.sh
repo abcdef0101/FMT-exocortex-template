@@ -48,19 +48,12 @@ STATE_DIR="$WORKSPACE_DIR/state"
 LOG_DIR="$WORKSPACE_DIR/logs"
 STRATEGY_DIR="$WORKSPACE_DIR/DS-strategy"
 
-# Agent Workspace: если существует — отчёты идут туда
+# Agent Workspace — всегда, без fallback (ADR-004)
 AGENT_WORKSPACE="$WORKSPACE_DIR/DS-agent-workspace"
-if [ -d "$AGENT_WORKSPACE/.git" ]; then
-  REPORT_DIR="$AGENT_WORKSPACE/scheduler/reports"
-  ARCHIVE_DIR="$AGENT_WORKSPACE/scheduler/reports/archive"
-  COMMIT_DIR="$AGENT_WORKSPACE"
-  COMMIT_ADD_PATHS=("scheduler/reports/")
-else
-  REPORT_DIR="$STRATEGY_DIR/current"
-  ARCHIVE_DIR="$STRATEGY_DIR/archive/scheduler-reports"
-  COMMIT_DIR="$STRATEGY_DIR"
-  COMMIT_ADD_PATHS=("current/SchedulerReport"*.md "archive/scheduler-reports/")
-fi
+REPORT_DIR="$AGENT_WORKSPACE/scheduler/reports"
+ARCHIVE_DIR="$AGENT_WORKSPACE/scheduler/reports/archive"
+COMMIT_DIR="$AGENT_WORKSPACE"
+COMMIT_ADD_PATHS=("scheduler/reports/")
 
 DATE=$(date +%Y-%m-%d)
 DOW=$(date +%u)

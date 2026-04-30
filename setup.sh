@@ -567,14 +567,36 @@ else
   fi
 fi
 
+# === 5.5. Create agent workspace ===
+AGENT_WS="$WORKSPACE_FULL_PATH/DS-agent-workspace"
+if $DRY_RUN; then
+  echo "[5.5/7] Would create agent workspace: $AGENT_WS"
+else
+  echo "[5.5/7] Creating agent workspace..."
+  mkdir -p "$AGENT_WS/scheduler/reports/archive"
+  mkdir -p "$AGENT_WS/scheduler/feedback-triage"
+  mkdir -p "$AGENT_WS/"{scout,strategist,extractor,verifier}
+  (
+    cd "$AGENT_WS"
+    git init --quiet
+    git add -A
+    git commit -m "init: agent workspace" --quiet
+  )
+  if ! $CORE_ONLY; then
+    gh repo create "$GITHUB_USER/DS-agent-workspace" --private --source="$AGENT_WS" --push 2>/dev/null ||
+      echo "  GitHub repo DS-agent-workspace already exists or creation skipped."
+  fi
+  echo "  ✓ Agent workspace created: $AGENT_WS"
+fi
+
 # TODO: refactoring
 # === 6. Install roles (autodiscovery via role.yaml) ===
 if $CORE_ONLY; then
-  echo "[6/6] Автоматизация... пропущена (core mode)"
+  echo "[6/7] Автоматизация... пропущена (core mode)"
 else
   echo "  Роли используют launchd (macOS) / systemd user timers (Linux)."
   echo "  См. $ROOT_DIR/roles/ROLE-CONTRACT.md"
-  echo "[6/6] Installing roles..."
+  echo "[6/7] Installing roles..."
 
   MANUAL_ROLES=()
 

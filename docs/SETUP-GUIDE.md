@@ -235,13 +235,14 @@ bash setup.sh
 | Strategist launch hour (UTC) | Час запуска Стратега | `4` (= 7:00 MSK, 8:00 Алматы) |
 | Timezone description | Описание времени | `7:00 MSK` |
 
-Скрипт выполнит 6 шагов:
+Скрипт выполнит 7 шагов:
 1. Подставит твои данные во все файлы (имя, пути, часовой пояс)
 2. Установит `CLAUDE.md` — правила для Claude Code
 3. Установит `persistent-memory/` (через symlink) и `memory/` — оперативную память для Claude Code
 4. Настроит разрешения (`.claude/settings.local.json`) и выведет инструкцию по подключению MCP
-5. Установит автоматический запуск Стратега (launchd на macOS, systemd user timer на Linux)
+5. Установит автоматический запуск ролей (launchd на macOS, systemd user timer на Linux)
 6. Создаст `DS-strategy/` — твой приватный стратегический репозиторий на GitHub
+7. Создаст `DS-agent-workspace/` — шину данных для агентов (отчёты, находки, extraction-reports)
 
 ### 1.3 Проверь установку
 
@@ -532,43 +533,37 @@ video:
 
 </details>
 <details>
-<summary><b>Этап 7: Agent Workspace — отдельное хранилище данных агентов (10 мин, опционально)</b></summary>
+<summary><b>Этап 7: Agent Workspace — шина данных агентов (автоматически, 0 мин)</b></summary>
 
-### Прочитай перед решением
+### Что это
 
-Это **осознанный выбор**, а не обязательный шаг. Два вопроса помогут решить:
+`DS-agent-workspace` — отдельный git-репозиторий для машинного output агентов:
+отчёты планировщика, QA-находки бота, extraction-reports, Scout-results.
 
-**1. У тебя есть автономные агенты?**
+Создаётся автоматически при setup и интегрирован в ядро (ADR-004).
+Дополнительных действий не требует.
 
-Если ты только начал работу с IWE и используешь только Claude Code в интерактивном режиме — **тебе это НЕ нужно**. Все отчёты планировщика будут храниться в `DS-strategy/current/` и `DS-strategy/archive/` — этого достаточно.
+### Зачем
 
-**2. Агенты генерируют >10 файлов в неделю?**
+Агенты (Стратег, Экстрактор, Синхронизатор) генерируют десятки файлов.
+Agent Workspace отделяет машинный output от человеческих решений в DS-strategy,
+сохраняя чистую git-историю governance-хаба.
 
-Когда Scheduler, Scout, Extractor и другие агенты работают ежедневно, они создают десятки файлов: отчёты планировщика, QA-отчёты бота, находки, черновики планов. Эти автокоммиты засоряют git history DS-strategy, где должны быть только **человеческие решения** (планы, утверждённые captures).
+### Структура
 
-### Что даёт Agent Workspace
-
-| Без Agent Workspace | С Agent Workspace |
-|---------------------|------------------|
-| Всё в DS-strategy | Машинный output отдельно |
-| Git history перемешана | Чистая история решений |
-| 1 репозиторий | 2 репозитория |
-| Проще начать | Масштабируется |
-
-### Настройка
-
-```bash
-bash setup/optional/setup-agent-workspace.sh
+```
+DS-agent-workspace/
+├── scheduler/reports/              ← SchedulerReport (daily-report.sh)
+├── scheduler/feedback-triage/      ← QA-отчёты бота
+├── scout/                          ← результаты разведчика
+├── strategist/                     ← черновики Стратега
+├── extractor/                      ← extraction-reports
+└── verifier/                       ← отчёты Верификатора
 ```
 
-Скрипт создаст приватный GitHub-репо `DS-agent-workspace` со структурой для каждого типа агента. После создания скрипты планировщика (`daily-report.sh` и др.) автоматически начнут писать туда — проверка по наличию `DS-agent-workspace/.git`.
+### См. также
 
-### Когда подключать
-
-**Рекомендуемый путь:**
-1. Начни без Agent Workspace (Этапы 0-2)
-2. Подключи Scheduler (launchd / systemd) — отчёты пойдут в DS-strategy
-3. Когда автокоммитов станет >5/день → создай Agent Workspace
+- ADR-004: интеграция DS-agent-workspace в ядро
 
 </details>
 <details>
@@ -638,7 +633,7 @@ schtasks /create /tn "ExocortexWake" /tr "wsl ~/IWE/scripts/scheduler.sh dispatc
 | **Вечер (23:00)** | Стратег | Note-Review классифицирует заметки из Telegram | Целевые документы в DS-strategy |
 | **Ночь (00:00)** | Синхронизатор* | Code-scan — обзор изменений в downstream-репо | `DS-strategy/current/CodeScan YYYY-MM-DD.md` |
 | **Ночь (Вс→Пн)** | Стратег | Week Review — итоги недели | Секция «Итоги W{N}» в `DS-strategy/current/WeekPlan W{N}.md` |
-| **Утро (06:00)** | Синхронизатор* | Daily report — сводка ночных задач | `DS-agent-workspace/scheduler/reports/` (или `DS-strategy/current/` если без Agent Workspace) |
+| **Утро (06:00)** | Синхронизатор* | Daily report — сводка ночных задач | `DS-agent-workspace/scheduler/reports/` |
 
 > *Экстрактор и Синхронизатор работают только если установлены (Этап 1.4).*
 
