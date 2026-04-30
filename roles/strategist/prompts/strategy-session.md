@@ -7,7 +7,7 @@
 - **Документы стратегии:** {{WORKSPACE_DIR}}/DS-strategy/docs/ (Strategy.md, Dissatisfactions.md, Session Agenda.md)
 - **Inbox:** {{WORKSPACE_DIR}}/DS-strategy/inbox/
 - **SPOKE (планы репо):** {{WORKSPACE_DIR}}/*/WORKPLAN.md
-- **MEMORY:** ~/.claude/projects/{{CLAUDE_PROJECT_SLUG}}/memory/MEMORY.md
+- **MEMORY:** {{WORKSPACE_DIR}}/memory/MEMORY.md
 
 ## Предусловие
 

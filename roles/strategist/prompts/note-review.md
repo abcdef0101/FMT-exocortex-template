@@ -8,7 +8,7 @@
 - **Стратегия:** {{WORKSPACE_DIR}}/DS-strategy/docs/Strategy.md
 - **План недели:** {{WORKSPACE_DIR}}/DS-strategy/current/WeekPlan W*.md
 - **Inbox Экстрактора:** {{WORKSPACE_DIR}}/DS-strategy/inbox/captures.md
-- **MEMORY:** ~/.claude/projects/{{CLAUDE_PROJECT_SLUG}}/memory/MEMORY.md
+- **MEMORY:** {{WORKSPACE_DIR}}/memory/MEMORY.md
 
 ## Предусловие
 

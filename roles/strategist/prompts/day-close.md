@@ -11,7 +11,7 @@
 ## Контекст
 
 - **WeekPlan:** {{WORKSPACE_DIR}}/DS-strategy/current/WeekPlan W*.md (последний по дате)
-- **MEMORY:** ~/.claude/projects/{{CLAUDE_PROJECT_SLUG}}/memory/MEMORY.md
+- **MEMORY:** {{WORKSPACE_DIR}}/memory/MEMORY.md
 - **Exocortex backup:** {{WORKSPACE_DIR}}/DS-strategy/exocortex/
 
 ## Алгоритм
@@ -54,8 +54,8 @@ git -C {{WORKSPACE_DIR}}/<repo> log --since="today 00:00" --oneline --no-merges
 cp {{WORKSPACE_DIR}}/CLAUDE.md {{WORKSPACE_DIR}}/DS-strategy/exocortex/CLAUDE.md
 
 # Memory (Слой 3)
-cp ~/.claude/projects/{{CLAUDE_PROJECT_SLUG}}/memory/MEMORY.md {{WORKSPACE_DIR}}/DS-strategy/exocortex/MEMORY.md
-cp ~/.claude/projects/{{CLAUDE_PROJECT_SLUG}}/memory/*.md {{WORKSPACE_DIR}}/DS-strategy/exocortex/
+cp {{WORKSPACE_DIR}}/memory/MEMORY.md {{WORKSPACE_DIR}}/DS-strategy/exocortex/MEMORY.md
+cp {{WORKSPACE_DIR}}/memory/*.md {{WORKSPACE_DIR}}/DS-strategy/exocortex/
 ```
 
 ### 5. Закоммитить

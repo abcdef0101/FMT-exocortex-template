@@ -4,12 +4,11 @@
 
 Выполни сценарий Day Plan для роли Стратег (R1).
 
-
 ## Контекст
 
 - **HUB (личные планы):** {{WORKSPACE_DIR}}/DS-strategy/current/
 - **SPOKE (планы репо):** {{WORKSPACE_DIR}}/*/WORKPLAN.md
-- **MEMORY:** ~/.claude/projects/{{CLAUDE_PROJECT_SLUG}}/memory/MEMORY.md
+- **MEMORY:** {{WORKSPACE_DIR}}/memory/MEMORY.md
 
 ## Именование файлов в current/
 

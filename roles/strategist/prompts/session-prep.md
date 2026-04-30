@@ -8,7 +8,7 @@
 - **Inbox:** {{WORKSPACE_DIR}}/DS-strategy/inbox/ ([fleeting-notes.md](https://github.com/{{GITHUB_USER}}/DS-strategy/blob/main/inbox/fleeting-notes.md) + свежие файлы за неделю)
 - **SPOKE (планы репо):** {{WORKSPACE_DIR}}/*/WORKPLAN.md
 - **Стратегические карты:** {{WORKSPACE_DIR}}/*/MAPSTRATEGIC.md (если есть в репо)
-- **MEMORY:** ~/.claude/projects/{{CLAUDE_PROJECT_SLUG}}/memory/MEMORY.md
+- **MEMORY:** {{WORKSPACE_DIR}}/memory/MEMORY.md
 
 ## Именование файлов в current/
 
