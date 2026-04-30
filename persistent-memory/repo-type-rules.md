@@ -1,6 +1,6 @@
 # Правила работы по типам репозиториев
 
-> **Source-of-truth полной маршрутизации:** `PACK-digital-platform/02-domain-entities/DP.KR.001-knowledge-routing.md`
+> **Source-of-truth полной маршрутизации:** `workspaces/CURRENT_WORKSPACE/PACK-digital-platform/pack/digital-platform/02-domain-entities/DP.KR.001-knowledge-routing.md`
 > Реестр репо: `DS-ecosystem-development/0.OPS/REPOSITORY-REGISTRY.md`
 
 ## 3 типа репозиториев

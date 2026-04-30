@@ -364,7 +364,7 @@ PACK-{область}/             ← Твои доменные знания
 | Marp | Инструмент | VS Code extension + CLI | Markdown → слайды | Слайдоменты (PDF/HTML) |
 | Cloud Scheduler | Автоматика | `setup/optional/setup-cloud-scheduler.sh` | IWE работает 24/7 при выключенном Mac | Backup, health check, уведомления |
 
-**Cloud Scheduler — облачная автоматика IWE:** GitHub Actions workflow запускает backup и health check ежедневно в 04:00 MSK — даже если Mac выключен. Базовый уровень ($0/мес, без LLM). Опционально: Telegram-уведомления с отчётом. Установка: `bash setup/optional/setup-cloud-scheduler.sh`. Подробности: `setup/optional/README.md`, сценарий [DP.SC.019](../../PACK-digital-platform/pack/digital-platform/08-service-clauses/DP.SC.019-autonomous-cloud-runtime.md).
+**Cloud Scheduler — облачная автоматика IWE:** GitHub Actions workflow запускает backup и health check ежедневно в 04:00 MSK — даже если Mac выключен. Базовый уровень ($0/мес, без LLM). Опционально: Telegram-уведомления с отчётом. Установка: `bash setup/optional/setup-cloud-scheduler.sh`. Подробности: `setup/optional/README.md`, сценарий [DP.SC.019](workspaces/CURRENT_WORKSPACE/PACK-digital-platform/pack/digital-platform/08-service-clauses/DP.SC.019-autonomous-cloud-runtime.md).
 
 **Настройка Health Check (расширенный):** По умолчанию health check проверяет только strategy-репо. Для мульти-репо мониторинга:
 1. GitHub → Settings → Variables → Actions → добавьте `HEALTH_CHECK_REPOS` — список ваших репо через запятую (`owner/repo, owner/repo2`)
@@ -1428,7 +1428,7 @@ gh repo create PACK-my-domain --private --source=. --push
 <details open>
 <summary><b>11. Быстрый справочник</b></summary>
 
-> **Архитектура FAQ:** Практические вопросы («как сделать») — здесь. Доменные вопросы («что такое», «зачем») — [DP.IWE.002 §11](../../PACK-digital-platform/pack/digital-platform/02-domain-entities/DP.IWE.002-iwe-template-and-setup.md#11-частые-вопросы-faq) (source-of-truth для бота).
+> **Архитектура FAQ:** Практические вопросы («как сделать») — здесь. Доменные вопросы («что такое», «зачем») — [DP.IWE.002 §11](workspaces/CURRENT_WORKSPACE/PACK-digital-platform/pack/digital-platform/02-domain-entities/DP.IWE.002-iwe-template-and-setup.md#11-частые-вопросы-faq) (source-of-truth для бота).
 
 ### Протоколы и рабочий процесс
 
@@ -1474,9 +1474,9 @@ gh repo create PACK-my-domain --private --source=. --push
 | Где мой Digital Twin? | Бот → `/twin` | § 2.6 |
 | Как попасть в клуб? | [systemsworld.club](https://systemsworld.club) | § 2.6 |
 | Что такое FPF, SPF, ZP? | Три уровня принципов: ZP → FPF → SPF → Pack. Каждый порождает следующий | § 3.1 |
-| Что умеет бот? | Марафон, Лента, Консультация, Заметки, /twin, /profile | [DP.IWE.002 §11](../../PACK-digital-platform/pack/digital-platform/02-domain-entities/DP.IWE.002-iwe-template-and-setup.md#бот-и-профиль) |
-| Какой у меня тир? | `/twin` или `/profile` в боте. T0-T4, определяется автоматически | [DP.IWE.002 §11](../../PACK-digital-platform/pack/digital-platform/02-domain-entities/DP.IWE.002-iwe-template-and-setup.md#бот-и-профиль) |
-| Как использовать заметки? | `.текст` в боте → накопление → Note-Review → маршрутизация | [DP.IWE.002 §11](../../PACK-digital-platform/pack/digital-platform/02-domain-entities/DP.IWE.002-iwe-template-and-setup.md#заметки) |
+| Что умеет бот? | Марафон, Лента, Консультация, Заметки, /twin, /profile | [DP.IWE.002 §11](workspaces/CURRENT_WORKSPACE/PACK-digital-platform/pack/digital-platform/02-domain-entities/DP.IWE.002-iwe-template-and-setup.md#бот-и-профиль) |
+| Какой у меня тир? | `/twin` или `/profile` в боте. T0-T4, определяется автоматически | [DP.IWE.002 §11](workspaces/CURRENT_WORKSPACE/PACK-digital-platform/pack/digital-platform/02-domain-entities/DP.IWE.002-iwe-template-and-setup.md#бот-и-профиль) |
+| Как использовать заметки? | `.текст` в боте → накопление → Note-Review → маршрутизация | [DP.IWE.002 §11](workspaces/CURRENT_WORKSPACE/PACK-digital-platform/pack/digital-platform/02-domain-entities/DP.IWE.002-iwe-template-and-setup.md#заметки) |
 | Как настроить IWE на Windows? | WSL + VS Code. Файлы в ~/IWE/ (WSL), не /mnt/c/ | § 11 «Windows + WSL» |
 
 ### Типичные проблемы и решения
