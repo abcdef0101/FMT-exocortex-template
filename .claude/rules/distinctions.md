@@ -3,7 +3,7 @@
 > Загружается всегда. Источник: CLAUDE.md § Различения (вынесено для сжатия контекста).
 
 - **IWE = Intellectual Work Environment** (НЕ «Intelligent», НЕ «Working»). Аналогия: IDE.
-- **AUTHOR-ONLY зоны** в `./workspaces/CURRENT_WORKSPACE/memory/persistent-memory/protocol-*.md`: `<!-- AUTHOR-ONLY -->...<!-- /AUTHOR-ONLY -->` — авторский контент, не затирать при sync.
+- **Protocol-файлы ≠ Extensions.** Стандартное поведение → `memory/protocol-*.md` (Template L3, не править). Кастомизация → `extensions/<protocol>.<hook>.md` (Personal L4, `update.sh` не трогает).
 - **strategy_day:** из `day-rhythm-config.yaml`. В этот день: session-prep вместо day-plan, DayPlan не создаётся.
 - **Ru-first (SPF §5 п.13):** Русский — основной язык. EN только для: YAML-ключей, аббревиатур, имён собственных.
 - **FAQ:** Доменный → `DP.IWE.002 §11`. Практический → `LEARNING-PATH §11`.
