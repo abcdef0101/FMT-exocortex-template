@@ -6,7 +6,7 @@
 #   bash setup.sh          # Полная установка (git + GitHub CLI + Claude Code + автоматизация)
 #   bash setup.sh --core   # Минимальная установка (только git, без сети)
 #
-set -e
+set -euo pipefail
 
 VERSION="0.6.0"
 DRY_RUN=false
@@ -74,7 +74,7 @@ if $VALIDATE_ONLY; then
     "persistent-memory/navigation.md"
     "persistent-memory/roles.md"
   )
-  for f in $CHECK_FILES; do
+  for f in "${CHECK_FILES[@]}"; do
     if [ -f "$ROOT_DIR/$f" ]; then
       echo "  ✓ $f"
     else
@@ -187,6 +187,10 @@ if [[ ${#missing[@]} -gt 0 ]]; then
   echo "    bash setup.sh"
   exit 1
 fi
+if [ ! -L ".claude/settings.local.json" ]; then
+  echo "  ✗ .claude/settings.local.json symlink not found — are you in the template root?" >&2
+  exit 1
+fi
 if [[ "$(readlink ".claude/settings.local.json")" != "../workspaces/CURRENT_WORKSPACE/.claude/settings.local.json" ]]; then
   echo "  ERROR: .claude/settings.local.json != ../workspaces/CURRENT_WORKSPACE/.claude/settings.local.json" >&2
   echo ""
@@ -194,6 +198,10 @@ if [[ "$(readlink ".claude/settings.local.json")" != "../workspaces/CURRENT_WORK
   echo "    gh repo fork TserenTserenov/FMT-exocortex-template --clone"
   echo "    cd FMT-exocortex-template"
   echo "    bash setup.sh"
+  exit 1
+fi
+if [ ! -L ".mcp.json" ]; then
+  echo "  ✗ .mcp.json symlink not found — are you in the template root?" >&2
   exit 1
 fi
 if [[ "$(readlink ".mcp.json")" != "workspaces/CURRENT_WORKSPACE/.mcp.json" ]]; then
@@ -458,14 +466,18 @@ else
   fi
 fi
 
-# === 4. Copy .claude settings ===
+# === 5. Copy .mcp.json to workspace ===
 if $CORE_ONLY; then
   echo "[5/6] Claude install mcp... пропущено (core mode)"
 else
   echo "[5/6] Claude installing mcp..."
 
-  cp "$ROOT_DIR/seed/.mcp.json" "$WORKSPACE_FULL_PATH/"
-  echo "  Copy $ROOT_DIR/seed/.mcp.json -> $WORKSPACE_FULL_PATH/"
+  if $DRY_RUN; then
+    echo "  [DRY RUN] Would copy $ROOT_DIR/seed/.mcp.json → $WORKSPACE_FULL_PATH/"
+  else
+    cp "$ROOT_DIR/seed/.mcp.json" "$WORKSPACE_FULL_PATH/"
+    echo "  Copy $ROOT_DIR/seed/.mcp.json -> $WORKSPACE_FULL_PATH/"
+  fi
   # MCP knowledge servers connect through Gateway (OAuth auto-flow)
   echo "  Знаниевые MCP-серверы подключаются через Gateway (автоматически):"
   echo ""
@@ -484,14 +496,14 @@ echo "  После добавления файла — /add-workspace-mcps за�
 echo "  Шаблон: seed/extensions/mcps/iwe-knowledge.mcp.json (пример)."
 
 MCP_USER_DIR="$WORKSPACE_FULL_PATH/extensions/mcps"
+MCP_TEMPLATE="$ROOT_DIR/seed/extensions/mcps/iwe-knowledge.mcp.json"
 
 if $DRY_RUN; then
   echo "  [DRY RUN] Would create directory for user's mcps $MCP_USER_DIR"
 else
-  if [ ! -f "$MCP_TEMPLATE" ]; then
-    mkdir -p $MCP_USER_DIR
-    echo "  Create directory: $MCP_USER_DIR"
-  fi
+  mkdir -p "$MCP_USER_DIR"
+  echo "  Create directory: $MCP_USER_DIR"
+  [ -f "$MCP_TEMPLATE" ] && echo "  Seed template: $MCP_TEMPLATE (пример)"
 fi
 
 # === 5. Create DS-strategy repo ===
@@ -569,7 +581,9 @@ fi
 
 # === 5.6. Clone PACK-digital-platform (platform knowledge) ===
 PACK_DIR="$WORKSPACE_FULL_PATH/PACK-digital-platform"
-if [ -d "$PACK_DIR/.git" ]; then
+if $CORE_ONLY; then
+  echo "[5.6/7] PACK-digital-platform... пропущено (core mode)"
+elif [ -d "$PACK_DIR/.git" ]; then
   echo "[5.6/7] PACK-digital-platform already exists: $PACK_DIR"
 elif $DRY_RUN; then
   echo "[5.6/7] Would clone PACK-digital-platform → $PACK_DIR"
@@ -614,20 +628,24 @@ else
               --workspace-dir "$WORKSPACE_FULL_PATH" \
               --claude-path "$CLAUDE_PATH" \
               --timezone-hour "$TIMEZONE_HOUR" \
-              --namespace "$WORKSPACE_NAME"
+              --namespace "$WORKSPACE_NAME" ||
+              { echo "  ✗ $role_name install failed (continuing)"; }
           elif [ "$role_name" = "extractor" ]; then
             bash "$role_dir/install.sh" \
               --workspace-dir "$WORKSPACE_FULL_PATH" \
               --root-dir "$ROOT_DIR" \
               --agent-ai-path "$CLAUDE_PATH" \
-              --namespace "$WORKSPACE_NAME"
+              --namespace "$WORKSPACE_NAME" ||
+              { echo "  ✗ $role_name install failed (continuing)"; }
           elif [ "$role_name" = "synchronizer" ]; then
             bash "$role_dir/install.sh" \
               --workspace-dir "$WORKSPACE_FULL_PATH" \
               --timezone-hour "$TIMEZONE_HOUR" \
-              --namespace "$WORKSPACE_NAME"
+              --namespace "$WORKSPACE_NAME" ||
+              { echo "  ✗ $role_name install failed (continuing)"; }
           else
-            bash "$role_dir/install.sh"
+            bash "$role_dir/install.sh" ||
+              { echo "  ✗ $role_name install failed (continuing)"; }
           fi
           echo "  ✓ $role_name installed"
         fi
