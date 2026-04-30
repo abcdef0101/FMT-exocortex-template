@@ -1,6 +1,12 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Exocortex Setup Script
 # Configures a forked FMT-exocortex-template: placeholders, memory, launchd, DS-strategy
+#
+# Exit codes:
+#   1 — validation or configuration error
+#   2 — missing prerequisites (git, gh, etc.)
+#   3 — clone, create, or copy failure
+#   4 — role installation failure (non-fatal, script continues)
 #
 # Usage:
 #   bash setup.sh          # Полная установка (git + GitHub CLI + Claude Code + автоматизация)
@@ -270,7 +276,7 @@ echo ""
 
 if [ "$PREREQ_FAIL" -eq 1 ]; then
   echo "ERROR: Prerequisites check failed. Install missing tools and try again."
-  exit 1
+  exit 2
 fi
 
 # === Collect configuration ===
@@ -281,6 +287,12 @@ GITHUB_USER="${GITHUB_USER:-your-username}"
 read -p "Workspace name ($WORKSPACES_DIR/) [default-project]: " WORKSPACE_NAME
 
 WORKSPACE_NAME="${WORKSPACE_NAME:-default-project}"
+
+# Validate workspace name for path traversal
+if [[ "$WORKSPACE_NAME" =~ \.\. ]]; then
+  echo "ERROR: workspace name must not contain '..'" >&2
+  exit 1
+fi
 
 if [ -z "$WORKSPACE_NAME" ]; then
   echo "ERROR: Project name cannot be empty." >&2
@@ -461,7 +473,7 @@ else
       echo "  Replace the placeholder {{ROOT_DIR}} into $ROOT_DIR in $WORKSPACE_FULL_PATH/.claude/settings.local.json"
     else
       echo "  ERROR: $ROOT_DIR/seed/settings.local.json not found, skipping."
-      exit 1
+      exit 3
     fi
   fi
 fi
@@ -527,7 +539,7 @@ else
   if [ -d "$STRATEGY_TEMPLATE" ]; then
     # Copy my-strategy template into its own repo
     cp -r "$STRATEGY_TEMPLATE" "$MY_STRATEGY_DIR"
-    cd "$MY_STRATEGY_DIR"
+    cd "$MY_STRATEGY_DIR" || { echo "  ✗ Cannot enter $MY_STRATEGY_DIR" >&2; exit 3; }
     git init
     git add -A
     git commit -m "Initial exocortex: DS-strategy governance hub"
@@ -545,7 +557,7 @@ else
     echo "  Fix: re-clone the template and run setup.sh again."
     echo "  Creating minimal structure as fallback..."
     mkdir -p "$MY_STRATEGY_DIR"/{current,inbox,archive/wp-contexts,docs,exocortex}
-    cd "$MY_STRATEGY_DIR"
+    cd "$MY_STRATEGY_DIR" || { echo "  ✗ Cannot enter $MY_STRATEGY_DIR" >&2; exit 3; }
     git init
     git add -A
     git commit -m "Initial exocortex: DS-strategy governance hub (minimal)"
@@ -621,7 +633,7 @@ else
           echo "  [DRY RUN] Would install role: $role_name (auto)"
         else
           chmod +x "$role_dir/install.sh"
-          runner=$(grep '^runner:' "$role_yaml" | sed 's/runner: *//' | tr -d '"' | tr -d "'")
+          runner=$(grep '^runner:' "$role_yaml" | sed 's/runner: *//' | tr -d '"' | tr -d "'" || true)
           [ -n "$runner" ] && chmod +x "$role_dir/$runner" 2>/dev/null || true
           if [ "$role_name" = "strategist" ]; then
             bash "$role_dir/install.sh" \
@@ -653,7 +665,7 @@ else
         echo "  WARN: $role_name/install.sh not found, skipping."
       fi
     else
-      display=$(grep 'display_name:' "$role_yaml" 2>/dev/null | sed 's/display_name: *//' | tr -d '"')
+      display=$(grep 'display_name:' "$role_yaml" 2>/dev/null | sed 's/display_name: *//' | tr -d '"' || true)
       MANUAL_ROLES+=("  - ${display:-$role_name}: bash $role_dir/install.sh")
     fi
   done
