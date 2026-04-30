@@ -7,9 +7,10 @@ id: R24
 type: agential
 display_name: "Аудитор"
 
-# Нет runner — вызывается по запросу или встроен в Day Open / стратегирование
-# runner: scripts/auditor.sh
+runner: scripts/auditor.sh
 
 install:
   auto: true
   priority: 11
+
+notify_template: auditor.sh
