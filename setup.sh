@@ -359,6 +359,11 @@ fi
 
 ENV_FILE="$WORKSPACE_FULL_PATH/.env"
 
+# Create .gitignore in workspace to exclude sensitive .env
+if ! $DRY_RUN; then
+  printf '%s\n' '.env' > "$WORKSPACE_FULL_PATH/.gitignore"
+fi
+
 if $DRY_RUN; then
   echo "[DRY RUN] Would save configuration to $ENV_FILE"
 else
