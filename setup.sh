@@ -464,6 +464,7 @@ if $CORE_ONLY; then
 else
   echo "[5/6] Claude installing mcp..."
 
+  cp "$ROOT_DIR/seed/.mcp.json" "$WORKSPACE_FULL_PATH/"
   echo "  Copy $ROOT_DIR/seed/.mcp.json -> $WORKSPACE_FULL_PATH/"
   # MCP knowledge servers connect through Gateway (OAuth auto-flow)
   echo "  Знаниевые MCP-серверы подключаются через Gateway (автоматически):"
