@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.exocortex.scheduler</string>
+    <string>com.exocortex.scheduler.{{NAMESPACE}}</string>
 
     <key>ProgramArguments</key>
     <array>

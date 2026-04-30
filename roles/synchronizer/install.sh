@@ -1,11 +1,13 @@
 #!/bin/bash
-# Synchronizer: установка центрального диспетчера (launchd)
-# Заменяет отдельные launchd-агенты Стратега единым scheduler
-set -e
+# Synchronizer: установка центрального диспетчера
+# Targets: macOS (launchd), Linux (systemd user timer)
+# Заменяет отдельные агенты Стратега единым scheduler
+set -euo pipefail
 
 # === Named parameters ===
 WORKSPACE_DIR=""
 TIMEZONE_HOUR=""
+NAMESPACE=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -17,6 +19,10 @@ while [[ $# -gt 0 ]]; do
     TIMEZONE_HOUR="$2"
     shift 2
     ;;
+  --namespace)
+    NAMESPACE="$2"
+    shift 2
+    ;;
   *)
     echo "Неизвестный аргумент: $1" >&2
     exit 1
@@ -24,12 +30,13 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-MISSING=()
-[ -z "$WORKSPACE_DIR" ] && MISSING+=("--workspace-dir")
-[ -z "$TIMEZONE_HOUR" ] && MISSING+=("--timezone-hour")
-if [ ${#MISSING[@]} -gt 0 ]; then
-  echo "Ошибка: обязательные параметры: ${MISSING[*]}" >&2
-  echo "Usage: bash install.sh --workspace-dir /path/to/workspace --timezone-hour 4" >&2
+missing=()
+[ -z "$WORKSPACE_DIR" ] && missing+=("--workspace-dir")
+[ -z "$TIMEZONE_HOUR" ] && missing+=("--timezone-hour")
+
+if [ "${#missing[@]}" -gt 0 ]; then
+  echo "Ошибка: обязательные параметры не указаны:" >&2
+  printf '  - %s\n' "${missing[@]}" >&2
   exit 1
 fi
 
@@ -52,65 +59,104 @@ if [ ! -f "$ENV_FILE" ]; then
   echo "Ошибка: ENV_FILE не существует: $ENV_FILE" >&2
   exit 1
 fi
-PLIST_SRC="$SCRIPT_DIR/scripts/launchd/com.exocortex.scheduler.plist"
-PLIST_DST="$HOME/Library/LaunchAgents/com.exocortex.scheduler.plist"
+
+# Default namespace = workspace directory name, sanitised
+if [ -z "$NAMESPACE" ]; then
+  NAMESPACE="$(basename "$WORKSPACE_DIR" | tr -c '[:alnum:]._-' '-')"
+fi
+
+LAUNCHD_SRC="$SCRIPT_DIR/scripts/launchd"
+SYSTEMD_SRC="$SCRIPT_DIR/scripts/systemd"
 
 echo "Installing Synchronizer (central scheduler)..."
-
-if [ ! -f "$PLIST_SRC" ]; then
-  echo "ERROR: $PLIST_SRC not found"
-  exit 1
-fi
 
 # Делаем скрипты исполняемыми
 chmod +x "$SCRIPT_DIR/scripts/"*.sh
 chmod +x "$SCRIPT_DIR/scripts/templates/"*.sh 2>/dev/null || true
 
-# Выгружаем старые агенты
-launchctl unload "$PLIST_DST" 2>/dev/null || true
-# Выгружаем также все legacy Стратег-агенты (по маске)
-for plist in "$HOME/Library/LaunchAgents"/com.strategist.*; do
-  [ -f "$plist" ] || continue
-  launchctl unload "$plist" 2>/dev/null || true
-  rm -f "$plist"
-done
-
 # Создаём директории состояния
 mkdir -p "$WORKSPACE_DIR/state"
 mkdir -p "$WORKSPACE_DIR/logs/synchronizer"
 
-# Рендерим plist с подстановкой placeholder'ов
-sed \
-  -e "s|{{ROOT_DIR}}|$ROOT_DIR|g" \
-  -e "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g" \
-  -e "s|{{ROLES_DIR}}|$ROLES_DIR|g" \
-  -e "s|{{ENV_FILE}}|$ENV_FILE|g" \
-  -e "s|{{TIMEZONE_HOUR}}|$TIMEZONE_HOUR|g" \
-  "$PLIST_SRC" > "$PLIST_DST"
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  # === macOS: launchd ===
+  TARGET_DIR="$HOME/Library/LaunchAgents"
 
-launchctl load "$PLIST_DST"
+  # Unload old agent if present
+  launchctl unload "$TARGET_DIR/com.exocortex.scheduler.plist" 2>/dev/null || true
 
-echo "  ✓ Installed: com.exocortex.scheduler"
+  # Выгружаем также все legacy Стратег-агенты (по маске)
+  for plist in "$TARGET_DIR"/com.strategist.*; do
+    [ -f "$plist" ] || continue
+    launchctl unload "$plist" 2>/dev/null || true
+    rm -f "$plist"
+  done
+
+  # Copy plist with placeholder substitution + namespaced filename
+  basename_plist="com.exocortex.scheduler.${NAMESPACE}.plist"
+  sed \
+    -e "s|{{ROOT_DIR}}|$ROOT_DIR|g" \
+    -e "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g" \
+    -e "s|{{ROLES_DIR}}|$ROLES_DIR|g" \
+    -e "s|{{ENV_FILE}}|$ENV_FILE|g" \
+    -e "s|{{TIMEZONE_HOUR}}|$TIMEZONE_HOUR|g" \
+    -e "s|{{NAMESPACE}}|$NAMESPACE|g" \
+    "$LAUNCHD_SRC/com.exocortex.scheduler.plist" >"$TARGET_DIR/$basename_plist"
+
+  launchctl load "$TARGET_DIR/$basename_plist"
+
+  echo "Done. Agent loaded:"
+  launchctl list | grep "scheduler.${NAMESPACE}" || true
+else
+  # === Linux: systemd user timer ===
+  SYSTEMD_DIR="$HOME/.config/systemd/user"
+  mkdir -p "$SYSTEMD_DIR"
+
+  # Copy service/timer files with placeholder substitution + namespace in filename
+  for unit in "$SYSTEMD_SRC"/*.{service,timer}; do
+    [ -f "$unit" ] || continue
+    basename_unit="$(basename "$unit" | sed "s|\(\.service\|\.timer\)$|-${NAMESPACE}\1|")"
+    sed \
+      -e "s|{{ROOT_DIR}}|$ROOT_DIR|g" \
+      -e "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g" \
+      -e "s|{{ROLES_DIR}}|$ROLES_DIR|g" \
+      -e "s|{{ENV_FILE}}|$ENV_FILE|g" \
+      -e "s|{{TIMEZONE_HOUR}}|$TIMEZONE_HOUR|g" \
+      -e "s|{{NAMESPACE}}|$NAMESPACE|g" \
+      -e "s|{{HOME}}|$HOME|g" \
+      "$unit" >"$SYSTEMD_DIR/$basename_unit"
+  done
+
+  systemctl --user daemon-reload
+  systemctl --user enable --now "exocortex-scheduler-${NAMESPACE}.timer"
+
+  echo "Done. Timer installed:"
+  systemctl --user list-timers | grep "exocortex-scheduler-${NAMESPACE}" || true
+fi
+
 echo "  ✓ Schedule: 10 dispatch points per day"
 echo "  ✓ Manages: Strategist, Extractor, Code-Scan, Daily Report"
 echo "  ✓ State: $WORKSPACE_DIR/state/"
 echo "  ✓ Logs: $WORKSPACE_DIR/logs/synchronizer/"
 echo ""
-echo "Verify: launchctl list | grep exocortex"
 echo "Status: bash $SCRIPT_DIR/scripts/scheduler.sh --workspace-dir $WORKSPACE_DIR --roles-dir $ROLES_DIR --env-file $ENV_FILE status"
 echo ""
-echo "Auto-wake (recommended): plan ready before you wake up"
-if [[ "$(uname)" == "Darwin" ]]; then
+
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  echo "Auto-wake (recommended): plan ready before you wake up"
   echo "  sudo pmset repeat wakeorpoweron MTWRFSU 03:55:00"
-  echo "  sudo pmset -b sleep 0 && sudo pmset -b standby 0  # laptop: prevent sleep on battery profile"
+  echo "  sudo pmset -b sleep 0 && sudo pmset -b standby 0"
   echo "  (Cancel: sudo pmset repeat cancel)"
 else
-  echo "  Linux: sudo rtcwake or systemd timer with WakeSystem=true"
-  echo "  See docs/SETUP-GUIDE.md for details"
+  echo "Auto-wake on Linux: systemd timer with WakeSystem=true or rtcwake"
 fi
 echo ""
 echo "Telegram (optional): create ~/.config/aist/env with:"
 echo "  export TELEGRAM_BOT_TOKEN=\"your-token\""
 echo "  export TELEGRAM_CHAT_ID=\"your-id\""
 echo ""
-echo "Uninstall: launchctl unload $PLIST_DST && rm $PLIST_DST"
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  echo "Uninstall: launchctl unload $TARGET_DIR/com.exocortex.scheduler.${NAMESPACE}.plist && rm $TARGET_DIR/com.exocortex.scheduler.${NAMESPACE}.plist"
+else
+  echo "Uninstall: systemctl --user disable --now exocortex-scheduler-${NAMESPACE}.timer && rm ~/.config/systemd/user/exocortex-scheduler-${NAMESPACE}.{service,timer} && systemctl --user daemon-reload"
+fi

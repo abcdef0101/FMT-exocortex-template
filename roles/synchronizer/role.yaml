@@ -17,7 +17,7 @@ scripts:
   - scripts/sync-files.sh
 
 install:
-  auto: false
+  auto: true
   priority: 3
   # TODO: refactoring
 notify_template: synchronizer.sh

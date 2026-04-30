@@ -22,9 +22,12 @@
 
 ## Установка
 
+> Выполняй из корня FMT-шаблона. `install.sh` автоматически определяет ОС (launchd / systemd).
+
 ```bash
 cd roles/synchronizer
 bash install.sh --workspace-dir /path/to/workspace --timezone-hour 4
+# Опционально: --namespace my-workspace (по умолчанию — имя директории workspace)
 ```
 
 ### Telegram уведомления (опционально)

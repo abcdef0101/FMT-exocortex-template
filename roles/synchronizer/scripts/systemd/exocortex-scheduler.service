@@ -1,0 +1,11 @@
+[Unit]
+Description=Exocortex Scheduler (central dispatcher) — {{NAMESPACE}}
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart={{ROOT_DIR}}/roles/synchronizer/scripts/scheduler.sh --workspace-dir {{WORKSPACE_DIR}} --roles-dir {{ROOT_DIR}}/roles --env-file {{WORKSPACE_DIR}}/.env dispatch
+StandardOutput=append:{{WORKSPACE_DIR}}/logs/synchronizer/systemd-scheduler.log
+StandardError=append:{{WORKSPACE_DIR}}/logs/synchronizer/systemd-scheduler-error.log
+Environment=HOME={{HOME}}
+Environment=PATH=/usr/local/bin:/usr/bin:/bin:/usr/local/sbin
