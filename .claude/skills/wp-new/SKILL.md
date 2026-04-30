@@ -13,7 +13,7 @@ argument-hint: "[название РП]"
 Выполнить блок ниже, запомнить `WORKSPACE_DIR` из вывода. Использовать во всех последующих шагах.
 
 ```bash
-source "${CLAUDE_SKILL_DIR}/scripts/resolve-workspace.sh"
+source "${CLAUDE_SKILL_DIR}/../../scripts/resolve-workspace.sh"
 resolve_fmt_dir && resolve_workspace
 echo "WORKSPACE_DIR=$WORKSPACE_DIR"
 ```

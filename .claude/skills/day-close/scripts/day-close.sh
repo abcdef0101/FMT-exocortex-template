@@ -63,7 +63,7 @@ load_env() {
   MEMORY_BACKUP="${MEMORY_BACKUP:-true}"
 }
 
-_resolve_lib="$(cd "$(dirname "$0")" && pwd)/resolve-workspace.sh"
+_resolve_lib="$(cd "$(dirname "$0")/../../../scripts" && pwd)/resolve-workspace.sh"
 if [ ! -f "$_resolve_lib" ]; then
   echo "ERROR: resolve-workspace.sh not found: $_resolve_lib" >&2
   exit 1

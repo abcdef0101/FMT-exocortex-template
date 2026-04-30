@@ -52,7 +52,7 @@ resolve_workspace() {
   if [ -n "${CLI_WORKSPACE_DIR:-}" ]; then
     resolve_workspace_from_path "$CLI_WORKSPACE_DIR"
   else
-    resolve_workspace_from_symlink
+    resolve_workspace_from_symlink || true
   fi
 }
 

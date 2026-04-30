@@ -28,7 +28,7 @@ Day Open = протокол. Исполнять ТОЛЬКО пошагово ч
 Выполнить блок ниже, запомнить `FMT_DIR` и `WORKSPACE_DIR` из вывода. Использовать во всех последующих шагах.
 
 ```bash
-source "${CLAUDE_SKILL_DIR}/scripts/resolve-workspace.sh"
+source "${CLAUDE_SKILL_DIR}/../../scripts/resolve-workspace.sh"
 resolve_fmt_dir && resolve_workspace
 echo "FMT_DIR=$FMT_DIR"
 echo "WORKSPACE_DIR=$WORKSPACE_DIR"
