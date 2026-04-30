@@ -136,12 +136,16 @@ content_plan: null
 3. Устаревшие записи → обновить или удалить
 4. Результат: отчёт «Memory audit: N файлов, M строк суммарно, K обновлено»
 
-### 11. Extensions (after)
+### 11. Ревью культуры работы IWE (DP.M.008 #14)
+
+Запустить `/iwe-rules-review` → отчёт → согласование → обновление DP.M.008 + реализаций.
+
+### 12. Extensions (after)
 
 Условие: `$WORKSPACE_DIR/params.yaml → week_close_after_enabled: true`. Если `false` → пропустить.
 Проверить: `ls "$WORKSPACE_DIR/extensions/week-close.after.md"`. Если существует → `Read` → выполнить содержимое. Не существует → пропустить.
 
-### 12. Верификация (Haiku R23)
+### 13. Верификация (Haiku R23)
 
 > Условный шаг: если `$WORKSPACE_DIR/params.yaml → verify_quick_close: false` → пропустить.
 
@@ -152,7 +156,7 @@ content_plan: null
 
 По ❌ — исправить до завершения. **Commit запрещён до прохождения.**
 
-### 13. Commit + Push
+### 14. Commit + Push
 
 ```bash
 DS="$WORKSPACE_DIR/DS-strategy"
@@ -167,7 +171,7 @@ else
 fi
 ```
 
-### 14. Compact dashboard (VS Code)
+### 15. Compact dashboard (VS Code)
 
 Вывести краткую сводку:
 
@@ -183,6 +187,7 @@ Carry-forward на W{N+1}:
 
 MEMORY.md: обновлён ✅
 Уроки: ротация выполнена / отключена
+Ревью культуры: выполнено / пропущено
 Memory audit: N файлов, M строк, K обновлено
 Пост для клуба: создан ✅
 Git: закоммичено и запушено ✅
@@ -199,5 +204,6 @@ Git: закоммичено и запушено ✅
 - [ ] Пост для клуба создан
 - [ ] Ссылка на пост в WeekPlan
 - [ ] Memory audit выполнен (≤11 файлов, лимиты соблюдены)
+- [ ] Ревью культуры работы: `/iwe-rules-review` выполнен, изменения применены
 - [ ] Extensions пройдены (если есть)
 - [ ] Все изменения закоммичены и запушены
