@@ -35,6 +35,8 @@
 
 ### 2. (Опционально) Установи автоматический inbox-check
 
+> Выполняй из корня FMT-шаблона (`FMT-exocortex-template/`).
+
 ```bash
 cd roles/extractor
 bash install.sh --workspace-dir /path/to/workspace --root-dir /path/to/root --agent-ai-path $(which claude)
@@ -47,10 +49,10 @@ bash install.sh --workspace-dir /path/to/workspace --root-dir /path/to/root --ag
 
 ```bash
 # Inbox-check (без launchd)
-bash scripts/extractor.sh --root-dir /path/to/root --workspace my-workspace --agent-ai-path $(which claude) inbox-check
+bash scripts/extractor.sh --root-dir /path/to/root --workspace-dir /path/to/workspace --agent-ai-path $(which claude) inbox-check
 
 # Knowledge Audit
-bash scripts/extractor.sh --root-dir /path/to/root --workspace my-workspace --agent-ai-path $(which claude) audit
+bash scripts/extractor.sh --root-dir /path/to/root --workspace-dir /path/to/workspace --agent-ai-path $(which claude) audit
 ```
 
 ## Как работает

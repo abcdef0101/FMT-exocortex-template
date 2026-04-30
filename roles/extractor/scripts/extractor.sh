@@ -138,7 +138,7 @@ $extra_args"
 
   cd "$WORKSPACE_DIR"
 
-  export ROOT_DIR WORKSPACE WORKSPACE_DIR SCRIPT_DIR REPO_DIR PROMPTS_DIR LOG_DIR ENV_FILE AI_CLI AGENT_AI_PATH
+  export ROOT_DIR WORKSPACE_DIR SCRIPT_DIR REPO_DIR PROMPTS_DIR LOG_DIR ENV_FILE AI_CLI AGENT_AI_PATH
   # Запуск AI CLI с промптом
   "$AI_CLI" $AI_CLI_EXTRA_FLAGS \
     $AI_CLI_PROMPT_FLAG "$prompt" \
@@ -163,7 +163,8 @@ $extra_args"
       log "No new changes to commit in DS-strategy"
     fi
 
-    if ! git -C "$strategy_dir" diff --quiet origin/main..HEAD 2>/dev/null; then
+    remote_branch=$(git -C "$strategy_dir" rev-parse --abbrev-ref @{u} 2>/dev/null || echo "origin/main")
+    if ! git -C "$strategy_dir" diff --quiet "$remote_branch"..HEAD 2>/dev/null; then
       git -C "$strategy_dir" push >>"$LOG_FILE" 2>&1 && log "Pushed DS-strategy" || log "WARN: git push failed"
     fi
   fi

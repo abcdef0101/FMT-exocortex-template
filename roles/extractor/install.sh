@@ -103,10 +103,10 @@ else
   SYSTEMD_DIR="$HOME/.config/systemd/user"
   mkdir -p "$SYSTEMD_DIR"
 
-  # Copy service/timer files with placeholder substitution
+  # Copy service/timer files with placeholder substitution + namespace in filename
   for unit in "$SYSTEMD_SRC"/*.{service,timer}; do
     [ -f "$unit" ] || continue
-    basename_unit="$(basename "$unit")"
+    basename_unit="$(basename "$unit" | sed "s|\(\.service\|\.timer\)$|-${NAMESPACE}\1|")"
     sed \
       -e "s|{{ROOT_DIR}}|$ROOT_DIR|g" \
       -e "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g" \
@@ -117,8 +117,8 @@ else
   done
 
   systemctl --user daemon-reload
-  systemctl --user enable --now exocortex-extractor.timer
+  systemctl --user enable --now "exocortex-extractor-${NAMESPACE}.timer"
 
   echo "Done. Timer installed:"
-  systemctl --user list-timers | grep exocortex-extractor || true
+  systemctl --user list-timers | grep "exocortex-extractor-${NAMESPACE}" || true
 fi

@@ -9,7 +9,7 @@ OnCalendar=*-*-* 16:00:00
 OnCalendar=*-*-* 19:00:00
 OnCalendar=*-*-* 22:00:00
 Persistent=false
-Unit=exocortex-extractor.service
+Unit=exocortex-extractor-{{NAMESPACE}}.service
 
 [Install]
 WantedBy=timers.target
