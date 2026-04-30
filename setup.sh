@@ -67,6 +67,8 @@ if $VALIDATE_ONLY; then
     "seed/settings.local.json"
     "seed/.mcp.json"
     "seed/day-rhythm-config.yaml"
+    "seed/.gitignore"
+    "seed/params.yaml"
     "persistent-memory/protocol-open.md"
     "persistent-memory/protocol-close.md"
     "persistent-memory/protocol-work.md"
@@ -166,6 +168,10 @@ files=(
   "$ROOT_DIR/seed/CLAUDE.md"
   "$ROOT_DIR/seed/MEMORY.md"
   "$ROOT_DIR/seed/settings.local.json"
+  "$ROOT_DIR/seed/day-rhythm-config.yaml"
+  "$ROOT_DIR/seed/params.yaml"
+  "$ROOT_DIR/seed/.mcp.json"
+  "$ROOT_DIR/seed/.gitignore"
 )
 for f in "${files[@]}"; do
   if [[ ! -e "$f" ]]; then
@@ -446,6 +452,8 @@ else
   echo "  Copy template $ROOT_DIR/seed/MEMORY.md -> $WORKSPACE_FULL_PATH/memory/"
   cp "$ROOT_DIR/seed/day-rhythm-config.yaml" "$WORKSPACE_FULL_PATH/memory/"
   echo "  Copy template $ROOT_DIR/seed/day-rhythm-config.yaml -> $WORKSPACE_FULL_PATH/memory/"
+  cp "$ROOT_DIR/seed/params.yaml" "$WORKSPACE_FULL_PATH/"
+  echo "  Copy template $ROOT_DIR/seed/params.yaml -> $WORKSPACE_FULL_PATH/"
 
   # Create symlink so CLAUDE.md references (memory/protocol-open.md etc.) resolve from workspace root
   if [ ! -L "$WORKSPACE_FULL_PATH/memory/persistent-memory" ]; then
@@ -605,7 +613,6 @@ else
   fi
 fi
 
-# TODO: refactoring
 # === 6. Install roles (autodiscovery via role.yaml) ===
 if $CORE_ONLY; then
   echo "[6/7] Автоматизация... пропущена (core mode)"
