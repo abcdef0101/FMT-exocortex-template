@@ -49,7 +49,6 @@ done
 
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# TODO: отрефакторить
 # === Validate mode ===
 if $VALIDATE_ONLY; then
   echo "=========================================="
@@ -361,7 +360,7 @@ ENV_FILE="$WORKSPACE_FULL_PATH/.env"
 
 # Create .gitignore in workspace to exclude sensitive .env
 if ! $DRY_RUN; then
-  printf '%s\n' '.env' > "$WORKSPACE_FULL_PATH/.gitignore"
+  printf '%s\n' '.env' >"$WORKSPACE_FULL_PATH/.gitignore"
 fi
 
 if $DRY_RUN; then
@@ -392,44 +391,6 @@ ENVEOF
   echo "  Configuration saved to $ENV_FILE"
 fi
 
-# TODO: refactoring
-# # === 1. Substitute placeholders ===
-# echo ""
-# echo "[1/6] Configuring placeholders..."
-#
-# if $DRY_RUN; then
-#   PLACEHOLDER_FILES=$(find "$ROOT_DIR" -type f \( -name "*.md" -o -name "*.json" -o -name "*.sh" -o -name "*.plist" -o -name "*.yaml" -o -name "*.yml" \) | wc -l | tr -d ' ')
-#   echo "  [DRY RUN] Would substitute placeholders in $PLACEHOLDER_FILES files"
-#   echo "    {{GITHUB_USER}} → $GITHUB_USER"
-#   echo "    {{WORKSPACE_FULL_PATH}} → $WORKSPACE_FULL_PATH"
-#   echo "    {{CLAUDE_PATH}} → $CLAUDE_PATH"
-#   echo "    {{CLAUDE_PROJECT_SLUG}} → $CLAUDE_PROJECT_SLUG"
-#   echo "    {{TIMEZONE_HOUR}} → $TIMEZONE_HOUR"
-#   echo "    {{TIMEZONE_DESC}} → $TIMEZONE_DESC"
-#   echo "    {{HOME_DIR}} → $HOME_DIR"
-# else
-#   find "$ROOT_DIR" -type f \( -name "*.md" -o -name "*.json" -o -name "*.sh" -o -name "*.plist" -o -name "*.yaml" -o -name "*.yml" \) | while IFS= read -r file; do
-#     sed_inplace \
-#       -e "s|{{GITHUB_USER}}|$GITHUB_USER|g" \
-#       -e "s|{{WORKSPACE_FULL_PATH}}|$WORKSPACE_FULL_PATH|g" \
-#       -e "s|{{CLAUDE_PATH}}|$CLAUDE_PATH|g" \
-#       -e "s|{{CLAUDE_PROJECT_SLUG}}|$CLAUDE_PROJECT_SLUG|g" \
-#       -e "s|{{TIMEZONE_HOUR}}|$TIMEZONE_HOUR|g" \
-#       -e "s|{{TIMEZONE_DESC}}|$TIMEZONE_DESC|g" \
-#       -e "s|{{HOME_DIR}}|$HOME_DIR|g" \
-#       "$file"
-#   done
-#
-#   echo "  Placeholders substituted."
-#
-#   # Enable pre-commit hook for platform compatibility checks
-#   if [ -d "$ROOT_DIR/.githooks" ]; then
-#     git -C "$ROOT_DIR" config core.hooksPath .githooks 2>/dev/null &&
-#       echo "  Pre-commit hook enabled (.githooks/)" || true
-#   fi
-# fi
-
-# (Repo rename removed — folder stays as FMT-exocortex-template)
 # === 2. Copy CLAUDE.md to workspace root ===
 echo "[2/6] installing CLAUDE.md into workspace..."
 if $DRY_RUN; then
@@ -517,6 +478,9 @@ fi
 
 # === 4c. Prepare directory in workspace for user's mcps in json format ===
 echo "[4c] Prepare directory in workspace for user's mcps in json format"
+echo "  Пользовательские MCP-серверы добавляются в workspace/extensions/mcps/*.json."
+echo "  После добавления файла — /add-workspace-mcps зарегистрирует серверы в scope project."
+echo "  Шаблон: seed/extensions/mcps/iwe-knowledge.mcp.json (пример)."
 
 MCP_USER_DIR="$WORKSPACE_FULL_PATH/extensions/mcps"
 
