@@ -7,9 +7,10 @@ id: R23
 type: agential
 display_name: "Верификатор"
 
-# Нет runner — вызывается через /verify или Verification Gate (protocol-close)
-# runner: scripts/verifier.sh
+runner: scripts/verifier.sh
 
 install:
   auto: true
   priority: 10
+
+notify_template: verifier.sh
