@@ -134,3 +134,9 @@ jobs:
           else
             echo "PASS: All placeholders are valid"
           fi
+
+      # 7. Semver enforcement + contract checks (ADR-005 Phase 4)
+      - name: Semver enforcement
+        run: |
+          echo "=== Semver & Contract Enforcement ==="
+          bash scripts/enforce-semver.sh
