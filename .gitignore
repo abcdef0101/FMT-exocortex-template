@@ -11,3 +11,4 @@ workspaces/
 .mcp.json
 .claude/logs/
 tg2md/
+scripts/vm/results/

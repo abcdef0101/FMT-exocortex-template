@@ -1,0 +1,52 @@
+#cloud-config
+hostname: iwe-test
+fqdn: iwe-test.local
+timezone: UTC
+
+# Пакеты — устанавливаются при первом boot
+packages:
+  - git
+  - curl
+  - wget
+  - ruby
+  - python3
+  - python3-yaml
+  - shellcheck
+  - jq
+  - build-essential
+  - tmux
+  - ca-certificates
+  - gnupg
+
+# Выполнить при первом boot
+runcmd:
+  # Node.js 20 LTS
+  - curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+  - apt-get install -y nodejs
+  - npm install -g npm@latest
+
+  # GitHub CLI — официальный способ установки
+  - |
+    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+    chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list
+  - apt-get update && apt-get install -y gh
+
+  # Создать пользователя iwe
+  - useradd -m -s /bin/bash iwe
+  - echo "iwe ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/iwe
+
+  # Директории IWE
+  - mkdir -p /home/iwe/IWE /home/iwe/.config/gh /home/iwe/.local/bin
+  - chown -R iwe:iwe /home/iwe/IWE /home/iwe/.config /home/iwe/.local
+
+  # Добавить ~/.local/bin в PATH для iwe
+  - echo 'export PATH="$HOME/.local/bin:$PATH"' >> /home/iwe/.bashrc
+
+  # Готово
+  - echo "IWE test VM ready. SSH: ssh iwe@$(hostname -I | awk '{print $1}')" > /etc/motd
+
+ssh_authorized_keys:
+  - PLACEHOLDER_SSH_KEY
+
+final_message: "IWE Test VM is ready. IP: $(hostname -I)"
