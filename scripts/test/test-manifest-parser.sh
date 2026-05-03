@@ -63,6 +63,15 @@ apply_strategy "$TMPDIR/ifnew/src.txt" "$TMPDIR/ifnew/dst.txt" "copy-if-newer" "
   && _pass "copy-if-newer skips newer" \
   || _fail "copy-if-newer skips newer"
 
+# P0: target does not exist → should create
+mkdir -p "$TMPDIR/ifnew/missing"
+rm -f "$TMPDIR/ifnew/missing/target.txt"
+echo "first-time" > "$TMPDIR/ifnew/missing/src.txt"
+apply_strategy "$TMPDIR/ifnew/missing/src.txt" "$TMPDIR/ifnew/missing/target.txt" "copy-if-newer" "" "" "false"
+[ "$(cat "$TMPDIR/ifnew/missing/target.txt")" = "first-time" ] \
+  && _pass "copy-if-newer creates when target missing" \
+  || _fail "copy-if-newer creates when target missing"
+
 # -------------------------------------------------------------------
 echo "  --- copy-and-substitute ---"
 
@@ -103,11 +112,18 @@ apply_strategy "" "$TMPDIR/sym/mylink" "symlink" "../sym/linkdir" "" "false"
 
 # Regular file in the way — warn, don't overwrite
 echo "block" > "$TMPDIR/sym/blockfile"
-original_mtime=$(stat -c %Y "$TMPDIR/sym/blockfile" 2>/dev/null || stat -f %m "$TMPDIR/sym/blockfile" 2>/dev/null)
 apply_strategy "" "$TMPDIR/sym/blockfile" "symlink" "../sym/linkdir" "" "false" 2>/dev/null || true
 [ -f "$TMPDIR/sym/blockfile" ] && [ ! -L "$TMPDIR/sym/blockfile" ] \
   && _pass "symlink warns on regular file (does not overwrite)" \
   || _fail "symlink warns on regular file (does not overwrite)"
+
+# P0: broken symlink — should recreate
+mkdir -p "$TMPDIR/sym/broken-target"
+ln -s "/nonexistent/path" "$TMPDIR/sym/broken-link" 2>/dev/null || true
+apply_strategy "" "$TMPDIR/sym/broken-link" "symlink" "../sym/broken-target" "" "false" 2>/dev/null || true
+[ -L "$TMPDIR/sym/broken-link" ] && [ -e "$TMPDIR/sym/broken-link" ] \
+  && _pass "symlink repairs broken symlink" \
+  || _fail "symlink repairs broken symlink (still broken)"
 
 # -------------------------------------------------------------------
 echo "  --- merge-mcp ---"
@@ -168,5 +184,5 @@ count=$(echo "$output" | grep -c 'DRY RUN' || true)
   || _fail "parse full manifest: unknown strategy warnings"
 
 # -------------------------------------------------------------------
-[ "$FAIL" -eq 0 ] && echo "  All $(( 14 )) tests passed" || echo "  $FAIL test(s) failed"
+[ "$FAIL" -eq 0 ] && echo "  All $(( 16 )) tests passed" || echo "  $FAIL test(s) failed"
 exit $FAIL

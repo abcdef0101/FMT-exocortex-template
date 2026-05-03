@@ -137,5 +137,27 @@ nt_count=$(grep -c 'never_touch: true' "$EP_FILE" || true)
   || _fail "never_touch markers: expected >=5, got $nt_count"
 
 # -------------------------------------------------------------------
+echo "  --- source file existence ---"
+
+# Only check points that have a 'source:' field (template files that must exist)
+source_entries=$(grep 'source:' "$EP_FILE" | sed 's/.*source: *//')
+source_missing=0
+while IFS= read -r s; do
+  [ -z "$s" ] && continue
+  # Expand $WORKSPACE_FULL_PATH — but source paths in template are always relative to seed/
+  # The source: field points to seed/ files, e.g. "seed/CLAUDE.md"
+  if [ -e "$ROOT_DIR/$s" ]; then
+    : # exists in template
+  else
+    _fail "source not found: $s (from $EP_FILE)"
+    source_missing=$((source_missing + 1))
+  fi
+done <<< "$source_entries"
+
+[ "$source_missing" -eq 0 ] \
+  && _pass "all source files exist ($(echo "$source_entries" | wc -l) checked)" \
+  || true
+
+# -------------------------------------------------------------------
 [ "$FAIL" -eq 0 ] && echo "  All tests passed" || echo "  $FAIL test(s) failed"
 exit $FAIL

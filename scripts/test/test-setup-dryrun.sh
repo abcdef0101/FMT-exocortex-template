@@ -90,6 +90,18 @@ done
   && _pass "artifact ordering: $artifact_count artifacts in sequence" \
   || _fail "artifact ordering violations: $order_violations"
 
+# P0: WORKSPACE_FULL_PATH not set — apply_manifest should error clearly
+echo "  --- missing WORKSPACE_FULL_PATH ---"
+saved_ws="$WORKSPACE_FULL_PATH"
+unset WORKSPACE_FULL_PATH
+output=$(apply_manifest "$MANIFEST_FILE" true 2>&1) && rc=0 || rc=$?
+export WORKSPACE_FULL_PATH="$saved_ws"
+if echo "$output" | grep -q "ERROR"; then
+  _pass "missing WORKSPACE_FULL_PATH: ERROR detected"
+else
+  [ "$rc" -ne 0 ] && _pass "missing WORKSPACE_FULL_PATH: non-zero exit" || _fail "missing WORKSPACE_FULL_PATH: not handled"
+fi
+
 # -------------------------------------------------------------------
 [ "$FAIL" -eq 0 ] && echo "  All tests passed" || echo "  $FAIL test(s) failed"
 exit $FAIL

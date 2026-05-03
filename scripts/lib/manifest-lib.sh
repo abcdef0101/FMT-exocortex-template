@@ -165,7 +165,13 @@ apply_strategy() {
       local tdir; tdir="$(dirname "$target")"
       mkdir -p "$tdir"
       if [ -L "$target" ]; then
-        echo "  symlink exists: $target → $(readlink "$target")"
+        if [ -e "$target" ]; then
+          echo "  symlink exists: $target → $(readlink "$target")"
+        else
+          rm -f "$target"
+          ln -s "$symlink_target" "$target"
+          echo "  symlink repaired (was broken): $target → $symlink_target"
+        fi
       elif [ -e "$target" ]; then
         echo "  WARN: $target exists (not symlink) — skipping"
       else

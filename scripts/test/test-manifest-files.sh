@@ -98,6 +98,27 @@ done
   || _fail "outputs defined: $outputs_ok/$total"
 
 # -------------------------------------------------------------------
+echo "  --- YAML validity ---"
+
+yaml_ok=0
+yaml_fail=0
+if command -v ruby &>/dev/null; then
+  for mf in "${manifests[@]}"; do
+    if ruby -ryaml -e "YAML.load_file('$mf')" 2>/dev/null; then
+      yaml_ok=$((yaml_ok + 1))
+    else
+      _fail "invalid YAML: ${mf#$ROOT_DIR/}"
+      yaml_fail=$((yaml_fail + 1))
+    fi
+  done
+  [ "$yaml_fail" -eq 0 ] \
+    && _pass "YAML valid: $yaml_ok/$total" \
+    || _fail "YAML valid: $yaml_ok/$total, $yaml_fail errors"
+else
+  echo "  - skipped YAML validation (no ruby)"
+fi
+
+# -------------------------------------------------------------------
 echo "  --- version consistency ---"
 
 # Root CLAUDE.md version vs CHANGELOG
