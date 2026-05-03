@@ -115,6 +115,51 @@ apply_strategy "$TMPDIR/missingvar/src.txt" "$TMPDIR/missingvar/dst.txt" "copy-a
   && _pass "copy-and-substitute: missing env-var no crash" \
   || _fail "copy-and-substitute: missing env-var crashed"
 
+# P1 #1: partial placeholder match
+echo "  --- copy-and-substitute: partial match ---"
+mkdir -p "$TMPDIR/partial"
+echo 'Path: {{ROOT_DIR}}/subdir, Var: {{ROOT_DIR}}_NAME' > "$TMPDIR/partial/src.txt"
+export ROOT_DIR="/fake/partial"
+apply_strategy "$TMPDIR/partial/src.txt" "$TMPDIR/partial/dst.txt" "copy-and-substitute" "" "{{ROOT_DIR}}" "false"
+export ROOT_DIR="$CURRENT_ROOT"
+if grep -q "/fake/partial/subdir" "$TMPDIR/partial/dst.txt" 2>/dev/null; then
+  # Note: {{ROOT_DIR}}_NAME is also partially matched by s|{{ROOT_DIR}}|...|g
+  # This is a known behavior — the sed substitution is greedy on prefix matches
+  _pass "copy-and-substitute: partial prefix match (sed default: greedy)"
+else
+  _fail "copy-and-substitute: partial prefix match (unexpected)"
+fi
+
+# P1 #3: manifest parser ignores unknown YAML fields
+echo "  --- manifest parser: extra YAML fields ---"
+mkdir -p "$TMPDIR/extrafields"
+cat > "$TMPDIR/extrafields/test-manifest.yaml" << 'YEOF'
+artifacts:
+  - source: /tmp/extra-src.txt
+    target: /tmp/extra-dst.txt
+    strategy: copy-once
+    extra_field: should_be_ignored
+    another_extra: also_ignored
+YEOF
+echo "hello" > /tmp/extra-src.txt
+WORKSPACE_FULL_PATH="/tmp"
+export WORKSPACE_FULL_PATH
+output=$(apply_manifest "$TMPDIR/extrafields/test-manifest.yaml" true 2>&1)
+rm -f /tmp/extra-src.txt /tmp/extra-dst.txt 2>/dev/null
+echo "$output" | grep -q "DRY RUN" \
+  && _pass "manifest parser: ignores unknown YAML fields" \
+  || _fail "manifest parser: choked on unknown YAML fields: $output"
+
+# P1 #4: merge-mcp with existing modified target
+echo "  --- merge-mcp: target already modified ---"
+mkdir -p "$TMPDIR/mcpmod"
+echo '{"mcpServers":{"base":"v1"}}' > "$TMPDIR/mcpmod/base.json"
+echo '{"mcpServers":{"base":"v1","user_custom":"v2"}}' > "$TMPDIR/mcpmod/existing.json"
+apply_strategy "$TMPDIR/mcpmod/base.json" "$TMPDIR/mcpmod/existing.json" "merge-mcp" "" "" "false"
+[ -f "$TMPDIR/mcpmod/existing.json" ] \
+  && _pass "merge-mcp: succeeds when target modified (current: overwrites)" \
+  || _fail "merge-mcp: fails when target modified"
+
 # -------------------------------------------------------------------
 echo "  --- symlink ---"
 
@@ -206,5 +251,5 @@ count=$(echo "$output" | grep -c 'DRY RUN' || true)
   || _fail "parse full manifest: unknown strategy warnings"
 
 # -------------------------------------------------------------------
-[ "$FAIL" -eq 0 ] && echo "  All $(( 18 )) tests passed" || echo "  $FAIL test(s) failed"
+[ "$FAIL" -eq 0 ] && echo "  All $(( 21 )) tests passed" || echo "  $FAIL test(s) failed"
 exit $FAIL

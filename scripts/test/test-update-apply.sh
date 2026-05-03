@@ -80,6 +80,33 @@ grep -q "sed_inplace()" "$UPDATER" \
   && _pass "update.sh: cross-platform sed wrapper present" \
   || _fail "update.sh: no cross-platform sed wrapper"
 
+# P0 #7: rebase conflict handling
+echo "  --- git pull rebase conflict detection ---"
+grep -q "pull.*rebase" "$UPDATER" 2>/dev/null \
+  && _pass "update.sh: git pull --rebase present" \
+  || _fail "update.sh: no git pull --rebase"
+grep -q "Resolve conflicts manually" "$UPDATER" 2>/dev/null \
+  && _pass "update.sh: conflict resolution message present" \
+  || _fail "update.sh: no conflict resolution message"
+
+# P0: simulate rebase conflict exit code
+echo "  --- rebase conflict exit code ---"
+# Create a mock that simulates rebase conflict
+mkdir -p "$TMPDIR/conflict-repo"
+cd "$TMPDIR/conflict-repo"
+git init --quiet
+echo "v1" > file.txt && git add file.txt && git commit -m "initial" --quiet
+echo "v2" > file.txt && git add file.txt && git commit -m "local" --quiet
+# Create a conflicting change on a new branch
+git checkout -b upstream --quiet 2>/dev/null || true
+echo "v3" > file.txt && git add file.txt && git commit -m "upstream" --quiet
+git checkout main --quiet 2>/dev/null || git checkout master --quiet 2>/dev/null || true
+# git pull --rebase should conflict
+git pull --rebase . upstream 2>/dev/null && rc=1 || rc=$?
+[ "$rc" -ne 0 ] \
+  && _pass "rebase conflict: git correctly returns non-zero" \
+  || _fail "rebase conflict: git should return non-zero"
+
 # -------------------------------------------------------------------
 [ "$FAIL" -eq 0 ] && echo "  All tests passed" || echo "  $FAIL test(s) failed"
 exit $FAIL

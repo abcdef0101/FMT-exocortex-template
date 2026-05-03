@@ -99,6 +99,26 @@ spot_check "CLAUDE.md"
 spot_check "seed/manifest.yaml"
 spot_check "CHANGELOG.md"
 
+# P1 #5: orphan checksums — file in checksums.yaml not on disk
+echo "  --- orphan checksums ---"
+orphan_count=0
+while IFS= read -r line; do
+  [[ "$line" =~ ^[[:space:]]*([^:]+): ]] || continue
+  f="${BASH_REMATCH[1]}"
+  f="${f#"${f%%[![:space:]]*}"}"
+  f="${f%"${f##*[![:space:]]}"}"
+  [ -z "$f" ] && continue
+  [ -f "$ROOT_DIR/$f" ] && continue
+  [ -d "$ROOT_DIR/$f" ] && continue
+  # Skip never_touch patterns
+  echo "$never_touch_entries" | grep -qxF "$f" 2>/dev/null && continue
+  orphan_count=$((orphan_count + 1))
+  _fail "orphan checksum entry: $f (not on disk)"
+done < <(sed -n '/^files:/,$ p' "$CK_FILE" | grep '^  ')
+[ "$orphan_count" -eq 0 ] \
+  && _pass "orphan checksums: 0 entries" \
+  || true
+
 # -------------------------------------------------------------------
 echo "  --- YAML validity ---"
 

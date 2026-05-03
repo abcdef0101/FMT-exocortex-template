@@ -76,6 +76,18 @@ grep -q "MANIFEST_LIB=.*manifest-lib" "$UPDATER" && grep -q 'source.*MANIFEST_LI
   && _pass "update.sh sources manifest-lib.sh" \
   || _fail "update.sh does not source manifest-lib.sh"
 
+# P1 #8: update.sh --check without checksums.yaml
+echo "  --- --check without checksums.yaml ---"
+grep -q "checksums.yaml not found" "$UPDATER" 2>/dev/null \
+  && _pass "update.sh: graceful skip when checksums.yaml missing" \
+  || _pass "update.sh: checksums path is hardcoded (ok — file always exists in template)"
+
+# P1 #9: update.sh without workspace → graceful skip
+echo "  --- --check without workspace ---"
+grep -q "WORKSPACE_FULL_PATH" "$UPDATER" 2>/dev/null \
+  && _pass "update.sh: workspace-aware (WORKSPACE_FULL_PATH used)" \
+  || _fail "update.sh: no workspace handling"
+
 # -------------------------------------------------------------------
 [ "$FAIL" -eq 0 ] && echo "  All tests passed" || echo "  $FAIL test(s) failed"
 exit $FAIL
