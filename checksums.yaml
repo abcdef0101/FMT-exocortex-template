@@ -3,7 +3,7 @@
 # ADR-005 §2: checksum-based enforcement при update.sh --apply
 
 version: 2026.05.03
-generated: 2026-05-03T10:49:24Z
+generated: 2026-05-03T11:42:38Z
 
 never_touch:
   - seed/MEMORY.md
@@ -154,14 +154,22 @@ files:
   roles/verifier/prompts/verify-wp-acceptance.md: "2e037b76d63b232be4874d83e2abaedde0c807f185d4a9eb9b4cb031097bd1ac"
   roles/verifier/role.yaml: "386e47f8f5483ff7b247b0f59fe3f3505852fd37c40b60f36c355c08e7f06eda"
   roles/verifier/scripts/verifier.sh: "b6787f8f3a4dba1de44c84f93d120f26545ceb3bbaf145565e66c7213f2c5780"
+  scripts/enforce-semver.sh: "325a0c1d9e708103def738ca745c88c19217f1a950e02b1241abf535e364645f"
   scripts/generate-checksums.sh: "2b9ec4dbb447e1605189eafa4fae66ec49606d31ae502dc8b0f5f47f6bcd8142"
-  scripts/lib/manifest-lib.sh: "234b49dd1af5b9856c84137b8cce572e502d4f7b55e1412a618d866a701025b8"
+  scripts/lib/manifest-lib.sh: "2e2911a653c7718f5f339cebb8d7085852ca527fbe2b76c0631006539ad3b8c6"
+  scripts/run-migrations.sh: "bdd48e50a78fddba53469c748cd9f3e15331fff6610ee6d93c7d626854f6f247"
   scripts/test/run-phase0.sh: "ba660906ed4020a6d0830a51d3ee440503cc4d38c65018767de9838b4a940be6"
   scripts/test/test-checksums.sh: "326efa90ff3d0bff1fb2c1979d3c636acf6f41780a00dd77b38c006efd2ec3a9"
-  scripts/test/test-extension-points.sh: "c364374ee4ba57b727dd86acd73be681372f43f1507488d00e9f5930f31de52e"
-  scripts/test/test-manifest-files.sh: "db9ffd53064da480c3de533ea28f0dbf564f62a277d4704b70d01a7f72747bd2"
-  scripts/test/test-manifest-parser.sh: "f2173931f050c80645d3992d914f6a0caf89b94ed1c2ccff257e39701375e7e9"
-  scripts/test/test-setup-dryrun.sh: "0b32e7acfffc678deda0bfd98fd70f039b5d42ed984ef63d58ff578928650d1e"
+  scripts/test/test-enforce-semver.sh: "9fcf4c2bc01a95aa862d6666cc972c85ed8eb55d66807da02ddbe041ecb194ca"
+  scripts/test/test-extension-points.sh: "58e36f6b35054edc0c7a64c04c986c3bfa04f3744485cf8361c783c1f9fc5364"
+  scripts/test/test-manifest-files.sh: "e3d804cf2e716ecdfc703f52df29dad470ffd28fc8e0b02c0e86175c3c6ca751"
+  scripts/test/test-manifest-parser.sh: "1d3a30f71d7a27fbe38fd2ac8be783462f07c34c0211b62018763078b4992008"
+  scripts/test/test-migrations.sh: "2072e4f1759ee1372384383b461686ab2f3bde6745db31b1c0ff122d76ba0aa7"
+  scripts/test/test-never-touch.sh: "b97c78bb769616c4e946d3ba18268da9785515f91eb8333fc9171cf6112b4577"
+  scripts/test/test-setup-dryrun.sh: "ad4b255fcfe46cb8bf0d126cbf77a27afeed62e6abf7f527facc4ee616681084"
+  scripts/test/test-template-sync.sh: "688c2b291c2d530baddf0a23c67fc4ce7e212f2a2243c05eefe7a36507a99489"
+  scripts/test/test-update-apply.sh: "2aee07e8e53e39bea1f2b0f3bd7b20347a946a5a96997d5475d6d70cc1f532bf"
+  scripts/test/test-update-check.sh: "7a82918a606d7ed9f60c840c8d0bcf3c4e2cd3a362152d617960d5a1e7af3c5f"
   seed/manifest.yaml: "a605a77fd4a1f82934a470a4312f6f68661b9b5a2ca48a5b6951125d602b75ab"
   seed/CLAUDE.md: "a883976965cdb3aed5d1c830e1be7b9c71d45863f7f10bca16a1e430f92c670b"
   seed/.mcp.json: "fe9c9d80ac2f282c17fd1f8692f8e088104e1b6a01555cda33289744e9526c56"
