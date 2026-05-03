@@ -310,6 +310,10 @@ if [ -d "$WORKSPACE_FULL_PATH" ]; then
   exit 1
 fi
 
+# PACK-репо — рядом с FMT-exocortex-template (архитектура: CLAUDE.md §1)
+PACK_DIR="${PACK_DIR:-$ROOT_DIR/../PACK-digital-platform}"
+MY_STRATEGY_DIR="${MY_STRATEGY_DIR:-$WORKSPACE_FULL_PATH}"
+
 # === Manifest-driven installation (ADR-005 §1) ===
 echo "[2/5] Installing workspace files (manifest-driven)..."
 
@@ -411,13 +415,13 @@ fi
     echo "[3.2/5] Would clone PACK-digital-platform → $PACK_DIR"
   else
     echo "[3.2/5] Cloning PACK-digital-platform..."
-  if git clone --depth 1 https://github.com/TserenTserenov/PACK-digital-platform.git "$PACK_DIR" 2>/dev/null; then
-    echo "  ✓ PACK-digital-platform cloned: $PACK_DIR"
-  else
-    echo "  ⚠ Clone failed — /iwe-rules-review будет недоступен без локального Pack"
-    echo "    Установи вручную: git clone https://github.com/TserenTserenov/PACK-digital-platform.git $PACK_DIR"
+    if git clone --depth 1 https://github.com/TserenTserenov/PACK-digital-platform.git "$PACK_DIR" 2>/dev/null; then
+      echo "  ✓ PACK-digital-platform cloned: $PACK_DIR"
+    else
+      echo "  ⚠ Clone failed — /iwe-rules-review будет недоступен без локального Pack"
+      echo "    Установи вручную: git clone https://github.com/TserenTserenov/PACK-digital-platform.git $PACK_DIR"
+    fi
   fi
-fi
 
 # === 4. Install roles (autodiscovery via role.yaml) ===
 if $CORE_ONLY; then

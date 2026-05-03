@@ -110,17 +110,70 @@ if [ "$ACTUAL_BRANCH" != "$REQUIRED_BRANCH" ]; then
 fi
 echo "✓ Branch: $ACTUAL_BRANCH ($(git rev-parse --short HEAD))"
 
-# Setup workspace via manifest
-source scripts/lib/manifest-lib.sh
-WORKSPACE_FULL_PATH="$HOME/IWE/workspaces/iwe2"
-export WORKSPACE_FULL_PATH
-mkdir -p "$WORKSPACE_FULL_PATH"
-apply_manifest seed/manifest.yaml false 2>&1 | tail -3
+# Helper: validate workspace after setup
+check_workspace() {
+  local ws="$1"
+  local ok=0
+  [ -d "workspaces/$ws" ] || { echo "  ✗ workspace dir missing: $ws"; ok=1; }
+  [ -f "workspaces/$ws/CLAUDE.md" ] || { echo "  ✗ CLAUDE.md missing"; ok=1; }
+  [ -f "workspaces/$ws/memory/MEMORY.md" ] || { echo "  ✗ MEMORY.md missing"; ok=1; }
+  [ -L "workspaces/$ws/memory/persistent-memory" ] || { echo "  ✗ symlink missing"; ok=1; }
+  [ -e "workspaces/$ws/memory/persistent-memory" ] || { echo "  ✗ symlink broken"; ok=1; }
+  [ "$ok" -eq 0 ] && echo "  ✓ workspace valid: $ws"
+  return $ok
+}
 
-# Create workspace symlink
-rm -f workspaces/CURRENT_WORKSPACE 2>/dev/null || true
-ln -sf "$WORKSPACE_FULL_PATH" workspaces/CURRENT_WORKSPACE
+# === Phase 1: Minimal install (--core), verify, then delete ===
+echo ""
+echo "  === Phase 1: setup.sh --core ==="
+expect -c '
+set timeout 30
+spawn bash setup.sh --core
+expect "GitHub username"          { send "vm-test\r" }
+expect "Workspace name"           { send "iwe2-core\r" }
+expect "Data Policy (y/n)"       { send "y" }
+expect "Continue with setup"      { send "y" }
+expect eof
+lassign [wait] pid spawnid os_error_flag exit_code
+exit $exit_code
+'
+CORE_RC=$?
+if [ "$CORE_RC" -eq 0 ] && check_workspace iwe2-core; then
+  echo "  ✓ Phase 1 PASSED"
+  rm -rf workspaces/iwe2-core
+else
+  echo "  ✗ Phase 1 FAILED (rc=$CORE_RC)"
+fi
 
+# === Phase 2: Full install, verify, keep ===
+echo ""
+echo "  === Phase 2: setup.sh (full) ==="
+expect -c '
+set timeout 60
+spawn bash setup.sh
+expect "GitHub username"          { send "vm-test\r" }
+expect "Workspace name"           { send "iwe2\r" }
+expect "Claude CLI path"          { send "\r" }
+expect "Strategist launch"        { send "\r" }
+expect "Timezone description"     { send "\r" }
+expect "Data Policy (y/n)"       { send "y" }
+expect "Continue with setup"      { send "y" }
+expect eof
+lassign [wait] pid spawnid os_error_flag exit_code
+exit $exit_code
+'
+FULL_RC=$?
+if [ "$FULL_RC" -eq 0 ] && check_workspace iwe2; then
+  echo "  ✓ Phase 2 PASSED"
+  echo ""
+  echo "  Full mode extras:"
+  [ -d "../PACK-digital-platform" ] && echo "    ✓ PACK cloned" || echo "    ⚠ PACK not cloned"
+  ls roles/*/install.sh >/dev/null 2>&1 && echo "    ✓ role installers present"
+else
+  echo "  ✗ Phase 2 FAILED (rc=$FULL_RC)"
+fi
+
+echo ""
 echo "✓ IWE installed — branch $REQUIRED_BRANCH"
 ENDSSH
 

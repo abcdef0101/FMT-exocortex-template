@@ -34,10 +34,10 @@ VNC_PORT=5900
 # Try to find an active bridge
 ACTIVE_NET=$(virsh net-list --name 2>/dev/null | grep -v "^$" | head -1 || true)
 if [ -n "$ACTIVE_NET" ]; then
-  # Check if the bridge has an IP
-  BRIDGE_NAME=$(virsh net-dumpxml "$ACTIVE_NET" 2>/dev/null | grep "<bridge name=" | sed 's/.*name="\([^"]*\)".*/\1/')
-  if [ -n "$BRIDGE_NAME" ]; then
-    BRIDGE_IP=$(ip -4 addr show "$BRIDGE_NAME" 2>/dev/null | grep -oP 'inet \K[\d.]+' | head -1)
+  # Extract bridge name (handles both name="x" and name='x')
+  BRIDGE_NAME=$(virsh net-dumpxml "$ACTIVE_NET" 2>/dev/null | grep '<bridge ' | sed "s/.*bridge[^a-z]*name=['\"]\\([^'\"]*\\)['\"].*/\\1/" || true)
+  if [ -n "$BRIDGE_NAME" ] && [ "$BRIDGE_NAME" != "$(virsh net-dumpxml "$ACTIVE_NET" 2>/dev/null | grep '<bridge ')" ]; then
+    BRIDGE_IP=$(ip -4 addr show "$BRIDGE_NAME" 2>/dev/null | grep -oP 'inet \K[\d.]+' | head -1 || true)
     if [ -n "$BRIDGE_IP" ]; then
       NETWORK_TYPE="bridge"
       echo "  Using bridge: $BRIDGE_NAME ($BRIDGE_IP)"
