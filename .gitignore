@@ -10,3 +10,4 @@ workspaces/
 .wakatime.cfg
 .mcp.json
 .claude/logs/
+tg2md/
