@@ -48,7 +48,7 @@ STATE_DIR="$WORKSPACE_DIR/state"
 LOG_DIR="$WORKSPACE_DIR/logs"
 STRATEGY_DIR="$WORKSPACE_DIR/DS-strategy"
 
-# Agent Workspace — всегда, без fallback (ADR-004)
+# Agent Workspace — всегда, без fallback (ADR-006)
 AGENT_WORKSPACE="$WORKSPACE_DIR/DS-agent-workspace"
 REPORT_DIR="$AGENT_WORKSPACE/scheduler/reports"
 ARCHIVE_DIR="$AGENT_WORKSPACE/scheduler/reports/archive"

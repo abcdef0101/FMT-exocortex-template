@@ -541,7 +541,7 @@ video:
 `DS-agent-workspace` — отдельный git-репозиторий для машинного output агентов:
 отчёты планировщика, QA-находки бота, extraction-reports, Scout-results.
 
-Создаётся автоматически при setup и интегрирован в ядро (ADR-004).
+Создаётся автоматически при setup и интегрирован в ядро (ADR-006).
 Дополнительных действий не требует.
 
 ### Зачем
@@ -564,7 +564,7 @@ DS-agent-workspace/
 
 ### См. также
 
-- ADR-004: интеграция DS-agent-workspace в ядро
+- ADR-006: интеграция DS-agent-workspace в ядро
 
 </details>
 <details>
