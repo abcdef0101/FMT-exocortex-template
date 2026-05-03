@@ -73,6 +73,9 @@ echo "  === Cloning and installing IWE ==="
 ssh $SSH_OPTS "iwe@$SSH_HOST" bash -s << 'ENDSSH'
 set -euo pipefail
 
+REQUIRED_BRANCH="0.25.1"
+REPO_URL="https://github.com/abcdef0101/FMT-exocortex-template.git"
+
 # Source secrets if available
 [ -f ~/secrets/.env ] && set -a && source ~/secrets/.env && set +a
 
@@ -81,24 +84,44 @@ if [ -n "${GH_TOKEN:-}" ]; then
   echo "$GH_TOKEN" | gh auth login --with-token 2>/dev/null || true
 fi
 
-# Clone repo
+# Clone repo — требует git clone, не tar copy
 cd ~/IWE
-if [ ! -d FMT-exocortex-template ]; then
-  git clone https://github.com/abcdef0101/FMT-exocortex-template.git
+if [ -d FMT-exocortex-template ]; then
+  # Проверить что ветка правильная
+  ACTUAL_BRANCH=$(git -C FMT-exocortex-template branch --show-current 2>/dev/null || echo "detached")
+  if [ "$ACTUAL_BRANCH" != "$REQUIRED_BRANCH" ]; then
+    echo "  Wrong branch ($ACTUAL_BRANCH), re-cloning $REQUIRED_BRANCH..."
+    rm -rf FMT-exocortex-template
+  fi
 fi
+
+if [ ! -d FMT-exocortex-template ]; then
+  echo "  Cloning branch $REQUIRED_BRANCH..."
+  git clone --branch "$REQUIRED_BRANCH" "$REPO_URL" 2>&1 | tail -1
+fi
+
 cd FMT-exocortex-template
+
+# Verify branch
+ACTUAL_BRANCH=$(git branch --show-current)
+if [ "$ACTUAL_BRANCH" != "$REQUIRED_BRANCH" ]; then
+  echo "ERROR: Expected branch $REQUIRED_BRANCH, got $ACTUAL_BRANCH" >&2
+  exit 1
+fi
+echo "✓ Branch: $ACTUAL_BRANCH ($(git rev-parse --short HEAD))"
 
 # Setup workspace via manifest
 source scripts/lib/manifest-lib.sh
 WORKSPACE_FULL_PATH="$HOME/IWE/workspaces/iwe2"
 export WORKSPACE_FULL_PATH
+mkdir -p "$WORKSPACE_FULL_PATH"
 apply_manifest seed/manifest.yaml false 2>&1 | tail -3
 
 # Create workspace symlink
 rm -f workspaces/CURRENT_WORKSPACE 2>/dev/null || true
 ln -sf "$WORKSPACE_FULL_PATH" workspaces/CURRENT_WORKSPACE
 
-echo "✓ IWE installed"
+echo "✓ IWE installed — branch $REQUIRED_BRANCH"
 ENDSSH
 
 echo ""

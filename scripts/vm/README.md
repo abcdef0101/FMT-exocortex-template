@@ -31,6 +31,13 @@ bash scripts/vm/run-full-test.sh
 bash scripts/vm/destroy-vm.sh
 ```
 
+> **ВАЖНО:** Установка IWE в VM происходит **только через `git clone --branch 0.25.1`**.
+> Копирование файлов через `tar`/`scp` не поддерживается — E2E-тесты требуют
+> полной git-истории для `update.sh --check`/`--apply`, checksum verification,
+> 3-way merge и миграций. Ветка `0.25.1` зафиксирована жёстко — это стабильная
+> версия с полной реализацией ADR-005.
+```
+
 ## Архитектура
 
 ```
