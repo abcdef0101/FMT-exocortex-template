@@ -3,7 +3,7 @@
 # ADR-005 §2: checksum-based enforcement при update.sh --apply
 
 version: 2026.05.03
-generated: 2026-05-03T11:42:38Z
+generated: 2026-05-03T12:41:20Z
 
 never_touch:
   - seed/MEMORY.md
@@ -14,7 +14,7 @@ never_touch:
   - extensions/
 
 files:
-  CLAUDE.md: "7d1c66a2f808b5dc2c8a681b4b7d25a3e0c361d925a899bce59413633d8ffcec"
+  CLAUDE.md: "c7ebafb6c4a4a2794bfcc71ae76c627be4fb701734bbc6d179fee0d0510a3b8f"
   persistent-memory/MANIFEST.yaml: "a63ef05a81aa2625cfc6b0341aa42d2b4b891c1e68c48177a5a119f17614083f"
   persistent-memory/checklists.md: "e0a23d3cb619a92259595c8a947ffd76e328387525db9442491c5e3982546cc6"
   persistent-memory/fpf-reference.md: "37bf7d2cb827d0ea9a100fffb21f3242248dc8a643ac94983b90abe4e8a75a28"
@@ -38,7 +38,7 @@ files:
   .claude/skills/day-open/MANIFEST.yaml: "332661f9b387a745ada366a3732833f153224ca47c0a8ba6dd0aa4a6bf9bf2c0"
   .claude/skills/day-open/SKILL.md: "25d2d92a18ba0661b0f1af21b6a90ac185ab73cb7795f7e704d962af9cf3186f"
   .claude/skills/extend/MANIFEST.yaml: "59cf4b4c3b712194779a95f641da380fb17fb96ff4e88ef86094323a7efd1972"
-  .claude/skills/extend/SKILL.md: "fa7dc2742a9fec53698f197abc8b691a3d9f598bc4c0ee83f4ac5c90a92668f5"
+  .claude/skills/extend/SKILL.md: "74ba396d4799ff0985acd35d4395db2829e41379ad55325e442e80c0ba97d85b"
   .claude/skills/fpf/MANIFEST.yaml: "13d43b35a9f9417145a29261fcbc5ceb52f650b7723192b8eb07a0b21868aed1"
   .claude/skills/fpf/SKILL.md: "03967ba8128763eb8df2144c84ca6e1a025832edb14a7dfb614cab8ebf7fa3ae"
   .claude/skills/iwe-rules-review/MANIFEST.yaml: "85da7f3489aea00645829e73cd5f7a940b2cb6dedcf0057c423939e61e4ef55a"
@@ -159,17 +159,20 @@ files:
   scripts/lib/manifest-lib.sh: "2e2911a653c7718f5f339cebb8d7085852ca527fbe2b76c0631006539ad3b8c6"
   scripts/run-migrations.sh: "bdd48e50a78fddba53469c748cd9f3e15331fff6610ee6d93c7d626854f6f247"
   scripts/test/run-phase0.sh: "ba660906ed4020a6d0830a51d3ee440503cc4d38c65018767de9838b4a940be6"
-  scripts/test/test-checksums.sh: "326efa90ff3d0bff1fb2c1979d3c636acf6f41780a00dd77b38c006efd2ec3a9"
+  scripts/test/test-checksums.sh: "6a1e466830d6dc9ea30544214d0251dbdc65a26bfe477bc5a01d76e8bd91fcd5"
   scripts/test/test-enforce-semver.sh: "9fcf4c2bc01a95aa862d6666cc972c85ed8eb55d66807da02ddbe041ecb194ca"
   scripts/test/test-extension-points.sh: "58e36f6b35054edc0c7a64c04c986c3bfa04f3744485cf8361c783c1f9fc5364"
   scripts/test/test-manifest-files.sh: "e3d804cf2e716ecdfc703f52df29dad470ffd28fc8e0b02c0e86175c3c6ca751"
-  scripts/test/test-manifest-parser.sh: "1d3a30f71d7a27fbe38fd2ac8be783462f07c34c0211b62018763078b4992008"
+  scripts/test/test-manifest-parser.sh: "1f4bee876469234b5ecc22b50b2a16f2f47758c904b807fbdb40c70d573c7390"
   scripts/test/test-migrations.sh: "2072e4f1759ee1372384383b461686ab2f3bde6745db31b1c0ff122d76ba0aa7"
   scripts/test/test-never-touch.sh: "b97c78bb769616c4e946d3ba18268da9785515f91eb8333fc9171cf6112b4577"
   scripts/test/test-setup-dryrun.sh: "ad4b255fcfe46cb8bf0d126cbf77a27afeed62e6abf7f527facc4ee616681084"
+  scripts/test/test-setup-integration.sh: "9dee08d55b1c6e8ae942e882b0534db0436627814c2a2faeffefcd0afa812f94"
+  scripts/test/test-template-sync-mock.sh: "bb7304222304e67b18693d63d8ad09d2a793aec242e6da18ed2cf517e4f33914"
   scripts/test/test-template-sync.sh: "688c2b291c2d530baddf0a23c67fc4ce7e212f2a2243c05eefe7a36507a99489"
-  scripts/test/test-update-apply.sh: "2aee07e8e53e39bea1f2b0f3bd7b20347a946a5a96997d5475d6d70cc1f532bf"
-  scripts/test/test-update-check.sh: "7a82918a606d7ed9f60c840c8d0bcf3c4e2cd3a362152d617960d5a1e7af3c5f"
+  scripts/test/test-update-apply-mock.sh: "910a3ef2c22e37bdb458bb42cccd2c97f19efba5b87b4dd1fff7e6f17c797462"
+  scripts/test/test-update-apply.sh: "fb2df46d588711dd01e524d173271a28390073a3fc3889bde4e53c7d2146a558"
+  scripts/test/test-update-check.sh: "4349ea07aaee1f58c42f210a72c2559113a2f6b8b920670ec23bb49bd2c86504"
   seed/manifest.yaml: "a605a77fd4a1f82934a470a4312f6f68661b9b5a2ca48a5b6951125d602b75ab"
   seed/CLAUDE.md: "a883976965cdb3aed5d1c830e1be7b9c71d45863f7f10bca16a1e430f92c670b"
   seed/.mcp.json: "fe9c9d80ac2f282c17fd1f8692f8e088104e1b6a01555cda33289744e9526c56"
@@ -181,5 +184,5 @@ files:
   seed/extensions/linear-sync.sh: "fcab601d11691b5b288cb831d1eaf405e2ae6db6cb45aa75b59f1bd5dfbfe48c"
   seed/extensions/mcps/iwe-knowledge.mcp.json: "8be5c99037b8917c602cf17e4ceb0d3e51911f9b1a693503b819522d34949af5"
   extension-points.yaml: "d187066200ccdddd8a628bfef044fd18e87d39d8a09bc5783c2690eb796e0e25"
-  CHANGELOG.md: "1e532b2805e66e78e7f25e0362800e39da9f17132277a253f0ee1165f273fc96"
-  ONTOLOGY.md: "493bc4b21c8cc389f3606d4888899635b1722bb3369516b5652ed02401ea7230"
+  CHANGELOG.md: "3c438ab1f7e660cc364e6b6ce56a64a955379807d1b1aa202e1a951086629c53"
+  ONTOLOGY.md: "9f21668ccf5d895c19d9841b01d691b475676c41471356fd1ba06d0b41f08cd7"

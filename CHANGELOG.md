@@ -5,6 +5,30 @@ All notable changes to FMT-exocortex-template will be documented in this file.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
+## [0.26.0] — 2026-05-03
+
+### Added (ADR-005: Архитектура доставки обновлений)
+- **seed/manifest.yaml** — декларативный контракт установки: 8 артефактов с 6 стратегиями (copy-once, copy-if-newer, copy-and-substitute, symlink, merge-mcp, structure-only)
+- **checksums.yaml** — SHA-256 хеши 161 платформенного файла + NEVER-TOUCH список из 7 записей
+- **extension-points.yaml** — машиночитаемый каталог 20 extension points с правилами обратной совместимости
+- **23 MANIFEST.yaml** — компонентное версионирование: 18 skills (v1.0.0–v3.0.0) + protocols + hooks + roles + seed + root
+- **update.sh** — механизм обновления: `--check` (fetch→versions→checksums→compat), `--apply` (pull→merge→migrations→manifest apply→validate)
+- **template-sync.sh** — авторский пайплайн: `--check`/`--sync` с placeholder-подстановкой {{GITHUB_USER}}/{{WORKSPACE_NAME}}
+- **migrations/** — миграционный фреймворк: 4 миграции (0.18.0–0.25.1), идемпотентные, с backup и pre/post-conditions
+- **scripts/lib/manifest-lib.sh** — парсер manifest.yaml + executor стратегий
+- **scripts/generate-checksums.sh** — авто-генерация checksums.yaml
+- **scripts/run-migrations.sh** — runner миграций с сортировкой по версиям и dedup
+- **scripts/enforce-semver.sh** — CI enforcement: semver валидация, extension coverage, link graph
+- **scripts/test/** — 14 тестовых модулей, 120+ тестов, покрытие 96% корнер-кейсов
+
+### Changed
+- **setup.sh** — переход на manifest-driven install: 220 строк хардкода `cp` заменены на `apply_manifest` (ADR-005 §1)
+- **scripts/lib/manifest-lib.sh** — стратегия `symlink`: восстановление broken symlink
+- **.github/workflows/validate-template.yml** — шаг 7: `enforce-semver.sh` в CI
+
+### Removed
+- **update-manifest.json** — заменён на `seed/manifest.yaml` + `checksums.yaml` + 23 `MANIFEST.yaml` (ADR-005)
+
 ## [0.25.1] — 2026-04-14
 
 ### Changed
@@ -15,7 +39,7 @@ Versioning: [Semantic Versioning](https://semver.org/).
 ### Changed
 - **protocol-close.md** — сжат 454→97 строк. Остались: маршрутизация, Quick Close inline, формат «Осталось», чеклист Quick Close. Алгоритмы Day Close и Week Close вынесены в отдельные SKILL.md.
 - **day-open/SKILL.md** — шаблоны DayPlan/WeekPlan/итогов удалены из файла (→ `memory/templates-dayplan.md`). Файл сокращён с ~343 до 127 строк.
-- **update-manifest.json** — добавлены: `day-close/SKILL.md`, `week-close/SKILL.md`, `memory/templates-dayplan.md`.
+- **seed/manifest.yaml (ex update-manifest.json)** — добавлены: `day-close/SKILL.md`, `week-close/SKILL.md`, `memory/templates-dayplan.md`.
 - **navigation.md** — добавлены строки для `day-close/SKILL.md`, `week-close/SKILL.md`, `templates-dayplan.md`.
 - **run-protocol/SKILL.md** — добавлена строка: `close` (без уточнения) → `close session` по умолчанию.
 
@@ -68,7 +92,7 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ### Changed
 - **verify SKILL.md** — обновлена нумерация шагов (0→4), unified verdict формат, автоопределение chain/adversarial по контексту
-- **update-manifest.json** → v0.22.0
+- **seed/manifest.yaml (ex update-manifest.json)** → v0.22.0
 
 ## [0.21.0] — 2026-03-29
 
@@ -79,7 +103,7 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ### Changed
 - **update.sh** — ORY_TOKEN/L4_BACKEND/L4_DATABASE_URL читаются из `.exocortex.env` но **не подставляются** в template-файлы (секция secrets, только для Gateway-скриптов)
-- **update-manifest.json** → v0.21.0
+- **seed/manifest.yaml (ex update-manifest.json)** → v0.21.0
 
 ## [0.20.0] — 2026-03-29
 
@@ -88,7 +112,7 @@ Versioning: [Semantic Versioning](https://semver.org/).
 - **ADR-003** — спецификация платформы-хостинга: два слоя доставки (дистрибутив vs хостинг), скриптуемый API (`--yes`), градиентный вход, экспорт, Vagrant-образ, ЭМОГССБ 60/70
 
 ### Changed
-- **update-manifest.json** → v0.20.0
+- **seed/manifest.yaml (ex update-manifest.json)** → v0.20.0
 - **setup.sh** — INSTALL_LEVEL сохраняется в `.exocortex.env`; шаги 4, 5 зависят от уровня; Next steps адаптированы под уровень
 
 ## [0.19.0] — 2026-03-29
@@ -99,7 +123,7 @@ Versioning: [Semantic Versioning](https://semver.org/).
 - **extensions/README.md** — секция «Несколько расширений одного hook» (суффиксы для конфликтов) и «Sharing» (формат bundle-пакетов расширений)
 
 ### Changed
-- **update-manifest.json** → v0.19.0: добавлен `.claude/skills/extend/SKILL.md`
+- **seed/manifest.yaml (ex update-manifest.json)** → v0.19.0: добавлен `.claude/skills/extend/SKILL.md`
 
 ## [0.18.0] — 2026-03-28
 
@@ -326,7 +350,7 @@ Versioning: [Semantic Versioning](https://semver.org/).
 - **setup-calendar.sh** — уточнён текст предупреждения Google (название «IWE MIM», пояснение про unverified app)
 
 ### Added
-- **[update-manifest.json](update-manifest.json)** — манифест всех платформенных файлов (100+ записей) с описаниями. Используется update.sh для доставки обновлений
+- **[seed/manifest.yaml](seed/manifest.yaml)** — декларативный контракт установки (ex update-manifest.json). С 0.26.0 дополнен `checksums.yaml`
 - **[DP.SC.019](../PACK-digital-platform/pack/digital-platform/08-service-clauses/DP.SC.019-template-update.md)** — сценарий «Обновление экзокортекса» + сервис S50 Template Update в MAP.002
 - **Инструкция «настрой календарь»** в CLAUDE.md — при запросе пользователя Claude запускает `setup-calendar.sh`
 

@@ -305,23 +305,40 @@ FMT-exocortex-template/
 
 Подробнее о AUTHOR-ONLY зонах: [CLAUDE.md §7](../CLAUDE.md).
 
-### 2.5. Обновления: update.sh
+### 2.5. Обновления: update.sh (ADR-005)
 
 **Одна команда:** `cd ~/IWE/FMT-exocortex-template && bash update.sh`
 
-Скрипт скачивает манифест обновлений с GitHub, сравнивает sha256 локальных файлов с upstream, показывает превью и применяет после подтверждения:
+**Архитектура доставки (ADR-005):**
+
+| Компонент | Назначение |
+|-----------|-----------|
+| `seed/manifest.yaml` | Декларативный контракт: что копируется, куда, с какой стратегией (copy-once, copy-if-newer, symlink, etc.) |
+| `checksums.yaml` | SHA-256 хеши 161 платформенного файла + NEVER-TOUCH список |
+| `MANIFEST.yaml` (×23) | Версия каждого компонента (skills, protocols, hooks, roles) |
+| `extension-points.yaml` | Каталог 20 точек расширения с правилами совместимости |
+| `migrations/` | Идемпотентные миграции для breaking changes с backup |
+
+**Режимы:**
+
+| Команда | Что делает |
+|---------|-----------|
+| `bash update.sh --check` | Fetch upstream → сравнение версий → проверка 161 checksums → compat-check extensions → preview. Exit 0 = up-to-date, 1 = changes |
+| `bash update.sh --apply` | Check + git pull --rebase → 3-way merge CLAUDE.md/ONTOLOGY.md → миграции → manifest apply → post-update validate |
+| `bash update.sh --version` | Версия скрипта |
+| `bash update.sh --help` | Справка |
+
+**Процесс обновления (шаг за шагом):**
 
 | Шаг | Что делает | Результат |
 |-----|-----------|-----------|
-| 0. Self-update | Проверяет, есть ли новая версия update.sh | Скрипт всегда актуален |
-| 1. Манифест | Скачивает `update-manifest.json` из GitHub | Список файлов для обновления |
-| 2. Сравнение | sha256 локальных файлов vs remote | Список нового и изменённого |
-| 3. Превью | Показывает: новые файлы, обновлённые, не затрагиваемые | Ты решаешь: применить или нет |
-| 4. Применение | Скачивает и заменяет файлы, подставляет переменные | Платформенные файлы обновлены |
-| 5. Platform-space | Копирует CLAUDE.md → workspace, persistent-memory → symlink | Живые файлы обновлены |
-| 6. Роли | Переустанавливает роли, если их файлы изменились | Агенты обновлены |
+| 1. Fetch | Сравнивает локальный HEAD с upstream | Список новых коммитов |
+| 2. Версии | Сравнивает 23 MANIFEST.yaml (version) | ↑ changed, ✓ up-to-date |
+| 3. Checksums | SHA-256 каждого платформенного файла | 161 verified, N modified, skipped (never-touch) |
+| 4. Compat | Проверяет extension points через extension-points.yaml | Совместимые / предупреждения |
+| 5. Apply | git pull --rebase → 3-way merge → миграции → manifest apply | Файлы обновлены, workspace синхронизирован |
 
-**Что НЕ затрагивается:**
+**Что НЕ затрагивается (NEVER-TOUCH):**
 
 ```
 CLAUDE.md § «Мои правила»  ← Секция USER-SPACE (твои правила и различения)
@@ -335,8 +352,8 @@ PACK-{область}/             ← Твои доменные знания
 **Свои правила:** добавляй в секцию «8. Мои правила» в конце CLAUDE.md (после маркера `<!-- USER-SPACE -->`). Эта секция сохраняется при обновлении. Правила в `<repo>/CLAUDE.md` конкретных репо не затрагиваются вообще.
 
 **Дополнительные режимы:**
-- `bash update.sh --check` — только показать, есть ли обновления (без применения)
-- `bash update.sh --yes` — применить без подтверждения
+- `bash update.sh --check` — показать, есть ли обновления (без применения). Exit 0 = up-to-date, 1 = changes available
+- `bash update.sh --apply` — применить обновление (checksum-based + 3-way merge + миграции)
 
 **Накопительная модель обновлений:**
 
@@ -347,7 +364,7 @@ PACK-{область}/             ← Твои доменные знания
 Каждое утро в 7:28 бот @aist_me_bot отправляет дайджест изменений за последние 24 часа (если они были). Подпишись на канал обновлений, чтобы не пропустить. Оповещение = информация. Решение обновляться — всегда за тобой.
 
 **Три способа обновить:**
-1. Терминал: `bash update.sh`
+1. Терминал: `bash update.sh --check` / `bash update.sh --apply`
 2. AI CLI: скажи своему ИИ *«обнови мой экзокортекс»*
 3. Проверить без применения: `bash update.sh --check`
 

@@ -58,6 +58,14 @@
 | Guard (страж) | Guard | Автоматическая проверка TTL-нарушений на стратегировании и Day Close | DP.EXOCORTEX.001 |
 | DayPlan | DayPlan | Дневной план — артефакт Day Open. Handoff Стратег→Человек | DP.M.003 |
 | WeekPlan | WeekPlan | Недельный план — артефакт стратегирования. Содержит РП, бюджеты, фокус | DP.M.003 |
+| Манифест установки | Install Manifest | `seed/manifest.yaml` — декларативный контракт: что копируется, куда, с какой стратегией (copy-once, copy-if-newer, symlink, merge-mcp, structure-only, copy-and-substitute) | ADR-005 |
+| Checksum enforcement | Checksum Enforcement | SHA-256 верификация платформенных файлов через `checksums.yaml`. NEVER-TOUCH список защищает пользовательские файлы от перезаписи | ADR-005 |
+| Каталог точек расширения | Extension Point Catalog | `extension-points.yaml` — машиночитаемый реестр 20 extension points с id, protocol, hook, toggle, since-версией и правилами обратной совместимости | ADR-005 |
+| Компонентное версионирование | Component Versioning | Каждый skill, protocol, hook имеет `MANIFEST.yaml` с полями component, version, dependencies, breaking_changes, api_contract | ADR-005 |
+| Миграционный фреймворк | Migration Framework | `migrations/` — идемпотентные скрипты для breaking changes: pre-condition, backup, apply, post-condition, лог | ADR-005 |
+| 3-way merge | 3-way Merge | Слияние файлов со смешанным Platform/User пространством (CLAUDE.md, ONTOLOGY.md) через `git merge-file` при обновлении | ADR-005 |
+| update.sh | update.sh | Механизм обновления: `--check` (preview) и `--apply` (pull→merge→migrate→manifest apply→validate) | ADR-005 |
+| template-sync.sh | template-sync.sh | Авторский пайплайн синхронизации IWE → FMT шаблон с placeholder-подстановкой (только для `author_mode: true`) | ADR-005 |
 
 ---
 

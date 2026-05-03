@@ -31,22 +31,26 @@ cat "$WORKSPACE_DIR/params.yaml" 2>/dev/null
 
 ### 3. Вывести каталог
 
-#### Extension points (файлы в extensions/)
+#### Extension points (канонический каталог: extension-points.yaml)
 
-| Протокол | Hook | Файл для создания | Когда выполняется |
-|----------|------|-------------------|-------------------|
-| `protocol-close` | `checks` | `extensions/protocol-close.checks.md` | После commit+push, перед статусами |
-| `protocol-close` | `after` | `extensions/protocol-close.after.md` | После чеклиста, перед верификацией |
-| `day-open` | `before` | `extensions/day-open.before.md` | Перед шагом 2 — утренние ритуалы |
-| `day-open` | `after` | `extensions/day-open.after.md` | После «Требует внимания», перед DayPlan |
-| `day-open` | `checks` | `extensions/day-open.checks.md` | Перед commit DayPlan (БЛОКИРУЮЩЕЕ) |
-| `day-close` | `before` | `extensions/day-close.before.md` | Перед шагом 1 |
-| `day-close` | `multiplier` | `extensions/day-close.multiplier.md` | Расчёт мультипликатора IWE (шаг 9) |
-| `day-close` | `checks` | `extensions/day-close.checks.md` | Перед commit (БЛОКИРУЮЩЕЕ, шаг 13) |
-| `day-close` | `after` | `extensions/day-close.after.md` | После итогов дня, после commit (шаг 17) |
-| `week-close` | `before` | `extensions/week-close.before.md` | Перед ротацией уроков |
-| `week-close` | `after` | `extensions/week-close.after.md` | После аудита memory |
-| `protocol-open` | `after` | `extensions/protocol-open.after.md` | После ритуала согласования |
+Источник истины — `extension-points.yaml` (ADR-005 §5). Содержит 20 extension points с id, protocol, hook, toggle, since-версией.
+
+**Загрузка каталога:**
+```bash
+cat "$ROOT_DIR/extension-points.yaml"
+```
+
+**Основные группы:**
+
+| Группа | Кол-во | Пример id | Где искать |
+|--------|--------|-----------|-----------|
+| Protocol hooks | 12 | `day-open-before`, `protocol-close-checks` | `extensions/*.md` |
+| User config (never-touch) | 6 | `params-yaml`, `workspace-claude-md`, `settings-local` | `$WORKSPACE/params.yaml`, `$WORKSPACE/CLAUDE.md`, etc. |
+| MCP extensions | 1 | `mcp-user` | `$WORKSPACE/extensions/mcps/*.json` |
+| Custom skills | 1 | `custom-skills` | `.claude/skills/<name>/SKILL.md` |
+
+**Как показать конкретный протокол:**
+Если запрошен протокол (например `day-open`) — показать только точки этой группы и их toggles:
 
 **Управление:** каждый extension point имеет toggle в `params.yaml` (формат: `{protocol}_{hook}_enabled`). `false` = шаг пропускается даже если файл существует. Toggle отсутствует → считается `true`.
 

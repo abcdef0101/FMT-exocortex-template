@@ -235,15 +235,18 @@ bash setup.sh
 | Strategist launch hour (UTC) | Час запуска Стратега | `4` (= 7:00 MSK, 8:00 Алматы) |
 | Timezone description | Описание времени | `7:00 MSK` |
 
-Скрипт выполнит 8 шагов:
+Скрипт выполнит 5 шагов (ADR-005: manifest-driven):
 1. Подставит твои данные во все файлы (имя, пути, часовой пояс)
-2. Установит `CLAUDE.md` — правила для Claude Code
-3. Установит `persistent-memory/` (через symlink) и `memory/` — оперативную память для Claude Code
-4. Настроит разрешения (`.claude/settings.local.json`) и выведет инструкцию по подключению MCP
-5. Установит автоматический запуск ролей (launchd на macOS, systemd user timer на Linux)
-6. Создаст `DS-strategy/` — твой приватный стратегический репозиторий на GitHub
-7. Создаст `DS-agent-workspace/` — шину данных для агентов (отчёты, находки, extraction-reports)
-8. Склонирует `PACK-digital-platform/` — source-of-truth платформы (DP-сущности, методы, правила)
+2. **Manifest-driven install** — читает `seed/manifest.yaml` и применяет 8 артефактов с нужной стратегией:
+   - `copy-once`: MEMORY.md, params.yaml, day-rhythm-config (пользовательские — не перезаписываются)
+   - `copy-if-newer`: CLAUDE.md (платформенные инструкции)
+   - `copy-and-substitute`: settings.local.json (подстановка {{ROOT_DIR}})
+   - `symlink`: persistent-memory (runtime projection)
+   - `merge-mcp`: .mcp.json (слияние с пользовательскими MCP)
+   - `structure-only`: extensions/mcps/ (пользовательские MCP-серверы)
+3. Установит автоматический запуск ролей (launchd/systemd)
+4. Создаст `DS-strategy/` + `DS-agent-workspace/` + склонирует `PACK-digital-platform/`
+5. Выведет MCP-инструкции и команду для обновления: `bash update.sh --check`
 
 ### 1.3 Проверь установку
 
@@ -685,13 +688,18 @@ Claude выполняет задачу. На каждом рубеже (подз
 
 Шаблон экзокортекса обновляется — новые протоколы, улучшенные промпты, скиллы, скрипты, исправления.
 
+**Архитектура доставки (ADR-005):** обновления управляются через `seed/manifest.yaml` (контракт установки), `checksums.yaml` (SHA-256 верификация 161 файла), `MANIFEST.yaml` (версии компонентов), `extension-points.yaml` (каталог точек расширения) и `migrations/` (миграции для breaking changes).
+
 В терминале:
 ```bash
 cd ~/IWE/FMT-exocortex-template
-bash update.sh
+bash update.sh --check    # Проверить наличие обновлений (без применения)
+bash update.sh --apply    # Применить обновление
 ```
 
-Скрипт скачивает манифест обновлений с GitHub, сравнивает с вашими файлами, показывает превью (что нового, что изменилось) и применяет после вашего подтверждения. Self-update: `update.sh` обновляет сам себя при каждом запуске.
+**Что делает --check:** fetch upstream → сравнение версий 23 MANIFEST.yaml → SHA-256 верификация 161 файла → compat-check extensions → preview. Exit 0 = up-to-date, 1 = changes available.
+
+**Что делает --apply:** check + git pull --rebase → 3-way merge CLAUDE.md/ONTOLOGY.md → миграции → manifest apply → post-update validate.
 
 **Что обновляется (platform-space):**
 CLAUDE.md (§1-7), persistent-memory/ (протоколы, справочники), промпты и скрипты ролей, hooks, скиллы, setup-скрипты. Если скрипты ролей изменились — автоматически переустановятся launchd/systemd-агенты.

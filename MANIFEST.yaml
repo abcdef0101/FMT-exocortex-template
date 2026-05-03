@@ -1,5 +1,5 @@
 component: root/CLAUDE.md
-version: 0.25.1
+version: 0.26.0
 description: Главный инструктивный файл — правила, ссылки, архитектура
 dependencies:
   - persistent-memory
