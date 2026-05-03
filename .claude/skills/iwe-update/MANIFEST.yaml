@@ -4,3 +4,7 @@ description: iwe-update skill
 dependencies:
   []
 api_contract:
+  inputs:
+    - CHANGELOG.md
+    - checksums.yaml
+  outputs: []

@@ -4,3 +4,8 @@ description: extend skill
 dependencies:
   []
 api_contract:
+  inputs:
+    - extension-points.yaml
+    - params.yaml
+    - extensions/
+  outputs: []

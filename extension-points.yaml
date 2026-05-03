@@ -174,7 +174,8 @@ points:
   - id: mcp-user
     name: User MCP servers
     file: $WORKSPACE_FULL_PATH/extensions/mcps/
-    protocol: json (MCP server config)
+    protocol: json
+    hook: MCP server configuration merged into .mcp.json
     strategy: structure-only
     never_touch: true
     since: 0.23.0
@@ -184,6 +185,7 @@ points:
   - id: custom-skills
     name: Custom user skills
     file: .claude/skills/
-    protocol: markdown + YAML frontmatter
+    protocol: markdown
+    note: "YAML frontmatter for metadata"
     hook: on-demand (/<name>)
     since: 0.19.0

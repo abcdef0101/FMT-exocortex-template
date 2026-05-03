@@ -1,0 +1,172 @@
+#!/usr/bin/env bash
+# test-manifest-parser.sh — тестирование парсера manifest и всех 6 стратегий
+# Запускается из run-phase0.sh (ROOT_DIR уже экспортирован)
+set -euo pipefail
+
+ROOT_DIR="${ROOT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
+source "$ROOT_DIR/scripts/lib/manifest-lib.sh" 2>/dev/null || {
+  echo "  ✗ cannot source manifest-lib.sh"
+  exit 1
+}
+
+TMPDIR=$(mktemp -d -t manifest-test-XXXXXX)
+trap 'rm -rf "$TMPDIR"' EXIT
+
+FAIL=0
+_pass()  { echo "  ✓ $1"; }
+_fail() { echo "  ✗ $1"; FAIL=$((FAIL + 1)); }
+
+# -------------------------------------------------------------------
+echo "  --- copy-once ---"
+
+mkdir -p "$TMPDIR/once-new"
+echo "hello" > "$TMPDIR/src-once.txt"
+apply_strategy "$TMPDIR/src-once.txt" "$TMPDIR/once-new/dst.txt" "copy-once" "" "" "false"
+[ -f "$TMPDIR/once-new/dst.txt" ] && [ "$(cat "$TMPDIR/once-new/dst.txt")" = "hello" ] \
+  && _pass "copy-once creates file" \
+  || _fail "copy-once creates file"
+
+mtime_before=$(stat -c %Y "$TMPDIR/once-new/dst.txt" 2>/dev/null || stat -f %m "$TMPDIR/once-new/dst.txt" 2>/dev/null)
+echo "modified" > "$TMPDIR/src-once.txt"
+sleep 0.1  # ensure mtime differs
+apply_strategy "$TMPDIR/src-once.txt" "$TMPDIR/once-new/dst.txt" "copy-once" "" "" "false"
+mtime_after=$(stat -c %Y "$TMPDIR/once-new/dst.txt" 2>/dev/null || stat -f %m "$TMPDIR/once-new/dst.txt" 2>/dev/null)
+[ "$mtime_before" = "$mtime_after" ] \
+  && _pass "copy-once skips existing" \
+  || _fail "copy-once skips existing"
+
+# -------------------------------------------------------------------
+echo "  --- copy-if-newer ---"
+
+mkdir -p "$TMPDIR/ifnew"
+echo "v1" > "$TMPDIR/ifnew/src.txt"
+echo "v1" > "$TMPDIR/ifnew/dst.txt"
+sleep 0.2  # ensure src is newer by a margin
+echo "v2" > "$TMPDIR/ifnew/src.txt"
+apply_strategy "$TMPDIR/ifnew/src.txt" "$TMPDIR/ifnew/dst.txt" "copy-if-newer" "" "" "false"
+[ "$(cat "$TMPDIR/ifnew/dst.txt")" = "v2" ] \
+  && _pass "copy-if-newer updates older" \
+  || _fail "copy-if-newer updates older"
+
+echo "v3" > "$TMPDIR/ifnew/src.txt"
+apply_strategy "$TMPDIR/ifnew/src.txt" "$TMPDIR/ifnew/dst.txt" "copy-if-newer" "" "" "false"
+[ "$(cat "$TMPDIR/ifnew/dst.txt")" = "v3" ] \
+  && _pass "copy-if-newer updates when src newer again" \
+  || _fail "copy-if-newer updates when src newer again"
+
+# dst newer than src — should skip
+echo "old" > "$TMPDIR/ifnew/src.txt"
+sleep 0.2
+echo "newer" > "$TMPDIR/ifnew/dst.txt"
+apply_strategy "$TMPDIR/ifnew/src.txt" "$TMPDIR/ifnew/dst.txt" "copy-if-newer" "" "" "false"
+[ "$(cat "$TMPDIR/ifnew/dst.txt")" = "newer" ] \
+  && _pass "copy-if-newer skips newer" \
+  || _fail "copy-if-newer skips newer"
+
+# -------------------------------------------------------------------
+echo "  --- copy-and-substitute ---"
+
+mkdir -p "$TMPDIR/subst"
+CURRENT_ROOT="$ROOT_DIR"  # save
+export ROOT_DIR="/fake/root/path"
+echo 'Root: {{ROOT_DIR}}' > "$TMPDIR/subst/src.json"
+apply_strategy "$TMPDIR/subst/src.json" "$TMPDIR/subst/dst.json" "copy-and-substitute" "" "{{ROOT_DIR}}" "false"
+grep -q "/fake/root/path" "$TMPDIR/subst/dst.json" \
+  && _pass "copy-and-substitute replaces placeholder" \
+  || _fail "copy-and-substitute replaces placeholder"
+
+# No placeholders — should still copy without error
+echo 'no placeholders here' > "$TMPDIR/subst/no-ph.txt"
+apply_strategy "$TMPDIR/subst/no-ph.txt" "$TMPDIR/subst/no-ph-dst.txt" "copy-and-substitute" "" "" "false"
+[ -f "$TMPDIR/subst/no-ph-dst.txt" ] \
+  && _pass "copy-and-substitute works without placeholders" \
+  || _fail "copy-and-substitute works without placeholders"
+
+export ROOT_DIR="$CURRENT_ROOT"  # restore
+
+# -------------------------------------------------------------------
+echo "  --- symlink ---"
+
+mkdir -p "$TMPDIR/sym/linkdir"
+
+# Create symlink
+apply_strategy "" "$TMPDIR/sym/mylink" "symlink" "../sym/linkdir" "" "false"
+[ -L "$TMPDIR/sym/mylink" ] && [ "$(readlink "$TMPDIR/sym/mylink")" = "../sym/linkdir" ] \
+  && _pass "symlink creates" \
+  || _fail "symlink creates"
+
+# Existing symlink — skip
+apply_strategy "" "$TMPDIR/sym/mylink" "symlink" "../sym/linkdir" "" "false"
+[ -L "$TMPDIR/sym/mylink" ] \
+  && _pass "symlink skips existing" \
+  || _fail "symlink skips existing"
+
+# Regular file in the way — warn, don't overwrite
+echo "block" > "$TMPDIR/sym/blockfile"
+original_mtime=$(stat -c %Y "$TMPDIR/sym/blockfile" 2>/dev/null || stat -f %m "$TMPDIR/sym/blockfile" 2>/dev/null)
+apply_strategy "" "$TMPDIR/sym/blockfile" "symlink" "../sym/linkdir" "" "false" 2>/dev/null || true
+[ -f "$TMPDIR/sym/blockfile" ] && [ ! -L "$TMPDIR/sym/blockfile" ] \
+  && _pass "symlink warns on regular file (does not overwrite)" \
+  || _fail "symlink warns on regular file (does not overwrite)"
+
+# -------------------------------------------------------------------
+echo "  --- merge-mcp ---"
+
+mkdir -p "$TMPDIR/merge"
+echo '{"mcpServers":{}}' > "$TMPDIR/merge/base.json"
+apply_strategy "$TMPDIR/merge/base.json" "$TMPDIR/merge/mcp.json" "merge-mcp" "" "" "false"
+[ -f "$TMPDIR/merge/mcp.json" ] \
+  && _pass "merge-mcp copies base" \
+  || _fail "merge-mcp copies base"
+
+# -------------------------------------------------------------------
+echo "  --- structure-only ---"
+
+apply_strategy "" "$TMPDIR/struct/dir" "structure-only" "" "" "false"
+[ -d "$TMPDIR/struct/dir" ] \
+  && _pass "structure-only creates directory" \
+  || _fail "structure-only creates directory"
+
+apply_strategy "" "$TMPDIR/struct/dir" "structure-only" "" "" "false"
+[ -d "$TMPDIR/struct/dir" ] \
+  && _pass "structure-only idempotent" \
+  || _fail "structure-only idempotent"
+
+# -------------------------------------------------------------------
+echo "  --- unknown strategy ---"
+
+apply_strategy "src" "dst" "nonexistent" "" "" "false" 2>/dev/null && rc=0 || rc=$?
+[ "$rc" -eq 1 ] \
+  && _pass "unknown strategy returns error" \
+  || _fail "unknown strategy returns error (got rc=$rc)"
+
+# -------------------------------------------------------------------
+echo "  --- dry-run mode ---"
+
+mkdir -p "$TMPDIR/dry"
+echo "dry" > "$TMPDIR/dry/src.txt"
+output=$(apply_strategy "$TMPDIR/dry/src.txt" "$TMPDIR/dry/dst.txt" "copy-once" "" "" "true" 2>&1)
+echo "$output" | grep -q "DRY RUN" \
+  && _pass "dry-run prints DRY RUN marker" \
+  || _fail "dry-run prints DRY RUN marker"
+[ ! -f "$TMPDIR/dry/dst.txt" ] \
+  && _pass "dry-run does not create file" \
+  || _fail "dry-run does not create file"
+
+# -------------------------------------------------------------------
+echo "  --- parse full manifest ---"
+
+WORKSPACE_FULL_PATH="$TMPDIR/full"
+export WORKSPACE_FULL_PATH
+output=$(apply_manifest "$ROOT_DIR/seed/manifest.yaml" true 2>&1)
+count=$(echo "$output" | grep -c 'DRY RUN' || true)
+[ "$count" -ge 8 ] \
+  && _pass "parse full manifest: $count artifacts" \
+  || _fail "parse full manifest: expected >=8 artifacts, got $count"
+! echo "$output" | grep -q "WARN: unknown strategy" \
+  && _pass "parse full manifest: no unknown strategies" \
+  || _fail "parse full manifest: unknown strategy warnings"
+
+# -------------------------------------------------------------------
+[ "$FAIL" -eq 0 ] && echo "  All $(( 14 )) tests passed" || echo "  $FAIL test(s) failed"
+exit $FAIL

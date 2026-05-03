@@ -4,3 +4,7 @@ description: iwe-rules-review skill
 dependencies:
   []
 api_contract:
+  inputs:
+    - persistent-memory/
+    - .claude/rules/
+  outputs: []
