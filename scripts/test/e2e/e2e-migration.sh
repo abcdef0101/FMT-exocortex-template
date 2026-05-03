@@ -7,19 +7,19 @@ echo "=== E2E-9: Migration — symlink repair ==="
 
 source "$MANIFEST_LIB" 2>/dev/null
 
-# Setup: create workspace structure manually (not via manifest)
-# Manifest symlink target ../../../persistent-memory/ doesn't resolve
-# in temp dirs, so we create the directory tree to make it work.
+# Setup: create workspace structure with valid symlink
+# In the real repo: workspaces/iwe2/memory/persistent-memory -> ../../../persistent-memory/
+#   = repo_root/persistent-memory/
+# In temp dir:   $WS_DIR/migtest/memory/persistent-memory -> ../../persistent-memory/
+#   = $WS_DIR/persistent-memory/ (because migtest is 1 level deeper)
 WS_DIR=$(mktemp -d -t e2e-mig-XXXXXX)
 WORKSPACE_FULL_PATH="$WS_DIR/migtest"
 export WORKSPACE_FULL_PATH
 mkdir -p "$WORKSPACE_FULL_PATH/memory"
 
-# Place persistent-memory at the correct relative path (3 levels up from memory/)
-# Symlink expects: ../../../persistent-memory/ → $WS_DIR/persistent-memory/
 mkdir -p "$WS_DIR/persistent-memory"
 echo "# test" > "$WS_DIR/persistent-memory/test.md"
-ln -s "../../../persistent-memory/" "$WORKSPACE_FULL_PATH/memory/persistent-memory"
+ln -s "../../persistent-memory/" "$WORKSPACE_FULL_PATH/memory/persistent-memory"
 
 # Link from CURRENT_WORKSPACE (migration script resolves via this)
 WS_LINK_SAVED=$(readlink "$ROOT_DIR/workspaces/CURRENT_WORKSPACE" 2>/dev/null || echo "")
