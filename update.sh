@@ -409,6 +409,18 @@ git -C "$ROOT_DIR" pull --rebase origin "$CURRENT_BRANCH" || {
 }
 echo "  ✓ Upstream pulled"
 
+# Run pending migrations (ADR-005 §4)
+echo ""
+echo "Running migrations..."
+LOCAL_VER="0.0.0"
+UPSTREAM_VER="99.99.99"
+if [ -f "$ROOT_DIR/seed/manifest.yaml" ]; then
+  UPSTREAM_VER=$(grep '^version:' "$ROOT_DIR/seed/manifest.yaml" | awk '{print $2}' | head -1 || echo "99.99.99")
+fi
+if [ -f "$ROOT_DIR/scripts/run-migrations.sh" ]; then
+  bash "$ROOT_DIR/scripts/run-migrations.sh" "$LOCAL_VER" "$UPSTREAM_VER"
+fi
+
 # 3-way merge for mixed-space files
 _three_way_merge "CLAUDE.md"
 _three_way_merge "ONTOLOGY.md"
