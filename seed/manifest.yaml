@@ -1,0 +1,94 @@
+# Manifest — декларативный контракт установки и обновления
+# Читается setup.sh (первичная установка) и update.sh (обновление)
+# ADR-005 §1: единый source-of-truth для операций с файлами
+
+version: "1.0.0"
+schema: "https://fmtexocortex.dev/schemas/manifest-v1"
+
+# =========================================================================
+# Strategy reference:
+#   copy-once            — copy only if target does not exist (user data)
+#   copy-if-newer        — copy if source modified since last copy
+#   copy-and-substitute  — copy + replace {{PLACEHOLDER}} tokens
+#   symlink              — create symlink if not exists
+#   merge-mcp            — merge with user MCPs from extensions/mcps/
+#   structure-only       — create directory, no file copy (user-populated)
+# =========================================================================
+
+artifacts:
+  # --- Core workspace files ---
+
+  - source: seed/CLAUDE.md
+    target: $WORKSPACE_FULL_PATH/CLAUDE.md
+    strategy: copy-if-newer
+    description: Platform instructions — L1-L3 sections
+    section: core
+
+  - source: seed/params.yaml
+    target: $WORKSPACE_FULL_PATH/params.yaml
+    strategy: copy-once
+    description: User configuration — never overwritten by update
+    section: user-config
+
+  # --- Memory ---
+
+  - source: seed/MEMORY.md
+    target: $WORKSPACE_FULL_PATH/memory/MEMORY.md
+    strategy: copy-once
+    description: User operational memory — never overwritten
+    section: user-data
+
+  - source: seed/day-rhythm-config.yaml
+    target: $WORKSPACE_FULL_PATH/memory/day-rhythm-config.yaml
+    strategy: copy-once
+    description: User day rhythm config — never overwritten
+    section: user-config
+
+  # --- Persistent memory (platform reference) ---
+
+  - source: persistent-memory/
+    target: $WORKSPACE_FULL_PATH/memory/persistent-memory
+    strategy: symlink
+    symlink_target: ../../../persistent-memory/
+    description: Runtime projection of platform reference corpus
+    section: platform
+
+  # --- Claude settings ---
+
+  - source: seed/settings.local.json
+    target: $WORKSPACE_FULL_PATH/.claude/settings.local.json
+    strategy: copy-and-substitute
+    placeholders:
+      - "{{ROOT_DIR}}"
+    description: Claude Code settings with per-user template paths
+    section: config
+
+  # --- MCP configuration ---
+
+  - source: seed/.mcp.json
+    target: $WORKSPACE_FULL_PATH/.mcp.json
+    strategy: merge-mcp
+    merge_source: $WORKSPACE_FULL_PATH/extensions/mcps/
+    merge_key: mcpServers
+    description: MCP configuration merged with user MCP extensions
+    section: config
+
+  # --- Extension points (user-populated) ---
+
+  - target: $WORKSPACE_FULL_PATH/extensions/mcps/
+    strategy: structure-only
+    description: User MCP extensions — schema from seed/extensions/mcps/*.json
+    section: extensions
+
+# =========================================================================
+# NEVER-TOUCH: files that update.sh MUST NOT overwrite
+# These are user-space files. Checksum enforcement skips them.
+# =========================================================================
+
+never_touch:
+  - $WORKSPACE_FULL_PATH/memory/MEMORY.md
+  - $WORKSPACE_FULL_PATH/params.yaml
+  - $WORKSPACE_FULL_PATH/memory/day-rhythm-config.yaml
+  - $WORKSPACE_FULL_PATH/extensions/
+  - $WORKSPACE_FULL_PATH/CLAUDE.md
+  - $WORKSPACE_FULL_PATH/.claude/settings.local.json

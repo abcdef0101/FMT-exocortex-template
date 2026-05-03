@@ -1,0 +1,6 @@
+component: skill/iwe-rules-review
+version: 1.0.0
+description: iwe-rules-review skill
+dependencies:
+  []
+api_contract:

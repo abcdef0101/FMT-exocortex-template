@@ -1,0 +1,10 @@
+component: skill/archgate
+version: 3.0.0
+description: Оценка архитектурного решения по 7 характеристикам ЭМОГССБ
+dependencies:
+  - persistent-memory/fpf-reference.md
+api_contract:
+  inputs:
+    - CLAUDE.md
+  outputs:
+    - archgate-report.md

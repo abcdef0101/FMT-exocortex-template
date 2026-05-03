@@ -1,0 +1,10 @@
+component: skill/iwe-workspace
+version: 1.0.0
+description: Управление рабочими пространствами IWE
+dependencies:
+  - workspaces/
+api_contract:
+  inputs:
+    - workspaces/CURRENT_WORKSPACE
+  outputs:
+    - workspace state

@@ -1,0 +1,10 @@
+component: skill/session-topic-archiver
+version: 1.0.0
+description: Capture topics from session as Markdown notes
+dependencies:
+  - persistent-memory/
+api_contract:
+  inputs:
+    - conversation
+  outputs:
+    - kb/*.md

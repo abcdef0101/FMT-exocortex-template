@@ -1,0 +1,6 @@
+component: skill/iwe-update
+version: 1.0.0
+description: iwe-update skill
+dependencies:
+  []
+api_contract:

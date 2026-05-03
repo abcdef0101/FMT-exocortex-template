@@ -1,0 +1,17 @@
+component: skill/day-open
+version: 2.0.0
+description: Протокол открытия дня
+dependencies:
+  - persistent-memory/protocol-open.md
+  - DS-strategy
+api_contract:
+  inputs:
+    - day-rhythm-config.yaml
+    - params.yaml
+  outputs:
+    - current/DayPlan.md
+breaking_changes:
+  - version: 2.0.0
+    description: "collapsible details DayPlan"
+  - version: 1.0.0
+    description: "auto DayPlan generation"

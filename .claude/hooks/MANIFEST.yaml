@@ -1,0 +1,14 @@
+component: hooks
+version: 0.25.1
+description: Claude Code hooks — gate enforcement, validation, time tracking
+dependencies:
+  - persistent-memory
+api_contract:
+  inputs:
+    - .claude/settings.json
+    - UserPromptSubmit / PostToolUse / Stop / PreCompact events
+  outputs:
+    - gate reminders (WP, Close, Protocol)
+    - DayPlan validation
+    - WakaTime heartbeats
+breaking_changes: []

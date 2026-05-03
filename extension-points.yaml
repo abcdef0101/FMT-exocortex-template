@@ -1,0 +1,189 @@
+# Extension Points — машиночитаемый каталог точек расширения
+# Читается update.sh для compat-check, /extend skill для списка
+# ADR-005 §5
+
+version: "1.0.0"
+schema: "https://fmtexocortex.dev/schemas/extension-points-v1"
+
+# Правила обратной совместимости (ADR-005 §5):
+#   - Добавить точку → MINOR bump
+#   - Изменить hook (формат/событие) → MAJOR bump + migration
+#   - Удалить точку → MAJOR bump + migration (авто-перенос расширений)
+#   - Переименовать id → MAJOR bump + migration (авто-переименование файлов)
+
+points:
+  # ===== Protocol Hooks (extensions/*.md) =====
+
+  - id: protocol-close-checks
+    name: Protocol Close checks
+    file: extensions/protocol-close.checks.md
+    protocol: markdown
+    hook: run-protocol close — after commit, before status
+    mode: blocking
+    toggle: protocol_close_checks_enabled
+    since: 0.18.0
+
+  - id: protocol-close-after
+    name: Protocol Close after
+    file: extensions/protocol-close.after.md
+    protocol: markdown
+    hook: run-protocol close — after checklist, before verification
+    mode: after
+    toggle: protocol_close_after_enabled
+    since: 0.18.0
+
+  - id: day-open-before
+    name: Day Open before
+    file: extensions/day-open.before.md
+    protocol: markdown
+    hook: day-open — before yesterday summary
+    mode: before
+    toggle: day_open_before_enabled
+    since: 0.18.0
+
+  - id: day-open-after
+    name: Day Open after
+    file: extensions/day-open.after.md
+    protocol: markdown
+    hook: day-open — after needs-attention, before DayPlan write
+    mode: after
+    toggle: day_open_after_enabled
+    since: 0.18.0
+
+  - id: day-open-checks
+    name: Day Open checks
+    file: extensions/day-open.checks.md
+    protocol: markdown
+    hook: day-open — before DayPlan commit
+    mode: blocking
+    toggle: day_open_checks_enabled
+    since: 0.18.0
+
+  - id: day-close-before
+    name: Day Close before
+    file: extensions/day-close.before.md
+    protocol: markdown
+    hook: day-close — before step 1
+    mode: before
+    toggle: day_close_before_enabled
+    since: 0.18.0
+
+  - id: day-close-checks
+    name: Day Close checks
+    file: extensions/day-close.checks.md
+    protocol: markdown
+    hook: day-close — after governance, before commit
+    mode: blocking
+    toggle: day_close_checks_enabled
+    since: 0.18.0
+
+  - id: day-close-multiplier
+    name: Day Close multiplier
+    file: extensions/day-close.multiplier.md
+    protocol: markdown
+    hook: day-close — after mechanical steps, before write results
+    mode: after
+    toggle: multiplier_enabled
+    since: 0.18.0
+
+  - id: day-close-after
+    name: Day Close after
+    file: extensions/day-close.after.md
+    protocol: markdown
+    hook: day-close — after day results, before verification
+    mode: after
+    toggle: day_close_after_enabled
+    since: 0.18.0
+
+  - id: week-close-before
+    name: Week Close before
+    file: extensions/week-close.before.md
+    protocol: markdown
+    hook: week-close — before lesson rotation
+    mode: before
+    toggle: week_close_before_enabled
+    since: 0.18.0
+
+  - id: week-close-after
+    name: Week Close after
+    file: extensions/week-close.after.md
+    protocol: markdown
+    hook: week-close — after memory audit, before finalization
+    mode: after
+    toggle: week_close_after_enabled
+    since: 0.18.0
+
+  - id: protocol-open-after
+    name: Protocol Open after
+    file: extensions/protocol-open.after.md
+    protocol: markdown
+    hook: protocol-open — after negotiation ritual
+    mode: after
+    toggle: protocol_open_after_enabled
+    since: 0.18.0
+
+  # ===== User Config (never overwritten by update.sh) =====
+
+  - id: workspace-claude-md
+    name: Workspace CLAUDE.md
+    file: $WORKSPACE_FULL_PATH/CLAUDE.md
+    protocol: markdown
+    source: seed/CLAUDE.md
+    strategy: copy-if-newer
+    never_touch: true
+    since: 0.15.0
+
+  - id: params-yaml
+    name: User parameters
+    file: $WORKSPACE_FULL_PATH/params.yaml
+    protocol: yaml
+    source: seed/params.yaml
+    strategy: copy-once
+    never_touch: true
+    since: 0.18.0
+
+  - id: day-rhythm-config
+    name: Day rhythm config
+    file: $WORKSPACE_FULL_PATH/memory/day-rhythm-config.yaml
+    protocol: yaml
+    source: seed/day-rhythm-config.yaml
+    strategy: copy-once
+    never_touch: true
+    since: 0.16.8
+
+  - id: user-memory
+    name: User operational memory
+    file: $WORKSPACE_FULL_PATH/memory/MEMORY.md
+    protocol: markdown
+    source: seed/MEMORY.md
+    strategy: copy-once
+    never_touch: true
+    since: 0.1.0
+
+  - id: settings-local
+    name: Claude Code user settings
+    file: $WORKSPACE_FULL_PATH/.claude/settings.local.json
+    protocol: json
+    source: seed/settings.local.json
+    strategy: copy-and-substitute
+    placeholders:
+      - "{{ROOT_DIR}}"
+    never_touch: true
+    since: 0.12.0
+
+  - id: mcp-user
+    name: User MCP servers
+    file: $WORKSPACE_FULL_PATH/extensions/mcps/
+    protocol: json (MCP server config)
+    strategy: structure-only
+    never_touch: true
+    since: 0.23.0
+
+  # ===== Skills =====
+
+  - id: custom-skills
+    name: Custom user skills
+    file: .claude/skills/
+    protocol: markdown + YAML frontmatter
+    hook: on-demand (/<name>)
+    since: 0.19.0

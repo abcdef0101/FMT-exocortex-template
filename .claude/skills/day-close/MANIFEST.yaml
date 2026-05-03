@@ -1,0 +1,17 @@
+component: skill/day-close
+version: 2.0.0
+description: Протокол закрытия дня
+dependencies:
+  - persistent-memory/protocol-close.md
+  - wakatime
+api_contract:
+  inputs:
+    - day-rhythm-config.yaml
+    - current/DayPlan.md
+  outputs:
+    - MEMORY.md
+breaking_changes:
+  - version: 2.0.0
+    description: "TodoWrite enforcement"
+  - version: 1.0.0
+    description: "переход на run-protocol"

@@ -1,0 +1,14 @@
+component: skill/week-close
+version: 2.0.0
+description: Протокол закрытия недели
+dependencies:
+  - run-protocol
+  - iwe-rules-review
+api_contract:
+  inputs:
+    - current/WeekPlan.md
+  outputs:
+    - archive/week-reports/
+breaking_changes:
+  - version: 2.0.0
+    description: "alias for run-protocol"

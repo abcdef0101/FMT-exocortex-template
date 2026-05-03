@@ -1,0 +1,13 @@
+component: skill/verify
+version: 2.0.0
+description: Верификация артефакта по эталону из Pack
+dependencies:
+  - roles/verifier/
+api_contract:
+  inputs:
+    - roles/verifier/
+  outputs:
+    - verification-report
+breaking_changes:
+  - version: 2.0.0
+    description: "context isolation VR.R.001"

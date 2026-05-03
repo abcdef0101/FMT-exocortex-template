@@ -1,0 +1,10 @@
+component: skill/setup-wakatime
+version: 1.0.0
+description: Настройка WakaTime time-tracking
+dependencies:
+  - wakatime
+api_contract:
+  inputs:
+    - .wakatime.cfg
+  outputs:
+    - wakatime config

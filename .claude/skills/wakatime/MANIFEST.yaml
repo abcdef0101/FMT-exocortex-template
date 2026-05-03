@@ -1,0 +1,10 @@
+component: skill/wakatime
+version: 1.0.0
+description: WakaTime статистика рабочего времени
+dependencies:
+  - .wakatime.cfg
+api_contract:
+  inputs:
+    - .wakatime.cfg
+  outputs:
+    - time report

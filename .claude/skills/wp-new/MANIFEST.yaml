@@ -1,0 +1,12 @@
+component: skill/wp-new
+version: 1.0.0
+description: Создание нового рабочего продукта с записью в 5 мест
+dependencies:
+  - DS-strategy/
+api_contract:
+  inputs:
+    - DS-strategy/WP-REGISTRY.md
+  outputs:
+    - WP-REGISTRY.md
+    - MEMORY.md
+    - WeekPlan.md

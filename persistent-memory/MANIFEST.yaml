@@ -1,0 +1,25 @@
+component: persistent-memory
+version: 0.25.1
+description: Платформенная память — протоколы, навигация, различения, справочники
+dependencies: []
+api_contract:
+  inputs: []
+  outputs:
+    - protocol-open.md
+    - protocol-close.md
+    - protocol-work.md
+    - navigation.md
+    - hard-distinctions.md
+    - fpf-reference.md
+    - sota-reference.md
+    - repo-type-rules.md
+    - roles.md
+    - checklists.md
+    - MEMORY.md
+breaking_changes:
+  - version: 0.25.0
+    description: "protocol-close.md compressed from 454 to 97 lines"
+  - version: 0.24.0
+    description: "DayPlan requires <details> collapsible"
+  - version: 0.18.0
+    description: "AUTHOR-ONLY replaced by extensions/"

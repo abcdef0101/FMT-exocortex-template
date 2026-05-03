@@ -1,0 +1,10 @@
+component: skill/ke
+version: 1.0.0
+description: Knowledge Extraction — извлечение и маршрутизация знания
+dependencies:
+  - roles/extractor/
+api_contract:
+  inputs:
+    - persistent-memory/repo-type-rules.md
+  outputs:
+    - extraction-reports

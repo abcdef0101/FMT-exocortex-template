@@ -1,0 +1,10 @@
+component: skill/think
+version: 1.0.0
+description: ADI-цикл структурированного рассуждения
+dependencies:
+  - persistent-memory/fpf-reference.md
+api_contract:
+  inputs:
+    - persistent-memory/fpf-reference.md
+  outputs:
+    - решение

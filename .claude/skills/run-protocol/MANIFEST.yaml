@@ -1,0 +1,21 @@
+component: skill/run-protocol
+version: 3.0.0
+description: Пошаговое выполнение протокола ОРЗ
+dependencies:
+  - persistent-memory/protocol-open.md
+  - persistent-memory/protocol-close.md
+  - persistent-memory/protocol-work.md
+api_contract:
+  inputs:
+    - persistent-memory/protocol-*.md
+  outputs:
+    - TodoWrite
+    - DayPlan
+    - MEMORY.md
+breaking_changes:
+  - version: 3.0.0
+    description: "Haiku R23 checklist verification"
+  - version: 2.0.0
+    description: "day-close/week-close alias"
+  - version: 1.0.0
+    description: "initial"

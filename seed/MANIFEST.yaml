@@ -1,0 +1,17 @@
+component: seed
+version: 0.25.1
+description: Seed шаблона — bootstrap файлы для установки
+dependencies:
+  - persistent-memory
+api_contract:
+  inputs:
+    - seed/manifest.yaml (установочный контракт)
+  outputs:
+    - workspace/CLAUDE.md
+    - workspace/memory/
+    - workspace/params.yaml
+    - workspace/.mcp.json
+    - workspace/.claude/settings.local.json
+breaking_changes:
+  - version: 0.25.1
+    description: "manifest-driven install (ADR-005)"

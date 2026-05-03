@@ -1,0 +1,11 @@
+component: skill/add-workspace-mcps
+version: 1.0.0
+description: Добавить MCP-серверы из extensions/mcps/*.json
+dependencies:
+  - extensions/mcps/
+api_contract:
+  inputs:
+    - workspace/extensions/mcps/
+    - .mcp.json
+  outputs:
+    - .mcp.json

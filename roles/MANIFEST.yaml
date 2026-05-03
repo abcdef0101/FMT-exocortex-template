@@ -1,0 +1,16 @@
+component: roles
+version: 0.25.1
+description: Auto-install роли — strategist, extractor, synchronizer, verifier
+dependencies:
+  - persistent-memory
+api_contract:
+  inputs:
+    - roles/<name>/role.yaml (autodiscovery)
+    - roles/<name>/install.sh
+  outputs:
+    - launchd/systemd timers
+    - role config files
+    - daily reports
+breaking_changes:
+  - version: 0.20.0
+    description: "auto-install трёх ролей с первого дня"

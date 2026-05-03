@@ -1,0 +1,20 @@
+component: root/CLAUDE.md
+version: 0.25.1
+description: Главный инструктивный файл — правила, ссылки, архитектура
+dependencies:
+  - persistent-memory
+  - .claude/skills/
+  - .claude/rules/
+  - .claude/hooks/
+api_contract:
+  inputs:
+    - CHANGELOG.md
+    - ONTOLOGY.md
+    - .claude/rules/
+  outputs:
+    - CLAUDE.md (platform instructions L1-L3)
+breaking_changes:
+  - version: 0.24.0
+    description: "pull-on-touch правило"
+  - version: 0.18.0
+    description: "AUTHOR-ONLY → extensions/ + params.yaml"

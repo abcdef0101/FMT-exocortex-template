@@ -1,0 +1,6 @@
+component: skill/extend
+version: 1.0.0
+description: extend skill
+dependencies:
+  []
+api_contract:
