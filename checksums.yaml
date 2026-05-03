@@ -3,7 +3,7 @@
 # ADR-005 §2: checksum-based enforcement при update.sh --apply
 
 version: 2026.05.03
-generated: 2026-05-03T12:41:20Z
+generated: 2026-05-03T13:25:34Z
 
 never_touch:
   - seed/MEMORY.md
@@ -37,7 +37,7 @@ files:
   .claude/skills/day-close/scripts/day-close.sh: "cc1a4a80bbddfb9f8171e9952f9dc8a24f1cfee8c8276712f8c65ca57a023d18"
   .claude/skills/day-open/MANIFEST.yaml: "332661f9b387a745ada366a3732833f153224ca47c0a8ba6dd0aa4a6bf9bf2c0"
   .claude/skills/day-open/SKILL.md: "25d2d92a18ba0661b0f1af21b6a90ac185ab73cb7795f7e704d962af9cf3186f"
-  .claude/skills/extend/MANIFEST.yaml: "59cf4b4c3b712194779a95f641da380fb17fb96ff4e88ef86094323a7efd1972"
+  .claude/skills/extend/MANIFEST.yaml: "03168591970c3848e5d0593b2c65030c82381c28da8c09b1405da57767714bc3"
   .claude/skills/extend/SKILL.md: "74ba396d4799ff0985acd35d4395db2829e41379ad55325e442e80c0ba97d85b"
   .claude/skills/fpf/MANIFEST.yaml: "13d43b35a9f9417145a29261fcbc5ceb52f650b7723192b8eb07a0b21868aed1"
   .claude/skills/fpf/SKILL.md: "03967ba8128763eb8df2144c84ca6e1a025832edb14a7dfb614cab8ebf7fa3ae"
@@ -158,6 +158,14 @@ files:
   scripts/generate-checksums.sh: "2b9ec4dbb447e1605189eafa4fae66ec49606d31ae502dc8b0f5f47f6bcd8142"
   scripts/lib/manifest-lib.sh: "2e2911a653c7718f5f339cebb8d7085852ca527fbe2b76c0631006539ad3b8c6"
   scripts/run-migrations.sh: "bdd48e50a78fddba53469c748cd9f3e15331fff6610ee6d93c7d626854f6f247"
+  scripts/test/e2e/SMOKE-TEST.md: "6f724ea96ab58e208006bcc71b9450a62cd747372946187a36c39924658987c4"
+  scripts/test/e2e/_lib.sh: "b533d07fe921bb997cf4b08363d58d8bfc409d665e361f6f100dd46241abfadb"
+  scripts/test/e2e/e2e-author-sync.sh: "b6a94e8856cb8a05ed044fccfd1cc9dce1e5c550483f01415c5f0e8b3e1c64a1"
+  scripts/test/e2e/e2e-conflict.sh: "0925be8657d81f2f7b9624334620e7d5584acd943b3c5158f6e3ac963d2f1c84"
+  scripts/test/e2e/e2e-fresh-install.sh: "f4bee7d5bb336ec28bc9e740f03b0eff316f118857e7af699156a970b3edd2d2"
+  scripts/test/e2e/e2e-migration.sh: "a2615e366d78c858bc8c14e0942e2c57ca8b7af4481d241b646defc65a9a0837"
+  scripts/test/e2e/e2e-update-flow.sh: "dbb84e7068b38ff777b253da298206a6d9fc8bfb36d80c266d7ff7ad48f54267"
+  scripts/test/run-e2e.sh: "d8031d8b130888d558437d3981900f9051b86ae9e62028c5aa34146f9c245167"
   scripts/test/run-phase0.sh: "ba660906ed4020a6d0830a51d3ee440503cc4d38c65018767de9838b4a940be6"
   scripts/test/test-checksums.sh: "6a1e466830d6dc9ea30544214d0251dbdc65a26bfe477bc5a01d76e8bd91fcd5"
   scripts/test/test-enforce-semver.sh: "9fcf4c2bc01a95aa862d6666cc972c85ed8eb55d66807da02ddbe041ecb194ca"
