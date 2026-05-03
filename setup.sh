@@ -310,7 +310,19 @@ if [ -d "$WORKSPACE_FULL_PATH" ]; then
   exit 1
 fi
 
+# === Manifest-driven installation (ADR-005 §1) ===
+echo "[2/5] Installing workspace files (manifest-driven)..."
+
+MANIFEST_LIB="$ROOT_DIR/scripts/lib/manifest-lib.sh"
+MANIFEST_FILE="$ROOT_DIR/seed/manifest.yaml"
+
+[ -f "$MANIFEST_LIB" ] || { echo "ERROR: Manifest library not found: $MANIFEST_LIB" >&2; exit 3; }
+[ -f "$MANIFEST_FILE" ] || { echo "ERROR: Manifest file not found: $MANIFEST_FILE" >&2; exit 3; }
+
+source "$MANIFEST_LIB"
+
 # === Ensure workspace exists ===
+export WORKSPACE_FULL_PATH
 if $DRY_RUN; then
   apply_manifest "$MANIFEST_FILE" true
 else

@@ -102,6 +102,21 @@ else
   [ "$rc" -ne 0 ] && _pass "missing WORKSPACE_FULL_PATH: non-zero exit" || _fail "missing WORKSPACE_FULL_PATH: not handled"
 fi
 
+# P1: manifest file not found
+echo "  --- manifest file not found ---"
+output=$(apply_manifest "/nonexistent/manifest.yaml" true 2>&1) && rc=0 || rc=$?
+echo "$output" | grep -q "ERROR.*manifest file not found" 2>/dev/null \
+  && _pass "missing manifest: ERROR message" \
+  || [ "$rc" -ne 0 ] && _pass "missing manifest: non-zero exit" \
+  || _fail "missing manifest: no error"
+
+# P1: setup.sh graceful error when manifest-lib.sh not found
+echo "  --- manifest-lib not found ---"
+SETUP="$ROOT_DIR/setup.sh"
+grep -q 'ERROR.*Manifest library not found' "$SETUP" \
+  && _pass "setup.sh: manifest-lib missing detection" \
+  || _fail "setup.sh: no manifest-lib missing detection"
+
 # -------------------------------------------------------------------
 [ "$FAIL" -eq 0 ] && echo "  All tests passed" || echo "  $FAIL test(s) failed"
 exit $FAIL

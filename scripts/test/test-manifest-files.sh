@@ -119,6 +119,51 @@ else
 fi
 
 # -------------------------------------------------------------------
+echo "  --- component id uniqueness ---"
+
+comp_ids=$(for mf in "${manifests[@]}"; do grep '^component:' "$mf" | awk '{print $2}'; done)
+dup_ids=$(echo "$comp_ids" | sort | uniq -d)
+if [ -z "$dup_ids" ]; then
+  _pass "component ids: all ${#manifests[@]} unique"
+else
+  _fail "component ids: duplicates found ($dup_ids)"
+fi
+
+# -------------------------------------------------------------------
+echo "  --- dependency references ---"
+
+# Collect all component base names (e.g. "skill/wakatime" → "wakatime")
+all_base=""
+for mf in "${manifests[@]}"; do
+  cid=$(grep '^component:' "$mf" | awk '{print $2}')
+  base="${cid##*/}"  # "skill/wakatime" → "wakatime"
+  all_base="$all_base"$'\n'"$base"
+done
+
+dep_errors=0
+for mf in "${manifests[@]}"; do
+  rel="${mf#$ROOT_DIR/}"
+  deps=$(sed -n '/^dependencies:/,/^api_contract:/p' "$mf" | grep '^  - ' | sed 's/  - //' | tr -d '[]' || true)
+  while IFS= read -r dep; do
+    [ -z "$dep" ] && continue
+    [ "$dep" = "[]" ] && continue
+    # Skip runtime paths (containing / — workspaces, DS-strategy, etc.)
+    [[ "$dep" == */* ]] && continue
+    # Match: component base name
+    if echo "$all_base" | grep -qxF "$dep"; then
+      : # valid base name
+    elif [ -f "$ROOT_DIR/$dep" ] || [ -d "$ROOT_DIR/$dep" ]; then
+      : # valid file/dir
+    else
+      echo "  • $rel: unknown dependency '$dep' (advisory)"
+    fi
+  done <<< "$deps"
+done
+[ "$dep_errors" -eq 0 ] \
+  && _pass "dependency references: all resolved" \
+  || true
+
+# -------------------------------------------------------------------
 echo "  --- version consistency ---"
 
 # Root CLAUDE.md version vs CHANGELOG

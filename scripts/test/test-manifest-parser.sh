@@ -93,6 +93,28 @@ apply_strategy "$TMPDIR/subst/no-ph.txt" "$TMPDIR/subst/no-ph-dst.txt" "copy-and
 
 export ROOT_DIR="$CURRENT_ROOT"  # restore
 
+# P1: multiple placeholders
+echo "  --- copy-and-substitute: multiple placeholders ---"
+mkdir -p "$TMPDIR/multi"
+export ROOT_DIR="/fake/multi"
+echo 'A: {{ROOT_DIR}}, B: {{ROOT_DIR}}, C: {{ROOT_DIR}}' > "$TMPDIR/multi/multi.txt"
+apply_strategy "$TMPDIR/multi/multi.txt" "$TMPDIR/multi/multi-dst.txt" "copy-and-substitute" "" "{{ROOT_DIR}}" "false"
+count=$(grep -o '/fake/multi' "$TMPDIR/multi/multi-dst.txt" 2>/dev/null | wc -l)
+export ROOT_DIR="$CURRENT_ROOT"
+[ "$count" -eq 3 ] \
+  && _pass "copy-and-substitute: all placeholders ($count/3)" \
+  || _fail "copy-and-substitute: all placeholders (expected 3, got $count)"
+
+# P1: placeholder without env-var fallback
+echo "  --- copy-and-substitute: missing env-var ---"
+mkdir -p "$TMPDIR/missingvar"
+echo 'Missing: {{MISSING_VAR}}' > "$TMPDIR/missingvar/src.txt"
+unset MISSING_VAR 2>/dev/null || true
+apply_strategy "$TMPDIR/missingvar/src.txt" "$TMPDIR/missingvar/dst.txt" "copy-and-substitute" "" "{{MISSING_VAR}}" "false"
+[ -f "$TMPDIR/missingvar/dst.txt" ] \
+  && _pass "copy-and-substitute: missing env-var no crash" \
+  || _fail "copy-and-substitute: missing env-var crashed"
+
 # -------------------------------------------------------------------
 echo "  --- symlink ---"
 
@@ -184,5 +206,5 @@ count=$(echo "$output" | grep -c 'DRY RUN' || true)
   || _fail "parse full manifest: unknown strategy warnings"
 
 # -------------------------------------------------------------------
-[ "$FAIL" -eq 0 ] && echo "  All $(( 16 )) tests passed" || echo "  $FAIL test(s) failed"
+[ "$FAIL" -eq 0 ] && echo "  All $(( 18 )) tests passed" || echo "  $FAIL test(s) failed"
 exit $FAIL
