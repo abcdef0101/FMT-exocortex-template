@@ -7,24 +7,29 @@ echo "=== E2E-9: Migration — symlink repair ==="
 
 source "$MANIFEST_LIB" 2>/dev/null
 
-# Setup workspace with manifest
+# Setup: create workspace structure manually (not via manifest)
+# Manifest symlink target ../../../persistent-memory/ doesn't resolve
+# in temp dirs, so we create the directory tree to make it work.
 WS_DIR=$(mktemp -d -t e2e-mig-XXXXXX)
 WORKSPACE_FULL_PATH="$WS_DIR/migtest"
 export WORKSPACE_FULL_PATH
+mkdir -p "$WORKSPACE_FULL_PATH/memory"
 
-# Create temp workspace directory and link from CURRENT_WORKSPACE
-# Migration script resolves workspace via workspaces/CURRENT_WORKSPACE symlink
-mkdir -p "$WS_DIR/migtest"
-WS_LINK_SAVED=$(readlink "$ROOT_DIR/workspaces/CURRENT_WORKSPACE" 2>/dev/null || echo "$ROOT_DIR/workspaces/_none")
+# Place persistent-memory at the correct relative path (3 levels up from memory/)
+# Symlink expects: ../../../persistent-memory/ → $WS_DIR/persistent-memory/
+mkdir -p "$WS_DIR/persistent-memory"
+echo "# test" > "$WS_DIR/persistent-memory/test.md"
+ln -s "../../../persistent-memory/" "$WORKSPACE_FULL_PATH/memory/persistent-memory"
+
+# Link from CURRENT_WORKSPACE (migration script resolves via this)
+WS_LINK_SAVED=$(readlink "$ROOT_DIR/workspaces/CURRENT_WORKSPACE" 2>/dev/null || echo "")
 rm -f "$ROOT_DIR/workspaces/CURRENT_WORKSPACE"
-ln -sf "$WS_DIR/migtest" "$ROOT_DIR/workspaces/CURRENT_WORKSPACE"
-apply_manifest "$ROOT_DIR/seed/manifest.yaml" false >/dev/null 2>&1
+ln -sf "$WORKSPACE_FULL_PATH" "$ROOT_DIR/workspaces/CURRENT_WORKSPACE"
 
 SYMLINK="$WORKSPACE_FULL_PATH/memory/persistent-memory"
-
-[ -L "$SYMLINK" ] \
-  && e2e_pass "symlink: created by manifest" \
-  || e2e_fail "symlink: not created"
+[ -L "$SYMLINK" ] && [ -e "$SYMLINK" ] \
+  && e2e_pass "symlink: created and valid" \
+  || e2e_fail "symlink: broken or missing"
 
 # Run the symlink migration
 MIG="$ROOT_DIR/migrations/0.25.1-fix-persistent-memory-symlink.sh"
@@ -39,7 +44,7 @@ fi
 
 # Restore original workspace symlink
 rm -f "$ROOT_DIR/workspaces/CURRENT_WORKSPACE"
-[ "$WS_LINK_SAVED" != "" ] && ln -sf "$WS_LINK_SAVED" "$ROOT_DIR/workspaces/CURRENT_WORKSPACE" || true
+[ -n "$WS_LINK_SAVED" ] && ln -sf "$WS_LINK_SAVED" "$ROOT_DIR/workspaces/CURRENT_WORKSPACE" || true
 
 # Runner test: version filtering
 RUNNER="$ROOT_DIR/scripts/run-migrations.sh"
