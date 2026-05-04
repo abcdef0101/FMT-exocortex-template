@@ -3,16 +3,6 @@ name: IWE Golden Image Tests
 on:
   push:
     branches: [0.25.1, main]
-    paths:
-      - 'scripts/vm/user-data.yaml'
-      - 'scripts/vm/packages-firstboot.sh'
-      - 'setup.sh'
-      - 'seed/manifest.yaml'
-      - 'checksums.yaml'
-      - 'MANIFEST.yaml'
-      - 'scripts/vm/build-golden.sh'
-      - 'scripts/vm/test-from-golden.sh'
-      - 'scripts/vm/test-phases.sh'
   pull_request:
     branches: [0.25.1, main]
   workflow_dispatch:
@@ -33,34 +23,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check if golden rebuild needed
-        id: rebuild
+      - name: Check golden image
+        id: check
         run: |
+          IMAGE="$HOME/.cache/iwe-golden/iwe-golden-${{ github.ref_name }}.qcow2"
           if [ "${{ inputs.rebuild_golden }}" = "true" ]; then
             echo "rebuild=true" >> "$GITHUB_OUTPUT"
-          elif git diff --name-only HEAD^ HEAD 2>/dev/null | grep -qE 'scripts/vm/(user-data.yaml|packages-firstboot.sh|build-golden.sh|test-phases.sh)'; then
-            echo "rebuild=true" >> "$GITHUB_OUTPUT"
-          else
+            echo "  → Force rebuild requested"
+          elif [ -f "$IMAGE" ]; then
             echo "rebuild=false" >> "$GITHUB_OUTPUT"
+            echo "  ✓ Golden image exists ($(du -sh "$IMAGE" | cut -f1))"
+            qemu-img info "$IMAGE" | grep -E 'file format|virtual size|Snapshot list' || true
+          else
+            echo "rebuild=true" >> "$GITHUB_OUTPUT"
+            echo "  ✗ Golden image not found — will rebuild"
           fi
 
       - name: Rebuild golden image
-        if: steps.rebuild.outputs.rebuild == 'true'
+        if: steps.check.outputs.rebuild == 'true'
         run: |
           echo "::group::Rebuilding golden image..."
           bash scripts/vm/build-golden.sh --version "${{ github.ref_name }}" --force
           echo "::endgroup::"
-
-      - name: Verify golden image exists
-        run: |
-          IMAGE="$HOME/.cache/iwe-golden/iwe-golden-${{ github.ref_name }}.qcow2"
-          if [ -f "$IMAGE" ]; then
-            echo "  ✓ Golden image: $IMAGE ($(du -sh "$IMAGE" | cut -f1))"
-            qemu-img info "$IMAGE" | grep -E 'file format|virtual size|Snapshot list'
-          else
-            echo "  ✗ Golden image not found. Will rebuild."
-            echo "rebuild=true" >> "$GITHUB_OUTPUT"
-          fi
 
       - name: Run tests from golden image
         id: tests
