@@ -128,9 +128,9 @@ while ss -tlnp 2>/dev/null | grep -q ":$PORT "; do PORT=$((PORT + 1)); done
 qemu-system-x86_64 -enable-kvm -m 4096 -smp 2 \
   -drive file="$GOLDEN_IMAGE",if=virtio \
   -cdrom "$SEED_IMG" \
-  -netdev user,id=net0,hostfwd=tcp::${PORT}-:22 \
+  -netdev user,id=net0,hostfwd=tcp::${PORT}-:22,restrict=off \
   -device virtio-net,netdev=net0 \
-  -display none -daemonize 2>/dev/null &
+  -display none -daemonize 2>/tmp/iwe-qemu-err-$$.log &
 
 QEMU_PID=$!
 SSH_OPTS="$SSH_OPTS -p $PORT"
@@ -165,30 +165,16 @@ if ! $SSH_OK; then
 fi
 
 # =========================================================================
-# Step 5: Remote provisioning (system packages + firstboot)
+# Step 5: Remote provisioning (system packages + npm)
 # =========================================================================
 echo "--- Step 5: Provision ---"
 
-# Build a single provision script from local fragments
 PROVISION_LOG="/tmp/iwe-provision-$$.log"
 
-# Create nodejs setup script
-cat > /tmp/iwe-nodejs-setup-$$.sh <<'NODESETUP'
+# Create provision script
+PROV_SCRIPT="/tmp/iwe-provision-script-$$.sh"
+cat > "$PROV_SCRIPT" <<'PROVSCRIPT'
 #!/usr/bin/env bash
-set -euo pipefail
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo bash -
-sudo apt-get install -y -qq nodejs
-sudo npm install -g -q npm@latest
-echo "✓ Node.js $(node --version) / npm $(npm --version)"
-NODESETUP
-
-# Upload provision scripts
-scp $SCP_OPTS -P "$PORT" /tmp/iwe-nodejs-setup-$$.sh "iwe@localhost:~/nodejs-setup.sh" 2>/dev/null
-scp $SCP_OPTS -P "$PORT" "$FIRSTBOOT_SCRIPT" "iwe@localhost:~/packages-firstboot.sh" 2>/dev/null
-
-# Run provision via SSH, save output to temp file
-set +o pipefail  # Disable pipefail for this section to avoid silent failures
-ssh $SSH_OPTS -p "$PORT" iwe@localhost bash </dev/null >"$PROVISION_LOG" 2>&1 <<'ENDPROVISION'
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
@@ -196,7 +182,7 @@ echo "Waiting for cloud-init to finish..."
 sudo cloud-init status --wait 2>&1 || true
 echo "Cloud-init done."
 
-# Wait for any remaining apt locks
+# Wait for apt locks
 for i in $(seq 1 12); do
   if sudo fuser /var/lib/apt/lists/lock 2>/dev/null; then
     echo "  apt locked, waiting... ($i/12)"
@@ -220,7 +206,9 @@ sudo apt-get install -y -qq \
   2>&1 | tail -3
 
 echo "Installing Node.js 20 LTS..."
-bash ~/nodejs-setup.sh 2>&1 | tail -5
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo bash - 2>&1 | tail -1
+sudo apt-get install -y -qq nodejs 2>&1 | tail -1
+sudo npm install -g -q npm@latest 2>&1 | tail -1
 
 echo "Installing neovim..."
 sudo add-apt-repository -y ppa:neovim-ppa/stable 2>&1 | tail -1
@@ -239,12 +227,19 @@ echo "Node.js: $(node --version 2>/dev/null || echo 'missing')"
 echo "npm:     $(npm --version 2>/dev/null || echo 'missing')"
 
 echo ""
-echo "=== Firstboot (Layer 2: npm + git clone) ==="
+echo "=== NPM Packages (Layer 2) ==="
 bash ~/packages-firstboot.sh 2>&1
-ENDPROVISION
+PROVSCRIPT
 
+# Upload provision script and firstboot script
+scp $SCP_OPTS -P "$PORT" "$PROV_SCRIPT" "iwe@localhost:~/provision.sh" 2>/dev/null
+scp $SCP_OPTS -P "$PORT" "$FIRSTBOOT_SCRIPT" "iwe@localhost:~/packages-firstboot.sh" 2>/dev/null
+
+# Run provision, capture output with proper error handling
+set +o pipefail
+ssh $SSH_OPTS -p "$PORT" -o ServerAliveInterval=10 iwe@localhost "bash ~/provision.sh" >"$PROVISION_LOG" 2>&1
 PROVISION_RC=$?
-set -o pipefail  # Re-enable pipefail
+set -o pipefail
 
 # Show provision output
 if [ -s "$PROVISION_LOG" ]; then
@@ -258,6 +253,9 @@ if [ "$PROVISION_RC" -ne 0 ]; then
 fi
 
 echo "  ✓ Provision complete"
+
+# Cleanup temp provision script
+rm -f "$PROV_SCRIPT"
 
 # =========================================================================
 # Step 6: Clean shutdown

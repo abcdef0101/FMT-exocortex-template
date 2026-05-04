@@ -222,27 +222,26 @@ scp $SCP_OPTS "$SCRIPT_DIR/test-phases.sh" "iwe@localhost:~/test-phases.sh" 2>/d
   exit 1
 }
 
-# Upload and run firstboot if repo is missing
-echo "  Checking repo..."
-REPO_EXISTS=$(ssh $SSH_OPTS iwe@localhost "[ -d ~/IWE/FMT-exocortex-template/.git ] && echo yes || echo no" 2>/dev/null)
-if [ "$REPO_EXISTS" = "no" ]; then
-  echo "  Running firstboot (npm + git clone)..."
-  scp $SCP_OPTS "$SCRIPT_DIR/packages-firstboot.sh" "iwe@localhost:~/packages-firstboot.sh" 2>/dev/null || {
-    echo "  ⚠ Could not upload firstboot script"
-  }
-  FIRSTBOOT_LOG="/tmp/iwe-firstboot-$$.log"
-  ssh $SSH_OPTS iwe@localhost "bash ~/packages-firstboot.sh" >"$FIRSTBOOT_LOG" 2>&1 || true
-  grep -E '===|✓|✗|⚠|→' "$FIRSTBOOT_LOG" 2>/dev/null || true
-  # Verify repo was actually cloned
-  if ssh $SSH_OPTS iwe@localhost "[ -d ~/IWE/FMT-exocortex-template/.git ]" 2>/dev/null; then
-    echo "  ✓ Repo cloned successfully"
-  else
-    echo "  ✗ Repo NOT cloned after firstboot — will skip test phases"
-  fi
-  rm -f "$FIRSTBOOT_LOG"
+# Clone repo for testing (always fresh clone — runtime-only golden image)
+echo "  Cloning repo..."
+REPO_URL="${IWE_REPO_URL:-https://github.com/abcdef0101/FMT-exocortex-template.git}"
+REPO_BRANCH="${IWE_BRANCH:-0.25.1}"
+
+# Remove existing repo if present (from a previous --keep run)
+ssh $SSH_OPTS iwe@localhost "rm -rf ~/IWE/FMT-exocortex-template" 2>/dev/null || true
+
+GIT_LOG="/tmp/iwe-git-clone-$$.log"
+ssh $SSH_OPTS iwe@localhost "git clone --branch $REPO_BRANCH $REPO_URL ~/IWE/FMT-exocortex-template" >"$GIT_LOG" 2>&1
+CLONE_RC=$?
+
+if [ "$CLONE_RC" -eq 0 ]; then
+  echo "  ✓ Repo cloned ($REPO_BRANCH)"
 else
-  echo "  ✓ Repo already present"
+  echo "  ✗ Repo clone FAILED (rc=$CLONE_RC)"
+  cat "$GIT_LOG" 2>/dev/null | tail -5
+  exit 1
 fi
+rm -f "$GIT_LOG"
 
 # Run requested phase
 TOTAL_PASS=0
