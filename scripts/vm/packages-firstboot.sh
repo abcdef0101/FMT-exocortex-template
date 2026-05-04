@@ -10,45 +10,74 @@ REPO_URL="${IWE_REPO_URL:-https://github.com/abcdef0101/FMT-exocortex-template.g
 
 echo "=== Packages Firstboot: Layer 2 (user iwe) ==="
 
-# Detecting execution context
+# Detect execution context
 if [ "$(whoami)" = "iwe" ]; then
   RUN_AS_IWE=""
 else
   RUN_AS_IWE="sudo -u iwe -i"
 fi
 
+# Ensure required directories exist
+if [ -z "$RUN_AS_IWE" ]; then
+  mkdir -p ~/.local/bin ~/.opencode ~/IWE
+else
+  $RUN_AS_IWE "mkdir -p ~/.local/bin ~/.opencode ~/IWE"
+fi
+
 # === npm: глобальные пакеты для iwe ===
 echo "  Installing npm packages..."
 
+_npm_install() {
+  local pkg_name="$1"
+  local npm_cmd="$2"
+  echo "  → $pkg_name..."
+  if [ -z "$RUN_AS_IWE" ]; then
+    if $npm_cmd 2>&1 | tail -3; then
+      echo "  ✓ $pkg_name"
+    else
+      echo "  ⚠ $pkg_name install failed (OK if offline)"
+    fi
+  else
+    if $RUN_AS_IWE "$npm_cmd 2>&1 | tail -3"; then
+      echo "  ✓ $pkg_name"
+    else
+      echo "  ⚠ $pkg_name install failed (OK if offline)"
+    fi
+  fi
+}
+
 if [ -z "$RUN_AS_IWE" ]; then
-  npm set prefix ~/.local 2>/dev/null
-  npm install -g @anthropic-ai/claude-code 2>&1 | tail -1 && echo "  ✓ claude-code" || echo "  ⚠ claude-code install failed (OK if offline)"
-  npm install -g @openai/codex 2>&1 | tail -1 && echo "  ✓ codex" || echo "  ⚠ codex install failed (OK if offline)"
-  npm install --prefix ~/.opencode @opencode-ai/plugin 2>&1 | tail -1 && echo "  ✓ opencode" || echo "  ⚠ opencode install failed (OK if offline)"
-else
-  $RUN_AS_IWE "npm set prefix ~/.local 2>/dev/null"
-  $RUN_AS_IWE "npm install -g @anthropic-ai/claude-code 2>&1 | tail -1" && echo "  ✓ claude-code" || echo "  ⚠ claude-code install failed (OK if offline)"
-  $RUN_AS_IWE "npm install -g @openai/codex 2>&1 | tail -1" && echo "  ✓ codex" || echo "  ⚠ codex install failed (OK if offline)"
-  $RUN_AS_IWE "npm install --prefix ~/.opencode @opencode-ai/plugin 2>&1 | tail -1" && echo "  ✓ opencode" || echo "  ⚠ opencode install failed (OK if offline)"
+  npm set prefix ~/.local 2>/dev/null || true
 fi
 
+_npm_install "claude-code" "npm install -g @anthropic-ai/claude-code"
+_npm_install "codex"      "npm install -g @openai/codex"
+_npm_install "opencode"   "npm install --prefix ~/.opencode @opencode-ai/plugin"
+
 # === Клонирование репо ===
-echo "  Cloning FMT-exocortex-template (branch $REQUIRED_BRANCH)..."
-if [ -z "$RUN_AS_IWE" ]; then
-  git clone --branch "$REQUIRED_BRANCH" "$REPO_URL" ~/IWE/FMT-exocortex-template 2>&1 | tail -1
-  echo "  ✓ Repo cloned"
+echo "  → Cloning FMT-exocortex-template (branch $REQUIRED_BRANCH)..."
+if [ -d ~/IWE/FMT-exocortex-template/.git ]; then
+  echo "  ✓ Repo already exists (skip clone)"
+elif [ -z "$RUN_AS_IWE" ]; then
+  if git clone --branch "$REQUIRED_BRANCH" "$REPO_URL" ~/IWE/FMT-exocortex-template 2>&1 | tail -3; then
+    echo "  ✓ Repo cloned"
+  else
+    echo "  ✗ Repo clone failed"
+  fi
 else
-  $RUN_AS_IWE "git clone --branch $REQUIRED_BRANCH $REPO_URL ~/IWE/FMT-exocortex-template 2>&1 | tail -1"
-  echo "  ✓ Repo cloned"
+  if $RUN_AS_IWE "git clone --branch $REQUIRED_BRANCH $REPO_URL ~/IWE/FMT-exocortex-template 2>&1 | tail -3"; then
+    echo "  ✓ Repo cloned"
+  else
+    echo "  ✗ Repo clone failed"
+  fi
 fi
 
 # === Проверка ===
 echo ""
 echo "=== Verification ==="
-echo "PATH: $PATH"
-command -v claude 2>/dev/null && echo "  ✓ claude" || echo "  ✗ claude not in PATH (needs new shell)"
+command -v claude 2>/dev/null && echo "  ✓ claude" || echo "  ✗ claude not in PATH"
 command -v codex 2>/dev/null && echo "  ✓ codex" || echo "  ✗ codex not in PATH"
-ls ~/.opencode/bin/opencode 2>/dev/null && echo "  ✓ opencode" || echo "  ✗ opencode not found"
+[ -x ~/.opencode/bin/opencode ] && echo "  ✓ opencode" || echo "  ✗ opencode not found"
 echo "git:  $(git --version 2>/dev/null || echo 'missing')"
 echo "node: $(node --version 2>/dev/null || echo 'missing')"
 echo "npm:  $(npm --version 2>/dev/null || echo 'missing')"

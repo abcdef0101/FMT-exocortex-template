@@ -3,6 +3,17 @@
 # Source'ится из run-full-test.sh
 # Каждая фаза — функция, возвращающая количество PASS/FAIL через глобальные переменные
 
+# Ensure npm-installed tools are in PATH for non-interactive SSH
+export PATH="$HOME/.local/bin:$HOME/.opencode/bin:$HOME/.opencode/node_modules/.bin:$PATH"
+
+# Ensure git identity is set (needed for unit/integration tests)
+if ! git config --global user.email >/dev/null 2>&1; then
+  git config --global user.email "iwe-test@localhost" 2>/dev/null || true
+fi
+if ! git config --global user.name >/dev/null 2>&1; then
+  git config --global user.name "IWE Test" 2>/dev/null || true
+fi
+
 IWE_DIR="${IWE_DIR:-$HOME/IWE/FMT-exocortex-template}"
 PHASE_PASS=0
 PHASE_FAIL=0

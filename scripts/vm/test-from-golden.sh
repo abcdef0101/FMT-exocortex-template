@@ -175,7 +175,7 @@ echo "  Port: $SSH_PORT (PID $VM_PID)"
 echo ""
 echo "--- Step 3: Wait for SSH ---"
 
-SSH_OPTS="-i $SSH_KEY -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=3 -p $SSH_PORT"
+SSH_OPTS="-i $SSH_KEY -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=3 -o ServerAliveInterval=5 -p $SSH_PORT"
 SCP_OPTS="-i $SSH_KEY -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P $SSH_PORT -q"
 SSH_READY=false
 
@@ -224,12 +224,24 @@ scp $SCP_OPTS "$SCRIPT_DIR/test-phases.sh" "iwe@localhost:~/test-phases.sh" 2>/d
 
 # Upload and run firstboot if repo is missing
 echo "  Checking repo..."
-REPO_EXISTS=$(ssh $SSH_OPTS iwe@localhost "[ -d ~/IWE/FMT-exocortex-template ] && echo yes || echo no" 2>/dev/null)
+REPO_EXISTS=$(ssh $SSH_OPTS iwe@localhost "[ -d ~/IWE/FMT-exocortex-template/.git ] && echo yes || echo no" 2>/dev/null)
 if [ "$REPO_EXISTS" = "no" ]; then
   echo "  Running firstboot (npm + git clone)..."
-  scp $SCP_OPTS "$SCRIPT_DIR/packages-firstboot.sh" "iwe@localhost:~/packages-firstboot.sh" 2>/dev/null
-  ssh $SSH_OPTS iwe@localhost "bash ~/packages-firstboot.sh" 2>&1 | grep -E '✓|✗|===|Warning' || true
-  echo "  ✓ Firstboot complete"
+  scp $SCP_OPTS "$SCRIPT_DIR/packages-firstboot.sh" "iwe@localhost:~/packages-firstboot.sh" 2>/dev/null || {
+    echo "  ⚠ Could not upload firstboot script"
+  }
+  FIRSTBOOT_LOG="/tmp/iwe-firstboot-$$.log"
+  ssh $SSH_OPTS iwe@localhost "bash ~/packages-firstboot.sh" >"$FIRSTBOOT_LOG" 2>&1 || true
+  grep -E '===|✓|✗|⚠|→' "$FIRSTBOOT_LOG" 2>/dev/null || true
+  # Verify repo was actually cloned
+  if ssh $SSH_OPTS iwe@localhost "[ -d ~/IWE/FMT-exocortex-template/.git ]" 2>/dev/null; then
+    echo "  ✓ Repo cloned successfully"
+  else
+    echo "  ✗ Repo NOT cloned after firstboot — will skip test phases"
+  fi
+  rm -f "$FIRSTBOOT_LOG"
+else
+  echo "  ✓ Repo already present"
 fi
 
 # Run requested phase
@@ -297,4 +309,4 @@ fi
 
 echo "========================================="
 
-exit $TOTAL_FAIL
+exit ${TOTAL_FAIL:-0}

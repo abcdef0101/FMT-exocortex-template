@@ -3,11 +3,10 @@
 #
 # Метод:
 #   1. qemu-img create -b base.img → golden.qcow2 (COW)
-#   2. Cloud-init seed (минимальный: user iwe + SSH ключ, без packages)
-#   3. Boot VM с user-mode networking, ждать SSH
-#   4. SSH: apt-get install все системные пакеты
-#   5. SSH: packages-firstboot.sh (npm + git clone)
-#   6. Shutdown, snapshot "provisioned", sha256sum
+#   2. Cloud-init seed (минимальный: user iwe + SSH ключ)
+#   3. Boot VM, ждать cloud-init + SSH
+#   4. SSH: upload + run provision (apt + npm + git clone)
+#   5. Shutdown, snapshot "provisioned", sha256sum
 #
 # Проблема cloud-init packages в user-mode: DNS в QEMU user-mode часто ломает
 # apt-get внутри cloud-init, вызывая таймауты. Поэтому устанавливаем всё через SSH.
@@ -47,7 +46,8 @@ GOLDEN_SHA256="$GOLDEN_IMAGE.sha256"
 FIRSTBOOT_SCRIPT="$SCRIPT_DIR/packages-firstboot.sh"
 
 SSH_PUB=$(cat "$SSH_KEY.pub")
-SSH_OPTS="-i $SSH_KEY -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=3"
+SSH_OPTS="-i $SSH_KEY -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=3 -o ServerAliveInterval=5"
+SCP_OPTS="-i $SSH_KEY -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=3 -q"
 
 echo "========================================="
 echo " IWE Golden Image Build"
@@ -108,7 +108,8 @@ users:
 packages:
   - cloud-init
 runcmd:
-  - echo 'export PATH="\$HOME/.local/bin:\$HOME/.opencode/bin:\$PATH"' >> /home/iwe/.bashrc
+  - echo 'export PATH="\$HOME/.local/bin:\$HOME/.opencode/bin:\$HOME/.opencode/node_modules/.bin:\$PATH"' >> /home/iwe/.bashrc
+  - echo 'export PATH="\$HOME/.local/bin:\$HOME/.opencode/bin:\$HOME/.opencode/node_modules/.bin:\$PATH"' >> /home/iwe/.profile
 ENDUD
 
 SEED_IMG="/tmp/iwe-golden-seed-$$.img"
@@ -164,62 +165,105 @@ if ! $SSH_OK; then
 fi
 
 # =========================================================================
-# Step 5: Install system packages via SSH
+# Step 5: Remote provisioning (system packages + firstboot)
 # =========================================================================
-echo "--- Step 5: Install System Packages ---"
+echo "--- Step 5: Provision ---"
 
-ssh $SSH_OPTS iwe@localhost bash <<'ENDPROVISION' 2>&1 | while IFS= read -r line; do echo "    $line"; done
+# Build a single provision script from local fragments
+PROVISION_LOG="/tmp/iwe-provision-$$.log"
+
+# Create nodejs setup script
+cat > /tmp/iwe-nodejs-setup-$$.sh <<'NODESETUP'
+#!/usr/bin/env bash
 set -euo pipefail
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo bash -
+sudo apt-get install -y -qq nodejs
+sudo npm install -g -q npm@latest
+echo "✓ Node.js $(node --version) / npm $(npm --version)"
+NODESETUP
+
+# Upload provision scripts
+scp $SCP_OPTS -P "$PORT" /tmp/iwe-nodejs-setup-$$.sh "iwe@localhost:~/nodejs-setup.sh" 2>/dev/null
+scp $SCP_OPTS -P "$PORT" "$FIRSTBOOT_SCRIPT" "iwe@localhost:~/packages-firstboot.sh" 2>/dev/null
+
+# Run provision via SSH, save output to temp file
+set +o pipefail  # Disable pipefail for this section to avoid silent failures
+ssh $SSH_OPTS -p "$PORT" iwe@localhost bash </dev/null >"$PROVISION_LOG" 2>&1 <<'ENDPROVISION'
+set -euo pipefail
+export DEBIAN_FRONTEND=noninteractive
+
+echo "Waiting for cloud-init to finish..."
+sudo cloud-init status --wait 2>&1 || true
+echo "Cloud-init done."
+
+# Wait for any remaining apt locks
+for i in $(seq 1 12); do
+  if sudo fuser /var/lib/apt/lists/lock 2>/dev/null; then
+    echo "  apt locked, waiting... ($i/12)"
+    sleep 5
+  else
+    break
+  fi
+done
+
+echo ""
+echo "=== System Packages (Layer 1) ==="
 
 echo "Updating apt..."
-sudo apt-get update -qq 2>/dev/null
+sudo apt-get update -qq 2>&1 | tail -1
 
 echo "Installing base packages..."
 sudo apt-get install -y -qq \
   git gh curl wget ruby expect jq shellcheck \
   vim mc tmux build-essential ca-certificates gnupg \
   python3 python3-yaml software-properties-common \
-  2>/dev/null
+  2>&1 | tail -3
 
 echo "Installing Node.js 20 LTS..."
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo bash - 2>/dev/null
-sudo apt-get install -y -qq nodejs 2>/dev/null
-sudo npm install -g -q npm@latest 2>/dev/null
+bash ~/nodejs-setup.sh 2>&1 | tail -5
 
 echo "Installing neovim..."
-sudo add-apt-repository -y ppa:neovim-ppa/stable 2>/dev/null
-sudo apt-get update -qq 2>/dev/null
-sudo apt-get install -y -qq neovim 2>/dev/null
+sudo add-apt-repository -y ppa:neovim-ppa/stable 2>&1 | tail -1
+sudo apt-get update -qq 2>&1 | tail -1
+sudo apt-get install -y -qq neovim 2>&1 | tail -1
 
 echo "Creating directories..."
 mkdir -p ~/IWE ~/.config/gh ~/.local/bin ~/.opencode
 
 echo ""
-echo "=== Package verification ==="
+echo "=== Package Verification ==="
 for pkg in git gh ruby expect jq shellcheck vim mc tmux curl build-essential python3 python3-yaml neovim nodejs npm; do
   dpkg -l "$pkg" 2>/dev/null | grep -q "^ii" && echo "  ✓ $pkg" || echo "  ✗ $pkg MISSING"
 done
 echo "Node.js: $(node --version 2>/dev/null || echo 'missing')"
 echo "npm:     $(npm --version 2>/dev/null || echo 'missing')"
+
+echo ""
+echo "=== Firstboot (Layer 2: npm + git clone) ==="
+bash ~/packages-firstboot.sh 2>&1
 ENDPROVISION
 
-echo "  ✓ System packages installed"
+PROVISION_RC=$?
+set -o pipefail  # Re-enable pipefail
+
+# Show provision output
+if [ -s "$PROVISION_LOG" ]; then
+  while IFS= read -r line; do echo "    $line"; done < "$PROVISION_LOG"
+fi
+
+if [ "$PROVISION_RC" -ne 0 ]; then
+  echo "  ✗ Provision FAILED (rc=$PROVISION_RC)"
+  echo "  Full log: $PROVISION_LOG"
+  exit 1
+fi
+
+echo "  ✓ Provision complete"
 
 # =========================================================================
-# Step 6: Run firstboot (npm + git clone)
+# Step 6: Clean shutdown
 # =========================================================================
-echo "--- Step 6: Firstboot (npm + git clone) ---"
-
-scp $SSH_OPTS -q "$FIRSTBOOT_SCRIPT" "iwe@localhost:~/packages-firstboot.sh" 2>/dev/null
-ssh $SSH_OPTS iwe@localhost "bash ~/packages-firstboot.sh" 2>&1 | while IFS= read -r line; do echo "    $line"; done
-
-echo "  ✓ Firstboot complete"
-
-# =========================================================================
-# Step 7: Clean shutdown
-# =========================================================================
-echo "--- Step 7: Shutdown ---"
-ssh $SSH_OPTS iwe@localhost "sudo shutdown -h now" 2>/dev/null || true
+echo "--- Step 6: Shutdown ---"
+ssh $SSH_OPTS -p "$PORT" iwe@localhost "sudo shutdown -h now" 2>/dev/null || true
 
 echo -n "  Waiting for VM to stop:"
 for i in $(seq 1 30); do
@@ -231,19 +275,24 @@ kill -0 "$QEMU_PID" 2>/dev/null && kill -9 "$QEMU_PID" 2>/dev/null || true
 echo " OK"
 
 trap - EXIT
-rm -f "$SEED_IMG"
+rm -f "$SEED_IMG" /tmp/iwe-nodejs-setup-$$.sh "$PROVISION_LOG"
 
 # =========================================================================
-# Step 8: Snapshot
+# Step 7: Snapshot
 # =========================================================================
-echo "--- Step 8: Snapshot ---"
-qemu-img snapshot -c "provisioned" "$GOLDEN_IMAGE" 2>/dev/null
-echo "  ✓ Snapshot 'provisioned' created"
+echo "--- Step 7: Snapshot ---"
+# Wait for disk flush
+sleep 2
+if qemu-img snapshot -c "provisioned" "$GOLDEN_IMAGE" 2>&1; then
+  echo "  ✓ Snapshot 'provisioned' created"
+else
+  echo "  ✗ Snapshot failed — continuing without snapshot"
+fi
 
 # =========================================================================
-# Step 9: Checksum
+# Step 8: Checksum
 # =========================================================================
-echo "--- Step 9: Checksum ---"
+echo "--- Step 8: Checksum ---"
 sha256sum "$GOLDEN_IMAGE" > "$GOLDEN_SHA256"
 CHECKSUM=$(cut -d' ' -f1 "$GOLDEN_SHA256")
 
