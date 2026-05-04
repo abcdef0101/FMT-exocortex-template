@@ -5,6 +5,29 @@ All notable changes to FMT-exocortex-template will be documented in this file.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
+## [0.27.0] — 2026-05-04
+
+### Added (ADR-007: Golden Image Build Pipeline)
+- **scripts/vm/build-golden.sh** — сборка золотого образа: cloud-init seed → SSH provision → 2-слойный golden qcow2 (570 MB COW, snapshot "provisioned")
+- **scripts/vm/test-from-golden.sh** — ephemeral VM из золотого образа: загрузка 13 сек (было 15 мин), 4 фазы тестов, copy-on-write cleanup
+- **scripts/vm/verify-golden.sh** — верификация целостности: qemu-img info + guestfish инспекция + опциональный SSH
+- **scripts/vm/benchmark-golden.sh** — сравнительный замер скорости: create-vm (~15min) vs golden (~14s), ускорение ~60x
+- **scripts/vm/packages-firstboot.sh** — Слой 2: npm (claude-code, codex, opencode) + git clone FMT-exocortex-template
+- **scripts/vm/test-phases.sh** — 4 фазы тестирования: Clean Install, Update, AI Smoke, CI + Migrations
+- **.github/workflows/test-golden.yml** — CI: self-hosted runner с KVM, авто-запуск по push/PR/dispatch
+- **docs/adr/ADR-007-golden-image-testing.md** — архитектурное решение (Accepted → Implemented)
+- **docs/golden-image-survey.md** — SOTA-обзор 6 подходов к сборке золотых образов (524 строки)
+- **docs/adr/impl/ADR-007-implementation-plan.md** — план M0-M5
+
+### Changed
+- **scripts/vm/user-data.yaml** — `users:` directive вместо ручного `useradd`, neovim PPA, gh через apt (не curl)
+- **scripts/vm/README.md** — добавлена секция Golden Image Pipeline
+
+### Performance
+- Создание тестового окружения: 15 мин → 14 сек (60x)
+- Полный прогон 4 фаз тестов: ~20 мин → ~2 мин
+- Тестовое покрытие: 17/18 PASS (1 известный баг codebase)
+
 ## [0.26.0] — 2026-05-03
 
 ### Added (ADR-005: Архитектура доставки обновлений)

@@ -335,16 +335,19 @@ bash scripts/vm/benchmark-golden.sh
 | **M0** | survey, ADR-007, user-data.yaml, packages-firstboot.sh | — | — | ✅ |
 | **M1** | build-golden.sh, verify-golden.sh, packages-firstboot.sh (update) | 457 | 2h | ✅ |
 | **M2** | test-from-golden.sh, benchmark-golden.sh | 418 | 3h | ✅ |
-| **M3** | test-golden.yml, self-hosted runner config | ~80 | 2h | ○ |
-| **M4** | ADR update, README update, CHANGELOG, LEARNINGS | ~100 | 1h | ○ |
+| **M3** | test-golden.yml, self-hosted runner config | ~90 | 2h | ✅ |
+| **M4** | ADR update, README update, CHANGELOG, LEARNINGS | ~100 | 1h | ✅ |
 | **M5** | Future evolution | — | — | ○ |
 
-**Всего:** 875 строк кода (M1-M2), ~4h remaining (M3-M4).
+**Всего:** ~1070 строк кода (M1-M3), M4-M5 minimal.
 
 **Ключевой KPI:**
 - До: 15 мин на создание тестового окружения
-- После (M2): **<30 сек** на `test-from-golden.sh`
-- Ускорение: **30x**
+- После: **14 сек** на `test-from-golden.sh`
+- Ускорение: **~60x**
+- Тестовое покрытие: 17/18 PASS (1 известный баг codebase)
+
+**Отклонение от плана:** virt-customize заменён на cloud-init + SSH provision из-за passt SIGSEGV на kernel 6.8.0-110-generic (блокирующий баг libguestfs).
 
 **Начать с M1: build-golden.sh.**
 

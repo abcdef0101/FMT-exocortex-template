@@ -519,7 +519,7 @@ jobs:
 | `docs/adr/ADR-005-update-delivery-architecture.md` | manifest-lib.sh — используется в provision.sh |
 | `docs/adr/ADR-007-golden-image-testing.md` | Governance-решение о выборе virt-customize |
 | `scripts/vm/provision.sh` | Текущий провижининг (expect-based) |
-| `scripts/vm/build-golden.sh` | Референсная реализация (будет создана) |
+| `scripts/vm/build-golden.sh` | Сборка золотого образа (cloud-init + SSH provision, 2 слоя) |
 | `scripts/vm/test-phases.sh` | Фазы тестирования (Phase 1-4) |
 
 ---

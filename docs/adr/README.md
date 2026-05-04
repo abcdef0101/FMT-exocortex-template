@@ -8,4 +8,4 @@
 | 004 | Memory Topology | Accepted | 2026-04-25 |
 | 005 | Архитектура доставки обновлений | Accepted | 2026-05-01 |
 | 006 | Интеграция DS-agent-workspace в ядро | Accepted | 2026-04-30 |
-| 007 | Golden Image Build Pipeline for IWE Testing | Accepted | 2026-05-03 |
+| 007 | Golden Image Build Pipeline for IWE Testing | Implemented | 2026-05-04 |
