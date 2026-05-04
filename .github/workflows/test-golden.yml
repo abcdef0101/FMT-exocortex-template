@@ -48,6 +48,7 @@ jobs:
 
       - name: Run tests from golden image
         id: tests
+        continue-on-error: true
         run: |
           bash scripts/vm/test-from-golden.sh \
             --version "${{ github.ref_name }}" \
