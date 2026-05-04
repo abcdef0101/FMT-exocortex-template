@@ -1,0 +1,79 @@
+name: IWE Golden Image Tests
+
+on:
+  push:
+    branches: [0.25.1, main]
+    paths:
+      - 'scripts/vm/user-data.yaml'
+      - 'scripts/vm/packages-firstboot.sh'
+      - 'setup.sh'
+      - 'seed/manifest.yaml'
+      - 'checksums.yaml'
+      - 'MANIFEST.yaml'
+      - 'scripts/vm/build-golden.sh'
+      - 'scripts/vm/test-from-golden.sh'
+      - 'scripts/vm/test-phases.sh'
+  pull_request:
+    branches: [0.25.1, main]
+  workflow_dispatch:
+    inputs:
+      rebuild_golden:
+        description: 'Force rebuild golden image'
+        type: boolean
+        default: false
+      test_phase:
+        description: 'Specific phase (1-4, or all)'
+        type: string
+        default: 'all'
+
+jobs:
+  golden-test:
+    runs-on: self-hosted
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check if golden rebuild needed
+        id: rebuild
+        run: |
+          if [ "${{ inputs.rebuild_golden }}" = "true" ]; then
+            echo "rebuild=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only HEAD^ HEAD 2>/dev/null | grep -qE 'scripts/vm/(user-data.yaml|packages-firstboot.sh|build-golden.sh|test-phases.sh)'; then
+            echo "rebuild=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "rebuild=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Rebuild golden image
+        if: steps.rebuild.outputs.rebuild == 'true'
+        run: |
+          echo "::group::Rebuilding golden image..."
+          bash scripts/vm/build-golden.sh --version "${{ github.ref_name }}" --force
+          echo "::endgroup::"
+
+      - name: Verify golden image
+        run: bash scripts/vm/verify-golden.sh --image ~/.cache/iwe-golden/iwe-golden-"${{ github.ref_name }}".qcow2
+
+      - name: Run tests from golden image
+        id: tests
+        run: |
+          bash scripts/vm/test-from-golden.sh \
+            --version "${{ github.ref_name }}" \
+            --phase "${{ inputs.test_phase || 'all' }}"
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      - name: Archive test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report-${{ github.run_id }}
+          path: scripts/vm/results/golden-test-*.txt
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Golden Image Test Results" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          tail -20 scripts/vm/results/golden-test-*.txt 2>/dev/null | grep -E '(Passed|Failed|Boot time|Version)' >> "$GITHUB_STEP_SUMMARY" || echo "No results found" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
