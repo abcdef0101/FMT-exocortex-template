@@ -4,9 +4,10 @@
 # Метод:
 #   1. qemu-img create -b base.img → golden.qcow2 (COW)
 #   2. Cloud-init seed (минимальный: user iwe + SSH ключ)
-#   3. Boot VM, ждать cloud-init + SSH
-#   4. SSH: upload + run provision (apt + npm + git clone)
-#   5. Shutdown, snapshot "provisioned", sha256sum
+#   3. Boot VM, wait for SSH
+#   4. Kill apt locks from cloud-init
+#   5. SSH: upload + run provision (apt + npm)
+#   6. Shutdown, snapshot, sha256sum
 #
 # Проблема cloud-init packages в user-mode: DNS в QEMU user-mode часто ломает
 # apt-get внутри cloud-init, вызывая таймауты. Поэтому устанавливаем всё через SSH.
@@ -105,8 +106,6 @@ users:
     shell: /bin/bash
     ssh_authorized_keys:
       - $SSH_PUB
-packages:
-  - cloud-init
 runcmd:
   - echo 'export PATH="\$HOME/.local/bin:\$HOME/.opencode/bin:\$HOME/.opencode/node_modules/.bin:\$PATH"' >> /home/iwe/.bashrc
   - echo 'export PATH="\$HOME/.local/bin:\$HOME/.opencode/bin:\$HOME/.opencode/node_modules/.bin:\$PATH"' >> /home/iwe/.profile
@@ -167,12 +166,29 @@ fi
 # =========================================================================
 # Step 5: Remote provisioning (system packages + npm)
 # =========================================================================
-echo "--- Step 5: Provision ---"
+echo "--- Step 5: Pre-provision cleanup ---"
+# Kill any apt/dpkg processes from cloud-init to free locks
+ssh $SSH_OPTS -p "$PORT" iwe@localhost "sudo killall apt-get dpkg apt 2>/dev/null; sudo rm -f /var/lib/apt/lists/lock /var/cache/apt/archives/lock /var/lib/dpkg/lock-frontend 2>/dev/null; sudo dpkg --configure -a 2>/dev/null; sudo cloud-init status --wait 2>&1 | tail -1 || true" 2>/dev/null || true
+echo "  ✓ Cleanup complete"
+
+# =========================================================================
+# Step 6: Remote provisioning (system packages + npm)
+# =========================================================================
+echo "--- Step 6: Provision ---"
 
 PROVISION_LOG="/tmp/iwe-provision-$$.log"
 
 # Create provision script
 PROV_SCRIPT="/tmp/iwe-provision-script-$$.sh"
+
+# Detect host mirror URI
+HOST_MIRROR=$(grep -m1 'URIs:' /etc/apt/sources.list.d/ubuntu.sources 2>/dev/null | awk '{print $2}' | tr -d ' ' || echo "")
+if [ -n "$HOST_MIRROR" ]; then
+  echo "  Host mirror: $HOST_MIRROR"
+  # Upload mirror URL for VM provision script
+  echo "$HOST_MIRROR" | ssh $SSH_OPTS -p "$PORT" iwe@localhost "cat > ~/mirror-uri.txt" 2>/dev/null
+fi
+
 cat > "$PROV_SCRIPT" <<'PROVSCRIPT'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -181,6 +197,17 @@ export DEBIAN_FRONTEND=noninteractive
 echo "Waiting for cloud-init to finish..."
 sudo cloud-init status --wait 2>&1 || true
 echo "Cloud-init done."
+
+# Replace apt sources with working mirror
+MIRROR_URI="$(cat ~/mirror-uri.txt 2>/dev/null)"
+if [ -n "$MIRROR_URI" ]; then
+  echo "  Using mirror: $MIRROR_URI"
+  sudo sed -i "s|http://archive.ubuntu.com/ubuntu|$MIRROR_URI|g" /etc/apt/sources.list.d/ubuntu.sources
+  sudo sed -i "s|http://security.ubuntu.com/ubuntu|$MIRROR_URI|g" /etc/apt/sources.list.d/ubuntu.sources
+else
+  echo "  No mirror configured, using default"
+fi
+grep URI /etc/apt/sources.list.d/ubuntu.sources
 
 # Wait for apt locks
 for i in $(seq 1 12); do
@@ -258,9 +285,9 @@ echo "  ✓ Provision complete"
 rm -f "$PROV_SCRIPT"
 
 # =========================================================================
-# Step 6: Clean shutdown
+# Step 7: Clean shutdown
 # =========================================================================
-echo "--- Step 6: Shutdown ---"
+echo "--- Step 7: Shutdown ---"
 ssh $SSH_OPTS -p "$PORT" iwe@localhost "sudo shutdown -h now" 2>/dev/null || true
 
 echo -n "  Waiting for VM to stop:"
@@ -276,9 +303,9 @@ trap - EXIT
 rm -f "$SEED_IMG" /tmp/iwe-nodejs-setup-$$.sh "$PROVISION_LOG"
 
 # =========================================================================
-# Step 7: Snapshot
+# Step 8: Snapshot
 # =========================================================================
-echo "--- Step 7: Snapshot ---"
+echo "--- Step 8: Snapshot ---"
 # Wait for disk flush
 sleep 2
 if qemu-img snapshot -c "provisioned" "$GOLDEN_IMAGE" 2>&1; then
@@ -288,9 +315,9 @@ else
 fi
 
 # =========================================================================
-# Step 8: Checksum
+# Step 9: Checksum
 # =========================================================================
-echo "--- Step 8: Checksum ---"
+echo "--- Step 9: Checksum ---"
 sha256sum "$GOLDEN_IMAGE" > "$GOLDEN_SHA256"
 CHECKSUM=$(cut -d' ' -f1 "$GOLDEN_SHA256")
 
