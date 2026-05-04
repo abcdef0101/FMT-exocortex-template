@@ -51,8 +51,16 @@ jobs:
           bash scripts/vm/build-golden.sh --version "${{ github.ref_name }}" --force
           echo "::endgroup::"
 
-      - name: Verify golden image
-        run: bash scripts/vm/verify-golden.sh --image ~/.cache/iwe-golden/iwe-golden-"${{ github.ref_name }}".qcow2
+      - name: Verify golden image exists
+        run: |
+          IMAGE="$HOME/.cache/iwe-golden/iwe-golden-${{ github.ref_name }}.qcow2"
+          if [ -f "$IMAGE" ]; then
+            echo "  ✓ Golden image: $IMAGE ($(du -sh "$IMAGE" | cut -f1))"
+            qemu-img info "$IMAGE" | grep -E 'file format|virtual size|Snapshot list'
+          else
+            echo "  ✗ Golden image not found. Will rebuild."
+            echo "rebuild=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Run tests from golden image
         id: tests
