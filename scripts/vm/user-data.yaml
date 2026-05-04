@@ -6,6 +6,7 @@ timezone: UTC
 # Пакеты — устанавливаются при первом boot
 packages:
   - git
+  - gh
   - curl
   - wget
   - ruby
@@ -14,10 +15,21 @@ packages:
   - shellcheck
   - expect
   - jq
-  - build-essential
+  - vim
+  - mc
   - tmux
+  - build-essential
   - ca-certificates
   - gnupg
+  - software-properties-common
+
+# Пользователь iwe (вместо ubuntu по умолчанию)
+users:
+  - name: iwe
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - PLACEHOLDER_SSH_KEY
 
 # Выполнить при первом boot
 runcmd:
@@ -26,28 +38,17 @@ runcmd:
   - apt-get install -y nodejs
   - npm install -g npm@latest
 
-  # GitHub CLI — официальный способ установки
-  - |
-    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-    chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list
-  - apt-get update && apt-get install -y gh
+  # neovim PPA
+  - add-apt-repository -y ppa:neovim-ppa/stable
+  - apt-get update
+  - apt-get install -y neovim
 
-  # Создать пользователя iwe
-  - useradd -m -s /bin/bash iwe
-  - echo "iwe ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/iwe
-
-  # Директории IWE
-  - mkdir -p /home/iwe/IWE /home/iwe/.config/gh /home/iwe/.local/bin
-  - chown -R iwe:iwe /home/iwe/IWE /home/iwe/.config /home/iwe/.local
-
-  # Добавить ~/.local/bin в PATH для iwe
-  - echo 'export PATH="$HOME/.local/bin:$PATH"' >> /home/iwe/.bashrc
+  # Директории IWE + PATH
+  - mkdir -p /home/iwe/IWE /home/iwe/.config/gh /home/iwe/.local/bin /home/iwe/.opencode
+  - chown -R iwe:iwe /home/iwe/IWE /home/iwe/.config /home/iwe/.local /home/iwe/.opencode
+  - echo 'export PATH="$HOME/.local/bin:$HOME/.opencode/bin:$PATH"' >> /home/iwe/.bashrc
 
   # Готово
   - echo "IWE test VM ready. SSH: ssh iwe@$(hostname -I | awk '{print $1}')" > /etc/motd
-
-ssh_authorized_keys:
-  - PLACEHOLDER_SSH_KEY
 
 final_message: "IWE Test VM is ready. IP: $(hostname -I)"

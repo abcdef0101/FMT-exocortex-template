@@ -2,7 +2,42 @@
 
 > Полноценная виртуальная машина для 100% тестирования IWE и E2E-сценариев.
 
-## Быстрый старт
+## Golden Image Pipeline (ADR-007)
+
+Сборка золотого образа через `virt-customize` + `qcow2 snapshots`. Скорость: 15 мин → <30 сек.
+
+```bash
+# 1. Установить зависимости
+sudo apt install -y qemu-kvm libguestfs-tools
+
+# 2. Создать SSH-ключ
+ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_iwe_test -N "" -C "iwe-test"
+
+# 3. Собрать золотой образ (однократно, ~5-10 мин)
+bash scripts/vm/build-golden.sh --version 0.25.1
+
+# 4. Проверить образ
+bash scripts/vm/verify-golden.sh --image ~/.cache/iwe-golden/iwe-golden-0.25.1.qcow2
+
+# 5. Прогнать тесты из золотого образа (<30 сек на создание окружения)
+bash scripts/vm/test-from-golden.sh --version 0.25.1
+
+# 6. Сравнить скорость
+bash scripts/vm/benchmark-golden.sh --version 0.25.1
+```
+
+**Архитектура:**
+- `build-golden.sh` — Слой 1 (apt) + Слой 2 (npm, firstboot)
+- `test-from-golden.sh` — copy-on-write клон + прогон test-phases.sh
+- `verify-golden.sh` — qemu-img + guestfish инспекция
+- `benchmark-golden.sh` — сравнение create-vm vs golden
+
+→ **ADR-007:** `docs/adr/ADR-007-golden-image-testing.md`
+→ **План:** `docs/adr/impl/ADR-007-implementation-plan.md`
+
+---
+
+## Быстрый старт (текущий метод, без golden image)
 
 ```bash
 # 1. Установить гипервизор (один раз)

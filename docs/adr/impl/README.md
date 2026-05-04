@@ -7,3 +7,4 @@
 | ADR | План | Статус | Последнее обновление |
 |-----|------|--------|---------------------|
 | [ADR-005](../ADR-005-update-delivery-architecture.md) | [ADR-005-implementation-plan.md](ADR-005-implementation-plan.md) | Ready | 2026-05-01 |
+| [ADR-007](../ADR-007-golden-image-testing.md) | [ADR-007-implementation-plan.md](ADR-007-implementation-plan.md) | Planned | 2026-05-04 |
