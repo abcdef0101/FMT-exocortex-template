@@ -325,6 +325,7 @@ bash scripts/vm/benchmark-golden.sh
 | 5.4 | **Интеграция с act** (локальный CI без пуша) | Low | Удобство разработки |
 | 5.5 | **Автоматический smoketest** после каждой пересборки | Medium | Гарантия что золотой образ не сломан |
 | 5.6 | **Packer QEMU** как альтернативный builder | Low | Если понадобится multi-builder (AWS AMI + QEMU) |
+| 5.7 | **Runtime/Code separation** — golden = runtime only, repo clone at test time | ✅ Done | `4a3bca1` |
 
 ---
 
@@ -337,7 +338,7 @@ bash scripts/vm/benchmark-golden.sh
 | **M2** | test-from-golden.sh, benchmark-golden.sh | 418 | 3h | ✅ |
 | **M3** | test-golden.yml, self-hosted runner config | ~90 | 2h | ✅ |
 | **M4** | ADR update, README update, CHANGELOG, LEARNINGS | ~100 | 1h | ✅ |
-| **M5** | Future evolution | — | — | ○ |
+| **M5** | Future evolution | — | — | ✅ |
 
 **Всего:** ~1070 строк кода (M1-M3), M4-M5 minimal.
 

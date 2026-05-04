@@ -186,6 +186,13 @@ CI (.github/workflows/test-golden.yml):
 - Триггеры: push в 0.25.1/main, pull_request, workflow_dispatch
 - Авто-пересборка по запросу, continue-on-error для нефатальных тестов
 
+### M5: Runtime/Code separation ✅
+- Golden image теперь содержит **только runtime** (apt-пакеты + npm-пакеты)
+- Репозиторий клонируется свеже при каждом запуске `test-from-golden.sh`
+- Обоснование: runtime (apt/npm) меняется редко, code (репо) — каждый коммит
+- Пересборка golden image нужна только при изменении system-зависимостей
+- Git clone в ephemeral VM: ~5-10 сек → общее время прогона ~20 сек (всё ещё 45x быстрее чем 15 мин)
+
 ### Результаты производительности
 
 | Метрика | До | После |
