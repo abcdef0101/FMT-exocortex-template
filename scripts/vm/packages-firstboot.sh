@@ -50,14 +50,14 @@ fi
 
 _npm_install "claude-code" "npm install -g @anthropic-ai/claude-code"
 _npm_install "codex"      "npm install -g @openai/codex"
-_npm_install "opencode"   "npm install --prefix ~/.opencode @opencode-ai/plugin"
+_npm_install "opencode"   "npm install -g opencode-ai"
 
 # === Проверка ===
 echo ""
 echo "=== Verification ==="
 command -v claude 2>/dev/null && echo "  ✓ claude" || echo "  ✗ claude not in PATH"
 command -v codex 2>/dev/null && echo "  ✓ codex" || echo "  ✗ codex not in PATH"
-[ -x ~/.opencode/bin/opencode ] && echo "  ✓ opencode" || echo "  ✗ opencode not found"
+command -v opencode 2>/dev/null && echo "  ✓ opencode" || echo "  ✗ opencode not in PATH"
 echo "git:  $(git --version 2>/dev/null || echo 'missing')"
 echo "node: $(node --version 2>/dev/null || echo 'missing')"
 echo "npm:  $(npm --version 2>/dev/null || echo 'missing')"

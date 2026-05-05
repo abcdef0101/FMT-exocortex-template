@@ -1,6 +1,6 @@
 # ADR-007 Implementation Plan: Golden Image Build Pipeline
 
-> **ADR:** `docs/adr/ADR-007-golden-image-testing.md` (Proposed)
+> **ADR:** `docs/adr/ADR-007-golden-image-testing.md` (Implemented)
 > **SOTA Survey:** `docs/golden-image-survey.md`
 > **Created:** 2026-05-04
 

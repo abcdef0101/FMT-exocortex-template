@@ -62,6 +62,14 @@ echo "  --- --check exit code ---"
   || _fail "--check exit code $rc (expected 0 or 1)"
 
 echo "  --- --check symlink validation ---"
+MOCK_WS_DIR="$ROOT_DIR/workspaces"
+if [ ! -L "$MOCK_WS_DIR/CURRENT_WORKSPACE" ]; then
+  mkdir -p "$MOCK_WS_DIR/default-project"
+  ln -sfn default-project "$MOCK_WS_DIR/CURRENT_WORKSPACE"
+  CLEANUP_SYMLINK=true
+else
+  CLEANUP_SYMLINK=false
+fi
 output=$("$UPDATER" --check 2>&1)
 if echo "$output" | grep -q "symlink valid"; then
   _pass "--check: symlink validation present"
@@ -69,6 +77,12 @@ elif echo "$output" | grep -q "symlink.*broken\|symlink.*missing"; then
   _pass "--check: symlink validation present (needs fix)"
 else
   _fail "--check: no symlink validation"
+  echo "    update.sh --check output:"
+  echo "$output" | sed 's/^/    /'
+fi
+if $CLEANUP_SYMLINK; then
+  rm -f "$MOCK_WS_DIR/CURRENT_WORKSPACE"
+  rm -rf "$MOCK_WS_DIR/default-project"
 fi
 
 echo "  --- manifest-lib sourced ---"

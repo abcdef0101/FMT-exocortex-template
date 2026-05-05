@@ -21,6 +21,7 @@ RUN_PHASE="all"
 SSH_KEY="$HOME/.ssh/id_ed25519_iwe_test"
 KEEP_VM=false
 SSH_PORT=""
+VERBOSE=false
 
 # === Parse args ===
 while [ $# -gt 0 ]; do
@@ -32,6 +33,7 @@ while [ $# -gt 0 ]; do
     --keep) KEEP_VM=true; shift ;;
     --port) SSH_PORT="$2"; shift 2 ;;
     --port=*) SSH_PORT="${1#*=}"; shift ;;
+    --verbose|-v) VERBOSE=true; shift ;;
     --help|-h)
       echo "Usage: test-from-golden.sh [OPTIONS]"
       echo ""
@@ -40,6 +42,7 @@ while [ $# -gt 0 ]; do
       echo "  --phase N     Run specific phase (1-4, or 'all', 'smoke')"
       echo "  --keep        Keep VM running after tests (for debugging)"
       echo "  --port N      SSH port forward (default: auto-find from 2222)"
+      echo "  --verbose     Show full output from test phases"
       echo "  --help        This help"
       exit 0
       ;;
@@ -61,11 +64,11 @@ GOLDEN_IMAGE="$CACHE_DIR/iwe-golden-${REPO_VERSION}.qcow2"
 TEST_IMAGE="/tmp/iwe-ephemeral-$$.qcow2"
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 REPORT="$RESULTS_DIR/golden-test-${TIMESTAMP}.txt"
+STDERR_LOG="$RESULTS_DIR/golden-test-${TIMESTAMP}-stderr.log"
 
 mkdir -p "$RESULTS_DIR"
 
-# Redirect all output to both stdout and report file
-exec > >(tee "$REPORT") 2>&1
+exec > >(tee "$REPORT") 2> >(tee "$STDERR_LOG" >&2)
 
 echo "========================================="
 echo " IWE Golden Image Test"
@@ -73,6 +76,7 @@ echo "========================================="
 echo "  Version: $REPO_VERSION"
 echo "  Phase:   $RUN_PHASE"
 echo "  Report:  $REPORT"
+echo "  Stderr:  $STDERR_LOG"
 echo ""
 
 # =========================================================================
@@ -206,12 +210,13 @@ echo "--- Step 4: Run Tests ---"
 
 # Upload secrets if available
 SECRETS_DIR="$HOME/.iwe-test-vm/secrets"
+HAS_SECRETS=false
 if [ -d "$SECRETS_DIR" ] && [ -f "$SECRETS_DIR/.env" ]; then
   echo "  Uploading secrets..."
   ssh $SSH_OPTS iwe@localhost "mkdir -p ~/secrets" 2>/dev/null
   scp $SCP_OPTS "$SECRETS_DIR/.env" "iwe@localhost:~/secrets/.env" 2>/dev/null || true
   ssh $SSH_OPTS iwe@localhost "chmod 600 ~/secrets/.env" 2>/dev/null
-  ssh $SSH_OPTS iwe@localhost "[ -f ~/secrets/.env ] && set -a && source ~/secrets/.env && set +a" 2>/dev/null || true
+  HAS_SECRETS=true
   echo "  ✓ Secrets uploaded"
 fi
 
@@ -243,6 +248,12 @@ else
 fi
 rm -f "$GIT_LOG"
 
+# Overlay local test scripts on top of git clone (ensures current fixes are tested)
+echo "  Uploading local test scripts..."
+scp $SCP_OPTS -r "$ROOT_DIR/scripts/test/"* "iwe@localhost:~/IWE/FMT-exocortex-template/scripts/test/" 2>/dev/null || {
+  echo "  WARN: test scripts upload failed (will use git clone version)"
+}
+
 # Run requested phase
 TOTAL_PASS=0
 TOTAL_FAIL=0
@@ -258,7 +269,20 @@ run_phase() {
   echo "========================================="
   echo ""
 
-  ssh $SSH_OPTS iwe@localhost "cd ~/IWE/FMT-exocortex-template && source ~/test-phases.sh && $func" 2>&1 || true
+  SECRETS_PREAMBLE=""
+  $HAS_SECRETS && SECRETS_PREAMBLE="[ -f ~/secrets/.env ] && set -a && source ~/secrets/.env && set +a;"
+
+  PHASE_STDERR="$RESULTS_DIR/phase-${num}-stderr-${TIMESTAMP}.log"
+  ssh $SSH_OPTS iwe@localhost "$SECRETS_PREAMBLE cd ~/IWE/FMT-exocortex-template && source ~/test-phases.sh && $func" 2>"$PHASE_STDERR" || true
+
+  if [ -s "$PHASE_STDERR" ]; then
+    echo "  Phase $num stderr captured: $PHASE_STDERR ($(wc -l < "$PHASE_STDERR") lines)"
+    if $VERBOSE; then
+      echo "  --- Phase $num stderr ---"
+      cat "$PHASE_STDERR" | sed 's/^/  | /'
+      echo "  --- end stderr ---"
+    fi
+  fi
 }
 
 case "$RUN_PHASE" in
@@ -276,8 +300,8 @@ case "$RUN_PHASE" in
 esac
 
 # Parse results from the tee'd output
-TOTAL_PASS=$(grep -c '\[OK\]' "$REPORT" 2>/dev/null || echo "0")
-TOTAL_FAIL=$(grep -c '\[FAIL\]' "$REPORT" 2>/dev/null || echo "0")
+TOTAL_PASS=$(grep -c '\[OK\]' "$REPORT" 2>/dev/null | tr -d '\n' || echo "0")
+TOTAL_FAIL=$(grep -c '\[FAIL\]' "$REPORT" 2>/dev/null | tr -d '\n' || echo "0")
 
 # =========================================================================
 # Step 5: Report
@@ -294,6 +318,7 @@ echo "  Boot time:  ${BOOT_TIME}s"
 echo "  Passed:     $TOTAL_PASS"
 echo "  Failed:     $TOTAL_FAIL"
 echo "  Report:     $REPORT"
+echo "  Stderr log: $STDERR_LOG"
 echo ""
 
 if $KEEP_VM; then
@@ -308,4 +333,4 @@ fi
 
 echo "========================================="
 
-exit ${TOTAL_FAIL:-0}
+exit $(( TOTAL_FAIL ))

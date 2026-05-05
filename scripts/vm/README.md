@@ -4,11 +4,11 @@
 
 ## Golden Image Pipeline (ADR-007)
 
-Сборка золотого образа через `virt-customize` + `qcow2 snapshots`. Скорость: 15 мин → <30 сек.
+Метод: cloud-init seed → SSH provision → qcow2 snapshot. Скорость: 15 мин → <30 сек.
 
 ```bash
 # 1. Установить зависимости
-sudo apt install -y qemu-kvm libguestfs-tools
+sudo apt install -y qemu-kvm libguestfs-tools cloud-image-utils
 
 # 2. Создать SSH-ключ
 ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_iwe_test -N "" -C "iwe-test"
@@ -27,9 +27,9 @@ bash scripts/vm/benchmark-golden.sh --version 0.25.1
 ```
 
 **Архитектура:**
-- `build-golden.sh` — Слой 1 (apt) + Слой 2 (npm, firstboot)
-- `test-from-golden.sh` — copy-on-write клон + прогон test-phases.sh
-- `verify-golden.sh` — qemu-img + guestfish инспекция
+- `build-golden.sh` — cloud-init seed → SSH provision: Слой 1 (apt) + Слой 2 (npm)
+- `test-from-golden.sh` — ephemeral COW клон + git clone + прогон test-phases.sh
+- `verify-golden.sh` — qemu-img инспекция + guestfish (опционально)
 - `benchmark-golden.sh` — сравнение create-vm vs golden
 
 → **ADR-007:** `docs/adr/ADR-007-golden-image-testing.md`

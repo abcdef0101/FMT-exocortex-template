@@ -1,0 +1,47 @@
+# Containerfile — IWE test container (analog of golden VM image, Podman-based)
+# Builds a reproducible Ubuntu 24.04 container with all tools for IWE test phases.
+# No neovim/mc/vim — not needed for test execution.
+#
+# Usage:
+#   podman build -t iwe-test:0.25.1 -f scripts/container/Containerfile .
+#   podman run --rm iwe-test:0.25.1 bash scripts/vm/test-phases.sh phase1_setup
+
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=UTC
+
+# --- Layer 1: System packages ---
+RUN apt-get update -qq && apt-get install -y -qq \
+    git curl wget ruby expect jq shellcheck \
+    tmux build-essential ca-certificates gnupg \
+    python3 python3-yaml software-properties-common \
+    bsdutils sudo \
+  && rm -rf /var/lib/apt/lists/*
+
+# --- Node.js 20 LTS ---
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+  && apt-get install -y -qq nodejs \
+  && npm install -g -q npm@latest \
+  && rm -rf /var/lib/apt/lists/*
+
+# --- User iwe (non-root, matches VM golden image) ---
+RUN useradd -m -s /bin/bash iwe \
+  && echo "iwe ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/iwe
+
+# --- Layer 2: npm packages (as iwe) ---
+USER iwe
+WORKDIR /home/iwe
+
+RUN mkdir -p ~/.local/bin ~/.opencode ~/IWE
+
+ENV PATH="/home/iwe/.local/bin:/home/iwe/.opencode/bin:/home/iwe/.opencode/node_modules/.bin:/usr/local/bin:/usr/bin:/bin"
+
+RUN npm set prefix ~/.local \
+  && npm install -g @anthropic-ai/claude-code 2>&1 | tail -1 \
+  && npm install -g @openai/codex 2>&1 | tail -1 \
+  && npm install -g opencode-ai 2>&1 | tail -1 \
+  || true
+
+# --- Entrypoint: keep container alive for podman exec ---
+ENTRYPOINT ["sleep", "infinity"]

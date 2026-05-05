@@ -122,16 +122,48 @@ done < <(sed -n '/^files:/,$ p' "$CK_FILE" | grep '^  ')
 # -------------------------------------------------------------------
 echo "  --- YAML validity ---"
 
-if command -v ruby &>/dev/null; then
-  ruby -ryaml -e "YAML.load_file('$CK_FILE')" 2>/dev/null \
-    && _pass "checksums.yaml is valid YAML" \
-    || _fail "checksums.yaml is invalid YAML"
-elif command -v python3 &>/dev/null; then
-  python3 -c "import yaml; yaml.safe_load(open('$CK_FILE'))" 2>/dev/null \
-    && _pass "checksums.yaml is valid YAML" \
-    || _fail "checksums.yaml is invalid YAML (no PyYAML?)"
-else
-  echo "  - skipped YAML validation (no ruby/python)"
+validate_yaml_ruby() {
+  local detail
+  detail=$(ruby -ryaml -e "YAML.load_file('$CK_FILE')" 2>&1)
+  if [ $? -eq 0 ]; then
+    _pass "checksums.yaml is valid YAML (ruby)"
+    return 0
+  else
+    echo "    ruby YAML error: $detail"
+    return 1
+  fi
+}
+
+validate_yaml_python() {
+  local detail
+  detail=$(python3 -c "import yaml; yaml.safe_load(open('$CK_FILE'))" 2>&1)
+  if [ $? -eq 0 ]; then
+    _pass "checksums.yaml is valid YAML (python3)"
+    return 0
+  else
+    echo "    python3 YAML error: $detail"
+    return 1
+  fi
+}
+
+YAML_OK=false
+if command -v python3 &>/dev/null; then
+  validate_yaml_python && YAML_OK=true
+fi
+if ! $YAML_OK && command -v ruby &>/dev/null; then
+  validate_yaml_ruby && YAML_OK=true
+fi
+if ! $YAML_OK; then
+  if ! command -v python3 &>/dev/null && ! command -v ruby &>/dev/null; then
+    echo "  - skipped YAML validation (no python3/ruby)"
+  else
+    _fail "checksums.yaml is invalid YAML"
+    echo "    first 10 lines:"
+    head -10 "$CK_FILE" | sed 's/^/    /'
+    echo "    ..."
+    echo "    last 5 lines:"
+    tail -5 "$CK_FILE" | sed 's/^/    /'
+  fi
 fi
 
 # -------------------------------------------------------------------

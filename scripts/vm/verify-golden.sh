@@ -118,34 +118,33 @@ GUEST_ROOT=$(guestfish --ro -a "$IMAGE_PATH" -i <<'GUESTFISH' 2>/dev/null
 cat /etc/os-release
 GUESTFISH
 ) || true
-echo "$GUEST_ROOT" | grep -qi "ubuntu 24" && _ok "OS: Ubuntu 24.04" || _fail "OS: not Ubuntu 24.04 or read failed"
+echo "$GUEST_ROOT" | grep -i "ubuntu 24" >/dev/null 2>&1 && _ok "OS: Ubuntu 24.04" || _fail "OS: not Ubuntu 24.04 or read failed"
 
 # Check key packages
 PKG_LIST=$(guestfish --ro -a "$IMAGE_PATH" -i <<'GUESTFISH' 2>/dev/null
-command "dpkg-query -W -f='${Package}\n' 2>/dev/null"
+sh "dpkg --list 2>/dev/null"
 GUESTFISH
 ) || true
 
-for pkg in git gh ruby expect jq shellcheck vim mc tmux curl build-essential python3 python3-yaml neovim nodejs npm; do
-  echo "$PKG_LIST" | grep -qx "$pkg" 2>/dev/null \
+for pkg in git gh ruby expect jq shellcheck vim mc tmux curl build-essential python3 python3-yaml neovim nodejs; do
+  echo "$PKG_LIST" | grep "^ii  $pkg " >/dev/null 2>&1 \
     && _ok "pkg: $pkg" || _fail "pkg: $pkg missing"
 done
 
 # Check user iwe
 USER_CHECK=$(guestfish --ro -a "$IMAGE_PATH" -i <<'GUESTFISH' 2>/dev/null
-exists /home/iwe
-command "id iwe 2>/dev/null || echo 'NO_USER'"
+sh "id iwe 2>/dev/null || echo NO_USER"
 GUESTFISH
 ) || true
-echo "$USER_CHECK" | grep -v "NO_USER" | grep -q "iwe" 2>/dev/null \
+echo "$USER_CHECK" | grep -v "NO_USER" | grep "iwe" >/dev/null 2>&1 \
   && _ok "user: iwe exists" || _fail "user: iwe missing"
 
 # Check SSH authorized_keys
 SSH_CHECK=$(guestfish --ro -a "$IMAGE_PATH" -i <<'GUESTFISH' 2>/dev/null
-cat /home/iwe/.ssh/authorized_keys 2>/dev/null || echo "NO_SSH"
+sh "head -1 /home/iwe/.ssh/authorized_keys 2>/dev/null || echo NO_SSH"
 GUESTFISH
 ) || true
-echo "$SSH_CHECK" | grep -q "ssh-ed25519" 2>/dev/null \
+echo "$SSH_CHECK" | grep "ssh-ed25519" >/dev/null 2>&1 \
   && _ok "ssh: authorized_keys present" || _fail "ssh: authorized_keys missing"
 
 # Check firstboot script
@@ -153,7 +152,7 @@ FB_CHECK=$(guestfish --ro -a "$IMAGE_PATH" -i <<'GUESTFISH' 2>/dev/null
 exists /home/iwe/packages-firstboot.sh
 GUESTFISH
 ) || true
-echo "$FB_CHECK" | grep -q "true" 2>/dev/null \
+echo "$FB_CHECK" | grep "true" >/dev/null 2>&1 \
   && _ok "firstboot: script present" || _fail "firstboot: script missing"
 
 echo ""

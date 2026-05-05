@@ -2,8 +2,8 @@
 # Генерируется: scripts/generate-checksums.sh
 # ADR-005 §2: checksum-based enforcement при update.sh --apply
 
-version: 2026.05.03
-generated: 2026-05-03T13:25:34Z
+version: 2026.05.05
+generated: 2026-05-05T09:27:39Z
 
 never_touch:
   - seed/MEMORY.md
@@ -163,11 +163,12 @@ files:
   scripts/test/e2e/e2e-author-sync.sh: "b6a94e8856cb8a05ed044fccfd1cc9dce1e5c550483f01415c5f0e8b3e1c64a1"
   scripts/test/e2e/e2e-conflict.sh: "0925be8657d81f2f7b9624334620e7d5584acd943b3c5158f6e3ac963d2f1c84"
   scripts/test/e2e/e2e-fresh-install.sh: "f4bee7d5bb336ec28bc9e740f03b0eff316f118857e7af699156a970b3edd2d2"
-  scripts/test/e2e/e2e-migration.sh: "a2615e366d78c858bc8c14e0942e2c57ca8b7af4481d241b646defc65a9a0837"
+  scripts/test/e2e/e2e-migration.sh: "044c208e5c06cdf8b431b54167bf9de3cd51d347433a79b0e9f5147a2ef52408"
   scripts/test/e2e/e2e-update-flow.sh: "dbb84e7068b38ff777b253da298206a6d9fc8bfb36d80c266d7ff7ad48f54267"
+  scripts/test/golden-snapshot.sh: "c08eba93ba032f78a25d7e5d36fc8fed5c05b3caad16acfb0878cde2f4e8b9ad"
   scripts/test/run-e2e.sh: "d8031d8b130888d558437d3981900f9051b86ae9e62028c5aa34146f9c245167"
-  scripts/test/run-phase0.sh: "ba660906ed4020a6d0830a51d3ee440503cc4d38c65018767de9838b4a940be6"
-  scripts/test/test-checksums.sh: "6a1e466830d6dc9ea30544214d0251dbdc65a26bfe477bc5a01d76e8bd91fcd5"
+  scripts/test/run-phase0.sh: "068be6f6ac089954abd07a7f7d14f73c262eac281967ab66db5522284f360c19"
+  scripts/test/test-checksums.sh: "f6cceb630cd2675f79ba9a77231bf4d31708b8566aee96c26fa7ba5941502830"
   scripts/test/test-enforce-semver.sh: "9fcf4c2bc01a95aa862d6666cc972c85ed8eb55d66807da02ddbe041ecb194ca"
   scripts/test/test-extension-points.sh: "58e36f6b35054edc0c7a64c04c986c3bfa04f3744485cf8361c783c1f9fc5364"
   scripts/test/test-manifest-files.sh: "e3d804cf2e716ecdfc703f52df29dad470ffd28fc8e0b02c0e86175c3c6ca751"
@@ -180,7 +181,35 @@ files:
   scripts/test/test-template-sync.sh: "688c2b291c2d530baddf0a23c67fc4ce7e212f2a2243c05eefe7a36507a99489"
   scripts/test/test-update-apply-mock.sh: "910a3ef2c22e37bdb458bb42cccd2c97f19efba5b87b4dd1fff7e6f17c797462"
   scripts/test/test-update-apply.sh: "fb2df46d588711dd01e524d173271a28390073a3fc3889bde4e53c7d2146a558"
-  scripts/test/test-update-check.sh: "4349ea07aaee1f58c42f210a72c2559113a2f6b8b920670ec23bb49bd2c86504"
+  scripts/test/test-update-check.sh: "b5728be1f7e521ee17c841b3829b69c7e20a513c9680e3bd88a56b50fcc47904"
+  scripts/vm/README.md: "2b89eaf16e15fa858a01d7b96d3f1a42d5710f25557d98af0e66ddda47751cf0"
+  scripts/vm/benchmark-golden.sh: "231e1f60253cfb66014b341e9b5ab82d181ad9d96b6674465f9c0cc8cab49766"
+  scripts/vm/build-golden.sh: "e2d271bb56dec3835f78ee0c0459fd2cf830e0678433279cfa96b83e5f0ffa97"
+  scripts/vm/create-vm.sh: "69a680018c36e710a61447a3f2b79663f975bf917c8ea289706d7dd74b8b9154"
+  scripts/vm/destroy-vm.sh: "29ab00daa23139a9e23d408baaa360bab71f28926adab4f1e2ed90a8337669d4"
+  scripts/vm/packages-firstboot.sh: "ee07b3e1c546202faab4cf8cc37810193ae050890006af42cbef6816b9053eb8"
+  scripts/vm/provision.sh: "f4889c0956878f503c5f6d7ef3115c3d14a907b9d1c97436d842095557f8dce9"
+  scripts/vm/results/.gitkeep: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  scripts/vm/results/golden-test-20260504-101031.txt: "bad5944db43643740bbb707a7f3003b44072086dd3827e8f1db1fc21645410c3"
+  scripts/vm/results/golden-test-20260504-101125.txt: "7cc65dce536644386fab4d590ad8f5760118607ceb9eb784a2dd594caad38ef6"
+  scripts/vm/results/golden-test-20260504-101245.txt: "921870d45c9f1bd6ff9c1fd77ccd55c765a8f65bc6c6bec7d8adecc290579f48"
+  scripts/vm/results/golden-test-20260504-101328.txt: "4d824f24775ad0433c1ee7a1f68953bfb4c72aa3ccde950a5140e9732a486d27"
+  scripts/vm/results/golden-test-20260504-114551.txt: "3b5b056f55fd6ee549d000ef1bbfcd171f71536ada07dabc8386f96cb48e05fe"
+  scripts/vm/results/golden-test-20260504-114826.txt: "224686d2747659b55c14b82fd82bef414bcb2d7733b24f36505e26cf81b7f81c"
+  scripts/vm/results/golden-test-20260504-114913.txt: "9c9e528abcf689e723c579efd92732ba81342d8592e573e61cc70b5290c07ef5"
+  scripts/vm/results/golden-test-20260504-151721.txt: "1fa36ef14713c1b40379bad8c1c3d224a6e2f9a8c78b1daadd67cf11aaeb34b2"
+  scripts/vm/results/golden-test-20260504-202846.txt: "d75a5456271ff1f611c1fdeea484052ce0378906ae4cc74dac106450c28ef30f"
+  scripts/vm/results/golden-test-20260504-202934.txt: "ad6b9d762ce0eff3e930d87d8246349bd35669b8bc747c5295b00a2986accf8b"
+  scripts/vm/results/golden-test-20260504-203012.txt: "35bce10fb82d423504fa1ee0b733a887c695bf38f1eeaa50f7f1b557a54f69ce"
+  scripts/vm/results/golden-test-20260504-203157.txt: "d1cbba3d5112c018b4c78ab4fb2eaa04600483907ee45f6bda3ba604f69024b7"
+  scripts/vm/results/golden-test-20260505-091702.txt: "15bdfb5f9cc857cb93fc495429ff1ebd0fe2226a4b7b0408cfed01eecc5fe7fc"
+  scripts/vm/results/golden-test-20260505-091743.txt: "01471f6d940902ecf89c1911f9cfa536f9160f19c455bd07f9cc17a50202ad0b"
+  scripts/vm/run-full-test.sh: "86066228f5ebb621423820cc1012cd11cd610453d13dcc04f6fa7940ef7a3ec0"
+  scripts/vm/secrets.example: "790a0350a8934f8c8401a00e5ec4d837c5e03f1170fff773fa1bc769477b9939"
+  scripts/vm/test-from-golden.sh: "32994b3e059c708999352f28add114a175454fcbeecb6a1b5d739e6c0d1975b2"
+  scripts/vm/test-phases.sh: "0d03c5bef0429051c09dc30af7dcbf23347351991b403b2542bcf0fa110023b0"
+  scripts/vm/user-data.yaml: "c004fee3c5061cf3d865fe58a6bce48d177abf734e79971f7b9f5c7de442db52"
+  scripts/vm/verify-golden.sh: "eddb3934ece6eeca36a15a340459f84972b331e4497f8c2c7e47f56a5cca8e75"
   seed/manifest.yaml: "a605a77fd4a1f82934a470a4312f6f68661b9b5a2ca48a5b6951125d602b75ab"
   seed/CLAUDE.md: "a883976965cdb3aed5d1c830e1be7b9c71d45863f7f10bca16a1e430f92c670b"
   seed/.mcp.json: "fe9c9d80ac2f282c17fd1f8692f8e088104e1b6a01555cda33289744e9526c56"
@@ -192,5 +221,5 @@ files:
   seed/extensions/linear-sync.sh: "fcab601d11691b5b288cb831d1eaf405e2ae6db6cb45aa75b59f1bd5dfbfe48c"
   seed/extensions/mcps/iwe-knowledge.mcp.json: "8be5c99037b8917c602cf17e4ceb0d3e51911f9b1a693503b819522d34949af5"
   extension-points.yaml: "d187066200ccdddd8a628bfef044fd18e87d39d8a09bc5783c2690eb796e0e25"
-  CHANGELOG.md: "3c438ab1f7e660cc364e6b6ce56a64a955379807d1b1aa202e1a951086629c53"
+  CHANGELOG.md: "b4084d751058e770c763367138a827b27625d5d4d087b7be9b86ac2a92eadf79"
   ONTOLOGY.md: "9f21668ccf5d895c19d9841b01d691b475676c41471356fd1ba06d0b41f08cd7"

@@ -208,4 +208,4 @@ CI (.github/workflows/test-golden.yml):
 - `virt-customize` passt SIGSEGV на kernel 6.8.0 — обход через cloud-init + SSH
 - OpenCode CLI не устанавливается через `@opencode-ai/plugin` (это библиотека, не CLI) — Phase 3 AI Smoke пропускается
 - Git identity не настроена в golden-образе — test-phases.sh устанавливает автоматически
-- guestfish нестабилен в CI (HOME переопределяется раннером) — заменён на qemu-img check
+- guestfish: `chmod 600` на `/boot/vmlinuz-*` блокирует supermin (поправлено `chmod +r`). `grep -q` в пайпе с `set -o pipefail` вызывает SIGPIPE на больших выводах `dpkg --list` — заменён на `grep >/dev/null` в `verify-golden.sh`.
