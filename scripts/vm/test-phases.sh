@@ -282,7 +282,7 @@ phase3_ai_smoke() {
   echo "--- [3.4] update check via OpenCode ---"
   output=$(opencode_print "запусти bash update.sh --check и скажи exit code. Ответь числом: 0 или 1." | head -3)
   if echo "$output" | grep -qE "[01]"; then
-    _ok "AI update check: response $([ $(echo "$output" | grep -oE '[01]') = '0' ] && echo 'up-to-date' || echo 'changes')"
+    _ok "AI update check: response $(echo "$output" | grep -q '0' && echo 'up-to-date' || echo 'changes')"
   elif [ -z "$output" ]; then
     _fail "AI update check: empty response"
   else
