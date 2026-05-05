@@ -59,9 +59,11 @@ jobs:
         continue-on-error: true
         run: |
           echo "=== Trivy image scan ==="
+          podman save "iwe-test:${{ steps.branch.outputs.branch }}" -o /tmp/iwe-image.tar
           /tmp/trivy image --quiet --severity HIGH,CRITICAL --exit-code 1 \
-            "iwe-test:${{ steps.branch.outputs.branch }}" 2>&1 || \
+            --input /tmp/iwe-image.tar 2>&1 || \
             echo "⚠ Trivy: CVE found in base image packages (non-blocking)"
+          rm -f /tmp/iwe-image.tar
 
       - name: Run tests
         id: tests
