@@ -122,16 +122,23 @@ echo ""
 # =========================================================================
 # Cleanup handler
 # =========================================================================
+QEMU_PIDFILE="/tmp/iwe-qemu-$$.pid"
 VM_PID=""
 cleanup() {
   echo ""
   echo "--- Cleanup ---"
-  if [ -n "$VM_PID" ] && kill -0 "$VM_PID" 2>/dev/null; then
-    echo "  Stopping QEMU (PID $VM_PID)..."
-    kill "$VM_PID" 2>/dev/null || true
-    sleep 2
-    kill -9 "$VM_PID" 2>/dev/null || true
+  local pid="${VM_PID:-}"
+  if [ -z "$pid" ] && [ -f "$QEMU_PIDFILE" ]; then
+    pid=$(cat "$QEMU_PIDFILE" 2>/dev/null)
   fi
+  if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+    echo "  Stopping QEMU (PID $pid)..."
+    kill "$pid" 2>/dev/null || true
+    sleep 2
+    kill -9 "$pid" 2>/dev/null || true
+    echo "  ✓ QEMU stopped"
+  fi
+  rm -f "$QEMU_PIDFILE"
   if [ -f "$TEST_IMAGE" ]; then
     rm -f "$TEST_IMAGE"
     echo "  Removed: $TEST_IMAGE"
@@ -168,10 +175,18 @@ qemu-system-x86_64 -enable-kvm -m 4096 -smp 2 \
   -drive file="$TEST_IMAGE",if=virtio \
   -netdev user,id=net0,hostfwd=tcp::${SSH_PORT}-:22 \
   -device virtio-net,netdev=net0 \
-  -display none -daemonize &
+  -pidfile "$QEMU_PIDFILE" \
+  -display none -daemonize 2>/dev/null
 
-VM_PID=$!
-echo "  Port: $SSH_PORT (PID $VM_PID)"
+for i in $(seq 1 10); do
+  if [ -f "$QEMU_PIDFILE" ]; then
+    VM_PID=$(cat "$QEMU_PIDFILE" 2>/dev/null || echo "")
+    [ -n "$VM_PID" ] && break
+  fi
+  sleep 0.5
+done
+
+echo "  Port: $SSH_PORT (PID ${VM_PID:-?})"
 
 # =========================================================================
 # Step 3: Wait for SSH

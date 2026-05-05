@@ -165,10 +165,16 @@ if [ "$MODE" = "full" ]; then
 
   SSH_KEY="$HOME/.ssh/id_ed25519_iwe_test"
   TEST_IMAGE="/tmp/iwe-verify-$$.qcow2"
+  QEMU_PIDFILE="/tmp/iwe-verify-qemu-$$.pid"
 
   cleanup_vm() {
-    kill $(pgrep -f "qemu-system.*$TEST_IMAGE") 2>/dev/null || true
-    rm -f "$TEST_IMAGE"
+    local pid=""
+    if [ -f "$QEMU_PIDFILE" ]; then
+      pid=$(cat "$QEMU_PIDFILE" 2>/dev/null || echo "")
+    fi
+    [ -z "$pid" ] && pid=$(pgrep -f "qemu-system.*$TEST_IMAGE" 2>/dev/null || echo "")
+    [ -n "$pid" ] && { kill "$pid" 2>/dev/null || true; sleep 1; kill -9 "$pid" 2>/dev/null || true; }
+    rm -f "$QEMU_PIDFILE" "$TEST_IMAGE"
   }
   trap cleanup_vm EXIT
 
@@ -185,6 +191,7 @@ if [ "$MODE" = "full" ]; then
     -drive file="$TEST_IMAGE",if=virtio \
     -netdev user,id=net0,hostfwd=tcp::${PORT}-:22 \
     -device virtio-net,netdev=net0 \
+    -pidfile "$QEMU_PIDFILE" \
     -display none -daemonize 2>/dev/null
 
   echo "   Waiting for SSH (port $PORT)..."

@@ -124,25 +124,44 @@ echo "--- Step 4: Boot VM ---"
 PORT=2244
 while ss -tlnp 2>/dev/null | grep -q ":$PORT "; do PORT=$((PORT + 1)); done
 
+QEMU_PIDFILE="/tmp/iwe-qemu-build-$$.pid"
+
 qemu-system-x86_64 -enable-kvm -m 4096 -smp 2 \
   -drive file="$GOLDEN_IMAGE",if=virtio \
   -cdrom "$SEED_IMG" \
   -netdev user,id=net0,hostfwd=tcp::${PORT}-:22,restrict=off \
   -device virtio-net,netdev=net0 \
-  -display none -daemonize 2>/tmp/iwe-qemu-err-$$.log &
+  -pidfile "$QEMU_PIDFILE" \
+  -display none -daemonize 2>/tmp/iwe-qemu-err-$$.log
 
-QEMU_PID=$!
+for i in $(seq 1 10); do
+  if [ -f "$QEMU_PIDFILE" ]; then
+    QEMU_PID=$(cat "$QEMU_PIDFILE" 2>/dev/null || echo "")
+    [ -n "$QEMU_PID" ] && break
+  fi
+  sleep 0.5
+done
+
 SSH_OPTS="$SSH_OPTS -p $PORT"
 
 cleanup_qemu() {
-  kill "$QEMU_PID" 2>/dev/null || true
-  sleep 1
-  kill -9 "$QEMU_PID" 2>/dev/null || true
+  if [ -f "$QEMU_PIDFILE" ]; then
+    local pid
+    pid=$(cat "$QEMU_PIDFILE" 2>/dev/null || echo "")
+    kill "$pid" 2>/dev/null || true
+    sleep 1
+    kill -9 "$pid" 2>/dev/null || true
+    rm -f "$QEMU_PIDFILE"
+  elif [ -n "${QEMU_PID:-}" ]; then
+    kill "$QEMU_PID" 2>/dev/null || true
+    sleep 1
+    kill -9 "$QEMU_PID" 2>/dev/null || true
+  fi
   rm -f "$SEED_IMG"
 }
 trap cleanup_qemu EXIT
 
-echo "  QEMU PID: $QEMU_PID, Port: $PORT"
+echo "  QEMU PID: ${QEMU_PID:-?}, Port: $PORT"
 
 # Wait for cloud-init to create user and start SSH (~1-2 min)
 echo -n "  Waiting for SSH:"
