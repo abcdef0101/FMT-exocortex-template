@@ -1,0 +1,73 @@
+name: IWE Container Tests
+
+on:
+  push:
+    branches: [0.25.1, main]
+  pull_request:
+    branches: [0.25.1, main]
+  workflow_dispatch:
+    inputs:
+      rebuild_image:
+        description: 'Force rebuild container image'
+        type: boolean
+        default: false
+      test_phase:
+        description: 'Specific phase (1-4, all, smoke)'
+        type: string
+        default: 'all'
+
+jobs:
+  container-test:
+    runs-on: self-hosted
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect branch
+        id: branch
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "branch=${{ github.head_ref }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "branch=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build container image
+        run: |
+          VERSION="${{ steps.branch.outputs.branch }}"
+          ARGS="--version $VERSION"
+          ${{ inputs.rebuild_image == 'true' }} && ARGS="$ARGS --force"
+          bash scripts/container/build-container.sh $ARGS
+
+      - name: Verify container image
+        run: |
+          bash scripts/container/verify-container.sh \
+            --version "${{ steps.branch.outputs.branch }}" \
+            --full
+
+      - name: Run tests
+        id: tests
+        continue-on-error: true
+        env:
+          IWE_BRANCH: ${{ steps.branch.outputs.branch }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          bash scripts/container/test-from-container.sh \
+            --version "$IWE_BRANCH" \
+            --phase "${{ inputs.test_phase || 'all' }}"
+
+      - name: Archive test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: container-test-report-${{ github.run_id }}
+          path: scripts/container/results/container-test-*.txt
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Container Test Results" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          tail -20 scripts/container/results/container-test-*.txt 2>/dev/null | grep -E '(Passed|Failed|Version|Phase)' >> "$GITHUB_STEP_SUMMARY" || echo "No results found" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
