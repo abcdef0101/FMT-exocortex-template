@@ -15,17 +15,19 @@ fi
 IWE_DIR="${IWE_DIR:-$HOME/IWE/FMT-exocortex-template}"
 PHASE_PASS=0
 PHASE_FAIL=0
+PHASE_SOFT_PASS=0
 
-_ok()   { echo "   [OK] $1"; PHASE_PASS=$((PHASE_PASS + 1)); }
-_fail() { echo "   [FAIL] $1"; PHASE_FAIL=$((PHASE_FAIL + 1)); }
-_skip() { echo "   [SKIP] $1"; }
-_info() { echo "   [INFO] $1"; }
+_ok()      { echo "   [OK]  $1"; PHASE_PASS=$((PHASE_PASS + 1)); }
+_ok_soft() { echo "   [OK*] $1"; PHASE_SOFT_PASS=$((PHASE_SOFT_PASS + 1)); PHASE_PASS=$((PHASE_PASS + 1)); }
+_fail()    { echo "   [FAIL] $1"; PHASE_FAIL=$((PHASE_FAIL + 1)); }
+_skip()    { echo "   [SKIP] $1"; }
+_info()    { echo "   [INFO] $1"; }
 
 opencode_print() {
   echo "$1" | script -qc "opencode --print" /dev/null 2>/dev/null
 }
 
-reset_counters() { PHASE_PASS=0; PHASE_FAIL=0; }
+reset_counters() { PHASE_PASS=0; PHASE_FAIL=0; PHASE_SOFT_PASS=0; }
 
 _show_output_on_fail() {
   local label="$1"
@@ -215,20 +217,17 @@ phase3_ai_smoke() {
   echo "=== Phase 3: OpenCode AI Smoke ==="
   reset_counters
 
-  HAS_OPENCODE=false
   HAS_API_KEY=false
-  command -v opencode >/dev/null 2>&1 && HAS_OPENCODE=true
   [ -n "${OPENAI_API_KEY:-}" ] && HAS_API_KEY=true
 
-  if ! $HAS_OPENCODE; then
-    _info "opencode: $(command -v opencode 2>/dev/null || echo 'not in PATH')"
-    _info "PATH=$PATH"
-    ls -la ~/.local/bin/opencode 2>/dev/null || _info "~/.local/bin/opencode not found"
-    _skip "opencode: not installed"
-    return 0
-  fi
   if ! $HAS_API_KEY; then
-    _skip "opencode: no API key (set OPENAI_API_KEY)"
+    echo "--- [3.0] dry-run (no API key) ---"
+    if opencode --version >/dev/null 2>&1; then
+      _ok "dry-run: opencode --version works"
+    else
+      _fail "dry-run: opencode --version failed"
+    fi
+    _skip "AI smoke: no API key (set OPENAI_API_KEY)"
     return 0
   fi
 
@@ -257,7 +256,7 @@ phase3_ai_smoke() {
     elif [ -z "$output" ]; then
       _fail "file read: empty response"
     else
-      _ok "file read: response received (expected ~$actual_lines, got: $(echo "$output" | head -1))"
+      _ok_soft "file read: response received (expected ~$actual_lines)"
     fi
   else
     _skip "file read: protocol-open.md not found"
@@ -272,7 +271,7 @@ phase3_ai_smoke() {
     elif [ -z "$output" ]; then
       _fail "IWE context: empty response"
     else
-      _ok "IWE context: response received"
+      _ok_soft "IWE context: response received"
     fi
   else
     _skip "IWE context: docs/adr/README.md not found"
@@ -282,11 +281,11 @@ phase3_ai_smoke() {
   echo "--- [3.4] update check via OpenCode ---"
   output=$(opencode_print "запусти bash update.sh --check и скажи exit code. Ответь числом: 0 или 1." | head -3)
   if echo "$output" | grep -qE "[01]"; then
-    _ok "AI update check: response $(echo "$output" | grep -q '0' && echo 'up-to-date' || echo 'changes')"
+    _ok_soft "AI update check: response $(echo "$output" | grep -q '0' && echo 'up-to-date' || echo 'changes')"
   elif [ -z "$output" ]; then
     _fail "AI update check: empty response"
   else
-    _ok "AI update check: response received"
+    _ok_soft "AI update check: response received"
   fi
 }
 

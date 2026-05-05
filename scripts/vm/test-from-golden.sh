@@ -315,7 +315,7 @@ case "$RUN_PHASE" in
 esac
 
 # Parse results from the tee'd output
-TOTAL_PASS=$(grep -c '\[OK\]' "$REPORT" 2>/dev/null | tr -d '\n' || echo "0")
+TOTAL_PASS=$(grep -cE '\[OK\]|\[OK\*\]' "$REPORT" 2>/dev/null | tr -d '\n' || echo "0")
 TOTAL_FAIL=$(grep -c '\[FAIL\]' "$REPORT" 2>/dev/null | tr -d '\n' || echo "0")
 
 # =========================================================================

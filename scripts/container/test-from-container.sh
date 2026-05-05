@@ -215,7 +215,7 @@ case "$RUN_PHASE" in
   *) echo "ERROR: invalid phase: $RUN_PHASE"; exit 1 ;;
 esac
 
-TOTAL_PASS=$(grep -c '\[OK\]' "$REPORT" 2>/dev/null | tr -d '\n' || echo "0")
+TOTAL_PASS=$(grep -cE '\[OK\]|\[OK\*\]' "$REPORT" 2>/dev/null | tr -d '\n' || echo "0")
 TOTAL_FAIL=$(grep -c '\[FAIL\]' "$REPORT" 2>/dev/null | tr -d '\n' || echo "0")
 
 # =========================================================================

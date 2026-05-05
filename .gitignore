@@ -12,3 +12,4 @@ workspaces/
 .claude/logs/
 tg2md/
 scripts/vm/results/
+scripts/container/results/

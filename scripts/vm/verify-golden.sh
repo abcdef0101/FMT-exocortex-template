@@ -218,6 +218,12 @@ if [ "$MODE" = "full" ]; then
     NPM_VER=$(ssh -p "$PORT" $SSH_OPTS iwe@localhost "npm --version" 2>/dev/null || echo "")
     [ -n "$NPM_VER" ] && _ok "npm: $NPM_VER" || _fail "npm: missing"
 
+    # npm global tools (needed for Phase 3 AI smoke tests)
+    for npm_tool in opencode claude codex; do
+      ssh -p "$PORT" $SSH_OPTS iwe@localhost "bash -lc 'command -v $npm_tool'" >/dev/null 2>&1 \
+        && _ok "npm: $npm_tool in PATH" || _fail "npm: $npm_tool not in PATH"
+    done
+
     # Check repo
     REPO_CHECK=$(ssh -p "$PORT" $SSH_OPTS iwe@localhost "ls ~/IWE/FMT-exocortex-template 2>/dev/null && echo FOUND || echo MISSING" 2>/dev/null)
     echo "$REPO_CHECK" | grep -q "FOUND" 2>/dev/null \

@@ -71,3 +71,5 @@ jobs:
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           tail -20 scripts/container/results/container-test-*.txt 2>/dev/null | grep -E '(Passed|Failed|Version|Phase)' >> "$GITHUB_STEP_SUMMARY" || echo "No results found" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "[Full report & artifact](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> "$GITHUB_STEP_SUMMARY"
