@@ -538,7 +538,8 @@ phase5b_strategy_session() {
   SESSION_PREP_PROMPT="roles/strategist/prompts/session-prep.md"
   if [ -f "$SESSION_PREP_PROMPT" ]; then
     PREP_START=$(date +%s)
-    if timeout 300 claude --bare -p "$(cat "$SESSION_PREP_PROMPT")" \
+    PREP_PROMPT=$(sed "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g; s|{{GITHUB_USER}}|iwe-test|g" "$SESSION_PREP_PROMPT")
+    if timeout 300 claude --bare -p "$PREP_PROMPT" \
       --allowedTools "Read,Write,Edit,Glob,Grep,Bash" \
       --max-budget-usd 1.00 \
       >>"$LOG_FILE" 2>&1; then
@@ -563,7 +564,8 @@ phase5b_strategy_session() {
   TEST_PROMPT="roles/strategist/prompts/strategy-session-test.md"
   if [ -f "$TEST_PROMPT" ]; then
     SESSION_START=$(date +%s)
-    if timeout 600 claude --bare -p "$(cat "$TEST_PROMPT")" \
+    SESSION_PROMPT=$(sed "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g; s|{{GITHUB_USER}}|iwe-test|g" "$TEST_PROMPT")
+    if timeout 600 claude --bare -p "$SESSION_PROMPT" \
       --allowedTools "Read,Write,Edit,Glob,Grep,Bash" \
       --max-budget-usd 1.00 \
       >>"$LOG_FILE" 2>&1; then
