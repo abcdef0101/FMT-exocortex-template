@@ -12,9 +12,13 @@ on:
         type: boolean
         default: false
       test_phase:
-        description: 'Specific phase (1-4, or all)'
+        description: 'Specific phase (1-4, 5a, 5, or all)'
         type: string
         default: 'all'
+      run_headless_e2e:
+        description: 'Run Phase 5b (headless E2E strategy session, ~$1-2)'
+        type: boolean
+        default: false
 
 jobs:
   golden-test:
@@ -66,11 +70,14 @@ jobs:
         id: tests
         continue-on-error: true
         run: |
+          PHASE="${{ inputs.test_phase || 'all' }}"
+          ${{ inputs.run_headless_e2e == 'true' }} && PHASE="5"
           bash scripts/vm/test-from-golden.sh \
             --version "${{ steps.branch.outputs.branch }}" \
-            --phase "${{ inputs.test_phase || 'all' }}"
+            --phase "$PHASE"
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
       - name: Archive test report
         if: always()

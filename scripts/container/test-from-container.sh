@@ -34,7 +34,7 @@ while [ $# -gt 0 ]; do
       echo ""
       echo "Options:"
       echo "  --version V   Version of container image (default: from MANIFEST.yaml)"
-      echo "  --phase N     Run specific phase (1-4, or 'all', 'smoke')"
+      echo "  --phase N     Run specific phase (1-4, 5a, 5, all, smoke)"
       echo "  --keep        Keep container after tests (for debugging)"
       echo "  --verbose     Show full output from test phases"
       echo "  --name NAME   Container name (default: auto-generated)"
@@ -206,11 +206,14 @@ case "$RUN_PHASE" in
   2)       run_phase 2 "Update" "phase2_update" ;;
   3|smoke) run_phase 3 "AI Smoke" "phase3_ai_smoke" ;;
   4)       run_phase 4 "CI + Migrations" "phase4_ci" ;;
+  5a)      run_phase "5a" "Strategy Session (structural)" "phase5a_strategy_session" ;;
+  5|5b|e2e) run_phase "5b" "Strategy Session (headless E2E)" "phase5b_strategy_session" ;;
   all)
     run_phase 1 "Clean Install" "phase1_setup"
     run_phase 2 "Update" "phase2_update"
     run_phase 3 "AI Smoke" "phase3_ai_smoke"
     run_phase 4 "CI + Migrations" "phase4_ci"
+    run_phase "5a" "Strategy Session (structural)" "phase5a_strategy_session"
     ;;
   *) echo "ERROR: invalid phase: $RUN_PHASE"; exit 1 ;;
 esac

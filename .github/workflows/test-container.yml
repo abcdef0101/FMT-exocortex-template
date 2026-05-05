@@ -12,9 +12,13 @@ on:
         type: boolean
         default: false
       test_phase:
-        description: 'Specific phase (1-4, all, smoke)'
+        description: 'Specific phase (1-4, 5a, 5, all, smoke)'
         type: string
         default: 'all'
+      run_headless_e2e:
+        description: 'Run Phase 5b (headless E2E strategy session, ~$1-2)'
+        type: boolean
+        default: false
 
 jobs:
   container-test:
@@ -71,11 +75,14 @@ jobs:
         env:
           IWE_BRANCH: ${{ steps.branch.outputs.branch }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          PHASE="${{ inputs.test_phase || 'all' }}"
+          ${{ inputs.run_headless_e2e == 'true' }} && PHASE="5"
           bash scripts/container/test-from-container.sh \
             --version "$IWE_BRANCH" \
-            --phase "${{ inputs.test_phase || 'all' }}"
+            --phase "$PHASE"
 
       - name: Archive test report
         if: always()

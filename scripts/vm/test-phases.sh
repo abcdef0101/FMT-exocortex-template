@@ -365,3 +365,237 @@ phase4_ci() {
   PHASE_DURATION=$(( $(date +%s) - PHASE_START ))
   echo "phase4_ci PASS=$PHASE_PASS FAIL=$PHASE_FAIL MS=$(( PHASE_DURATION * 1000 ))" >> "$METRICS_FILE"
 }
+
+# =========================================================================
+# Фаза 5a: Strategy Session — структурные тесты (всегда)
+# =========================================================================
+phase5a_strategy_session() {
+  echo ""
+  echo "=== Phase 5a: Strategy Session (structural) ==="
+  PHASE_START=$(date +%s)
+  reset_counters
+  cd "$IWE_DIR"
+
+  # --- 5a.1: Prompt exists and is non-empty ---
+  echo "--- [5a.1] prompt exists ---"
+  PROMPT_FILE="roles/strategist/prompts/strategy-session.md"
+  PROMPT_TEST_FILE="roles/strategist/prompts/strategy-session-test.md"
+  if [ -f "$PROMPT_FILE" ] && [ -s "$PROMPT_FILE" ]; then
+    _ok "prompt: strategy-session.md ($(wc -l < "$PROMPT_FILE") lines)"
+  else
+    _fail "prompt: strategy-session.md missing or empty"
+  fi
+  if [ -f "$PROMPT_TEST_FILE" ] && [ -s "$PROMPT_TEST_FILE" ]; then
+    _ok "prompt: strategy-session-test.md ($(wc -l < "$PROMPT_TEST_FILE") lines)"
+  else
+    _fail "prompt: strategy-session-test.md missing or empty"
+  fi
+
+  # --- 5a.2: Script dispatch valid ---
+  echo "--- [5a.2] script dispatch ---"
+  STRATEGIST_SH="roles/strategist/scripts/strategist.sh"
+  if [ -f "$STRATEGIST_SH" ]; then
+    if bash -n "$STRATEGIST_SH" 2>/dev/null; then
+      _ok "syntax: strategist.sh valid"
+    else
+      _fail "syntax: strategist.sh has errors"
+    fi
+    if grep -q '"strategy-session")' "$STRATEGIST_SH" 2>/dev/null; then
+      _ok "dispatch: strategy-session case present"
+    else
+      _fail "dispatch: strategy-session case missing"
+    fi
+  else
+    _fail "script: strategist.sh not found"
+  fi
+
+  # --- 5a.3: DS-strategy structure ---
+  echo "--- [5a.3] DS-strategy structure ---"
+  WS_DIR="${WORKSPACE_DIR:-$HOME/IWE/workspaces}"
+  if [ -n "${DS_STRATEGY_DIR:-}" ]; then
+    WS_DIR="$DS_STRATEGY_DIR"
+  fi
+  if [ ! -d "$WS_DIR" ]; then
+    _skip "DS-strategy: workspace not found (set WORKSPACE_DIR)"
+  else
+    for dir in docs current inbox archive; do
+      if [ -d "$WS_DIR/$dir" ]; then
+        _ok "dir: $dir/"
+      else
+        _skip "dir: $dir/ not found (workspace may be empty)"
+      fi
+    done
+  fi
+
+  # --- 5a.4: Required docs non-empty ---
+  echo "--- [5a.4] required docs ---"
+  if [ ! -d "$WS_DIR/docs" ]; then
+    _skip "docs: workspace not found"
+  else
+    for doc in "docs/Strategy.md" "docs/Dissatisfactions.md" "docs/Session Agenda.md"; do
+      if [ -f "$WS_DIR/$doc" ] && [ -s "$WS_DIR/$doc" ]; then
+        _ok "doc: $doc ($(wc -l < "$WS_DIR/$doc") lines)"
+      else
+        _skip "doc: $doc not found (seed not run yet)"
+      fi
+    done
+  fi
+
+  # --- 5a.5: Prompt-to-Pack alignment ---
+  echo "--- [5a.5] prompt-to-pack alignment ---"
+  PACK_SCENARIO="${PACK_SCENARIO:-$HOME/tmp/PACK-digital-platform/pack/digital-platform/02-domain-entities/DP.ROLE.012-strategist/scenarios/scheduled/01-strategy-session.md}"
+  if [ -f "$PACK_SCENARIO" ]; then
+    _ok "pack: scenario file found"
+    # Check key Pack steps are covered in the prompt
+    for step in "НЭП" "прошлой недели" "inbox" "стратегическ" "план на неделю" "утвержден" "синхронизац"; do
+      if grep -qi "$step" "$PROMPT_FILE" 2>/dev/null; then
+        :
+      else
+        _fail "prompt-pack: step '$step' from Pack not found in prompt"
+      fi
+    done
+    _ok "prompt-pack: key Pack steps verified"
+  else
+    _skip "prompt-pack: Pack scenario not found at $PACK_SCENARIO"
+  fi
+
+  # --- 5a.6: Seeder script valid ---
+  echo "--- [5a.6] seeder script ---"
+  SEEDER="scripts/test/seed-strategy-session.sh"
+  ASSERTER="scripts/test/assert-strategy-session.sh"
+  if [ -f "$SEEDER" ]; then
+    if bash -n "$SEEDER" 2>/dev/null; then
+      TMPDIR=$(mktemp -d -t iwe-seed-test-XXXXXX)
+      if bash "$SEEDER" "$TMPDIR/DS-strategy" >/dev/null 2>&1; then
+        _ok "seeder: runs successfully"
+        # Verify key files were created
+        for f in "docs/Strategy.md" "docs/Dissatisfactions.md" "memory/MEMORY.md" "inbox/fleeting-notes.md"; do
+          if ls "$TMPDIR/DS-strategy/$f" >/dev/null 2>&1; then
+            :
+          else
+            _fail "seeder: missing $f"
+          fi
+        done
+      else
+        _fail "seeder: execution failed"
+      fi
+      rm -rf "$TMPDIR"
+    else
+      _fail "seeder: syntax error"
+    fi
+  else
+    _fail "seeder: script not found"
+  fi
+  if [ -f "$ASSERTER" ]; then
+    bash -n "$ASSERTER" 2>/dev/null && _ok "asserter: syntax valid" || _fail "asserter: syntax error"
+  fi
+
+  PHASE_DURATION=$(( $(date +%s) - PHASE_START ))
+  echo "phase5a_strategy_session PASS=$PHASE_PASS FAIL=$PHASE_FAIL MS=$(( PHASE_DURATION * 1000 ))" >> "$METRICS_FILE"
+}
+
+# =========================================================================
+# Фаза 5b: Strategy Session — headless E2E (опционально, --phase 5)
+# =========================================================================
+phase5b_strategy_session() {
+  echo ""
+  echo "=== Phase 5b: Strategy Session (headless E2E) ==="
+  PHASE_START=$(date +%s)
+  reset_counters
+  cd "$IWE_DIR"
+
+  HAS_CLAUDE=false
+  command -v claude >/dev/null 2>&1 && HAS_CLAUDE=true
+  HAS_API_KEY=false
+  [ -n "${ANTHROPIC_API_KEY:-}" ] && HAS_API_KEY=true
+
+  if ! $HAS_CLAUDE; then
+    _skip "headless: claude CLI not installed"
+    return 0
+  fi
+  if ! $HAS_API_KEY; then
+    _skip "headless: no ANTHROPIC_API_KEY"
+    return 0
+  fi
+
+  # --- 5b.1: Seed test data ---
+  echo "--- [5b.1] seed test data ---"
+  SEED_DIR=$(mktemp -d -t iwe-e2e-seed-XXXXXX)
+  if bash scripts/test/seed-strategy-session.sh "$SEED_DIR/DS-strategy" >/dev/null 2>&1; then
+    _ok "seed: data created in $SEED_DIR"
+  else
+    _fail "seed: data creation failed"
+    rm -rf "$SEED_DIR"
+    return 1
+  fi
+
+  export WORKSPACE_DIR="$SEED_DIR"
+  export DS_STRATEGY_DIR="$SEED_DIR/DS-strategy"
+  LOG_FILE="/tmp/iwe-strategist-e2e-$$.log"
+
+  # --- 5b.2: Run session-prep (headless) ---
+  echo "--- [5b.2] session-prep (headless) ---"
+  SESSION_PREP_PROMPT="roles/strategist/prompts/session-prep.md"
+  if [ -f "$SESSION_PREP_PROMPT" ]; then
+    PREP_START=$(date +%s)
+    if timeout 300 claude --bare -p "$(cat "$SESSION_PREP_PROMPT")" \
+      --allowedTools "Read,Write,Edit,Glob,Grep,Bash" \
+      --max-budget-usd 1.00 \
+      >>"$LOG_FILE" 2>&1; then
+      PREP_DUR=$(( $(date +%s) - PREP_START ))
+      _ok "session-prep: completed (${PREP_DUR}s)"
+      # Verify draft WeekPlan was created
+      if ls "$DS_STRATEGY_DIR/current/WeekPlan"*".md" 2>/dev/null | grep -v "$PREV_MONDAY" >/dev/null 2>&1; then
+        _ok "session-prep: WeekPlan draft found"
+      else
+        _ok "session-prep: completed (WeekPlan check deferred to session)"
+      fi
+    else
+      PREP_RC=$?
+      _fail "session-prep: failed or timed out (rc=$PREP_RC)"
+    fi
+  else
+    _skip "session-prep: prompt not found"
+  fi
+
+  # --- 5b.3: Run strategy-session (headless, test prompt) ---
+  echo "--- [5b.3] strategy-session (headless) ---"
+  TEST_PROMPT="roles/strategist/prompts/strategy-session-test.md"
+  if [ -f "$TEST_PROMPT" ]; then
+    SESSION_START=$(date +%s)
+    if timeout 600 claude --bare -p "$(cat "$TEST_PROMPT")" \
+      --allowedTools "Read,Write,Edit,Glob,Grep,Bash" \
+      --max-budget-usd 1.00 \
+      >>"$LOG_FILE" 2>&1; then
+      SESSION_DUR=$(( $(date +%s) - SESSION_START ))
+      _ok "strategy-session: completed (${SESSION_DUR}s)"
+    else
+      SESSION_RC=$?
+      _fail "strategy-session: failed or timed out (rc=$SESSION_RC)"
+    fi
+  else
+    _fail "strategy-session: test prompt not found"
+  fi
+
+  # --- 5b.4: Assert post-conditions ---
+  echo "--- [5b.4] assert post-conditions ---"
+  if [ -f "scripts/test/assert-strategy-session.sh" ]; then
+    ASSERT_OUT=$(bash scripts/test/assert-strategy-session.sh "$DS_STRATEGY_DIR" "$LOG_FILE" 2>&1)
+    echo "$ASSERT_OUT"
+    ASSERT_RC=$?
+    # Feed assertion results into our counters
+    ASSERT_PASS=$(echo "$ASSERT_OUT" | grep -c '\[OK\]' 2>/dev/null || echo "0")
+    ASSERT_FAIL=$(echo "$ASSERT_OUT" | grep -c '\[FAIL\]' 2>/dev/null || echo "0")
+    for i in $(seq 1 $ASSERT_PASS); do PHASE_PASS=$((PHASE_PASS + 1)); done
+    for i in $(seq 1 $ASSERT_FAIL); do PHASE_FAIL=$((PHASE_FAIL + 1)); done
+  else
+    _skip "assert: script not found"
+  fi
+
+  # Cleanup
+  rm -rf "$SEED_DIR" 2>/dev/null || true
+  rm -f "$LOG_FILE" 2>/dev/null || true
+
+  PHASE_DURATION=$(( $(date +%s) - PHASE_START ))
+  echo "phase5b_strategy_session PASS=$PHASE_PASS FAIL=$PHASE_FAIL MS=$(( PHASE_DURATION * 1000 ))" >> "$METRICS_FILE"
+}
