@@ -18,15 +18,24 @@ on:
 
 jobs:
   golden-test:
-    runs-on: self-hosted
+    runs-on: [self-hosted, kvm]
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
+      - name: Detect branch
+        id: branch
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "branch=${{ github.head_ref }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "branch=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Check golden image
         id: check
         run: |
-          IMAGE="$HOME/.cache/iwe-golden/iwe-golden-${{ github.ref_name }}.qcow2"
+          IMAGE="$HOME/.cache/iwe-golden/iwe-golden-${{ steps.branch.outputs.branch }}.qcow2"
           if [ "${{ inputs.rebuild_golden }}" = "true" ]; then
             echo "rebuild=true" >> "$GITHUB_OUTPUT"
             echo "  → Force rebuild requested"
@@ -34,6 +43,13 @@ jobs:
             echo "rebuild=false" >> "$GITHUB_OUTPUT"
             echo "  ✓ Golden image exists ($(du -sh "$IMAGE" | cut -f1))"
             qemu-img info "$IMAGE" | grep -E 'file format|virtual size|Snapshot list' || true
+            echo "=== Integrity check ==="
+            if qemu-img check "$IMAGE" 2>&1 | grep -q "No errors"; then
+              echo "  ✓ Image integrity OK"
+            else
+              echo "  ✗ Image corruption detected — will rebuild"
+              echo "rebuild=true" >> "$GITHUB_OUTPUT"
+            fi
           else
             echo "rebuild=true" >> "$GITHUB_OUTPUT"
             echo "  ✗ Golden image not found — will rebuild"
@@ -43,7 +59,7 @@ jobs:
         if: steps.check.outputs.rebuild == 'true'
         run: |
           echo "::group::Rebuilding golden image..."
-          bash scripts/vm/build-golden.sh --version "${{ github.ref_name }}" --force
+          bash scripts/vm/build-golden.sh --version "${{ steps.branch.outputs.branch }}" --force
           echo "::endgroup::"
 
       - name: Run tests from golden image
@@ -51,7 +67,7 @@ jobs:
         continue-on-error: true
         run: |
           bash scripts/vm/test-from-golden.sh \
-            --version "${{ github.ref_name }}" \
+            --version "${{ steps.branch.outputs.branch }}" \
             --phase "${{ inputs.test_phase || 'all' }}"
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

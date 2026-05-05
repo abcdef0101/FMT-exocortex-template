@@ -16,6 +16,7 @@ IWE_DIR="${IWE_DIR:-$HOME/IWE/FMT-exocortex-template}"
 PHASE_PASS=0
 PHASE_FAIL=0
 PHASE_SOFT_PASS=0
+METRICS_FILE="${METRICS_FILE:-/tmp/iwe-phase-metrics.txt}"
 
 _ok()      { echo "   [OK]  $1"; PHASE_PASS=$((PHASE_PASS + 1)); }
 _ok_soft() { echo "   [OK*] $1"; PHASE_SOFT_PASS=$((PHASE_SOFT_PASS + 1)); PHASE_PASS=$((PHASE_PASS + 1)); }
@@ -44,6 +45,7 @@ _show_output_on_fail() {
 phase1_setup() {
   echo ""
   echo "=== Phase 1: Clean Install ==="
+  PHASE_START=$(date +%s)
   reset_counters
   cd "$IWE_DIR"
 
@@ -124,6 +126,9 @@ phase1_setup() {
     echo "   <<< end of run-phase0.sh"
   fi
   rm -f "$UNIT_LOG"
+
+  PHASE_DURATION=$(( $(date +%s) - PHASE_START ))
+  echo "phase1_setup PASS=$PHASE_PASS FAIL=$PHASE_FAIL MS=$(( PHASE_DURATION * 1000 ))" >> "${METRICS_FILE:-/tmp/iwe-phase-metrics.txt}"
 }
 
 # =========================================================================
@@ -132,6 +137,7 @@ phase1_setup() {
 phase2_update() {
   echo ""
   echo "=== Phase 2: Update ==="
+  PHASE_START=$(date +%s)
   reset_counters
   cd "$IWE_DIR"
 
@@ -207,6 +213,9 @@ phase2_update() {
   else
     _skip "e2e tests: not found"
   fi
+
+  PHASE_DURATION=$(( $(date +%s) - PHASE_START ))
+  echo "phase2_update PASS=$PHASE_PASS FAIL=$PHASE_FAIL MS=$(( PHASE_DURATION * 1000 ))" >> "$METRICS_FILE"
 }
 
 # =========================================================================
@@ -215,6 +224,7 @@ phase2_update() {
 phase3_ai_smoke() {
   echo ""
   echo "=== Phase 3: OpenCode AI Smoke ==="
+  PHASE_START=$(date +%s)
   reset_counters
 
   HAS_API_KEY=false
@@ -287,6 +297,17 @@ phase3_ai_smoke() {
   else
     _ok_soft "AI update check: response received"
   fi
+
+  # --- AI flakiness gate ---
+  if [ "$PHASE_SOFT_PASS" -gt 0 ]; then
+    _info "AI smoke: $PHASE_PASS [OK] + $PHASE_SOFT_PASS [OK*] (heuristic)"
+    if [ "$(( PHASE_PASS - PHASE_SOFT_PASS ))" -lt 2 ]; then
+      echo "   [DEGRADED] AI smoke: only $(( PHASE_PASS - PHASE_SOFT_PASS ))/4 deterministic passes (dominance of heuristic results suggests model degradation or tooling issue)"
+    fi
+  fi
+
+  PHASE_DURATION=$(( $(date +%s) - PHASE_START ))
+  echo "phase3_ai_smoke PASS=$PHASE_PASS FAIL=$PHASE_FAIL SOFT_PASS=$PHASE_SOFT_PASS MS=$(( PHASE_DURATION * 1000 ))" >> "$METRICS_FILE"
 }
 
 # =========================================================================
@@ -295,6 +316,7 @@ phase3_ai_smoke() {
 phase4_ci() {
   echo ""
   echo "=== Phase 4: CI + Migrations ==="
+  PHASE_START=$(date +%s)
   reset_counters
   cd "$IWE_DIR"
 
@@ -339,4 +361,7 @@ phase4_ci() {
   else
     _skip "never-touch: no workspace"
   fi
+
+  PHASE_DURATION=$(( $(date +%s) - PHASE_START ))
+  echo "phase4_ci PASS=$PHASE_PASS FAIL=$PHASE_FAIL MS=$(( PHASE_DURATION * 1000 ))" >> "$METRICS_FILE"
 }

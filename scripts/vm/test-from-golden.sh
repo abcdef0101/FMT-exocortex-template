@@ -318,6 +318,10 @@ esac
 TOTAL_PASS=$(grep -cE '\[OK\]|\[OK\*\]' "$REPORT" 2>/dev/null | tr -d '\n' || echo "0")
 TOTAL_FAIL=$(grep -c '\[FAIL\]' "$REPORT" 2>/dev/null | tr -d '\n' || echo "0")
 
+# Collect phase metrics from VM
+METRICS_FILE="$RESULTS_DIR/metrics-${TIMESTAMP}.txt"
+ssh $SSH_OPTS iwe@localhost "cat /tmp/iwe-phase-metrics.txt" > "$METRICS_FILE" 2>/dev/null || true
+
 # =========================================================================
 # Step 5: Report
 # =========================================================================

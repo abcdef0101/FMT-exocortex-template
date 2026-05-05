@@ -18,10 +18,22 @@ on:
 
 jobs:
   container-test:
-    runs-on: self-hosted
+    runs-on: [self-hosted, podman]
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+
+      - name: Security scan
+        id: security
+        continue-on-error: true
+        run: |
+          echo "=== npm audit ==="
+          npm audit --audit-level=high 2>&1 || echo "⚠ npm audit found issues (non-blocking)"
+          echo "=== Trivy fs scan ==="
+          if ! command -v trivy >/dev/null 2>&1; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq trivy 2>&1 | tail -1
+          fi
+          trivy fs --severity HIGH,CRITICAL --exit-code 1 . 2>&1 || echo "⚠ Trivy found HIGH/CRITICAL issues (non-blocking)"
 
       - name: Detect branch
         id: branch
