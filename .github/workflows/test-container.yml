@@ -55,6 +55,14 @@ jobs:
             --version "${{ steps.branch.outputs.branch }}" \
             --full
 
+      - name: Scan container image
+        continue-on-error: true
+        run: |
+          echo "=== Trivy image scan ==="
+          /tmp/trivy image --quiet --severity HIGH,CRITICAL --exit-code 1 \
+            "iwe-test:${{ steps.branch.outputs.branch }}" 2>&1 || \
+            echo "⚠ Trivy: CVE found in base image packages (non-blocking)"
+
       - name: Run tests
         id: tests
         continue-on-error: true
@@ -74,6 +82,27 @@ jobs:
           name: container-test-report-${{ github.run_id }}
           path: scripts/container/results/container-test-*.txt
 
+      - name: Archive metrics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: container-metrics-${{ github.run_id }}
+          path: scripts/container/results/metrics-*.txt
+
+      - name: Flakiness trend
+        if: always()
+        run: |
+          echo "## Flakiness Trend" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat scripts/container/results/metrics-*.txt 2>/dev/null | grep 'phase3' | while read line; do
+            echo "$line"
+            SOFT=$(echo "$line" | grep -oP 'SOFT_PASS=\K\d+')
+            if [ "${SOFT:-0}" -ge 3 ]; then
+              echo "  ⚠ High heuristic pass ratio (SOFT_PASS=$SOFT) — model output may be degrading"
+            fi
+          done >> "$GITHUB_STEP_SUMMARY" 2>/dev/null
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
       - name: Summary
         if: always()
         run: |
@@ -83,3 +112,18 @@ jobs:
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "[Full report & artifact](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> "$GITHUB_STEP_SUMMARY"
+          if grep -q '\[DEGRADED\]' scripts/container/results/container-test-*.txt 2>/dev/null; then
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "⚠ **AI Degradation Detected** — heuristic [OK*] dominance in smoke tests. Check report for details." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Notify on failure
+        if: failure() && env.SLACK_WEBHOOK_URL != ''
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          MSG="❌ IWE Container Tests failed on ${{ github.ref_name }}"
+          URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          curl -s -X POST "$SLACK_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "{\"text\": \"$MSG\n$URL\"}" > /dev/null 2>&1 || true

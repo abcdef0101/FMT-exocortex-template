@@ -1,0 +1,7 @@
+# IWE Testing Infrastructure Ownership
+# Auto-assigns reviewers on PRs touching these paths
+
+scripts/vm/         @abcdef0101
+scripts/container/  @abcdef0101
+scripts/test/       @abcdef0101
+.github/workflows/  @abcdef0101

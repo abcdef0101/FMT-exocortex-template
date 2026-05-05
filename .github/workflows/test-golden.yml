@@ -79,6 +79,27 @@ jobs:
           name: test-report-${{ github.run_id }}
           path: scripts/vm/results/golden-test-*.txt
 
+      - name: Archive metrics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-metrics-${{ github.run_id }}
+          path: scripts/vm/results/metrics-*.txt
+
+      - name: Flakiness trend
+        if: always()
+        run: |
+          echo "## Flakiness Trend" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat scripts/vm/results/metrics-*.txt 2>/dev/null | grep 'phase3' | while read line; do
+            echo "$line"
+            SOFT=$(echo "$line" | grep -oP 'SOFT_PASS=\K\d+')
+            if [ "${SOFT:-0}" -ge 3 ]; then
+              echo "  ⚠ High heuristic pass ratio (SOFT_PASS=$SOFT) — model output may be degrading"
+            fi
+          done >> "$GITHUB_STEP_SUMMARY" 2>/dev/null
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
       - name: Summary
         if: always()
         run: |
@@ -88,3 +109,18 @@ jobs:
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "[Full report & artifact](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> "$GITHUB_STEP_SUMMARY"
+          if grep -q '\[DEGRADED\]' scripts/vm/results/golden-test-*.txt 2>/dev/null; then
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "⚠ **AI Degradation Detected** — heuristic [OK*] dominance in smoke tests. Check report for details." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Notify on failure
+        if: failure() && env.SLACK_WEBHOOK_URL != ''
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          MSG="❌ IWE Golden Image Tests failed on ${{ github.ref_name }}"
+          URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          curl -s -X POST "$SLACK_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "{\"text\": \"$MSG\n$URL\"}" > /dev/null 2>&1 || true
