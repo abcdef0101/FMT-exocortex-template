@@ -18,6 +18,7 @@ REPO_VERSION=""
 RUN_PHASE="all"
 KEEP_CONTAINER=false
 VERBOSE=false
+DEBUG_MODE=false
 CONTAINER_NAME=""
 
 while [ $# -gt 0 ]; do
@@ -28,6 +29,7 @@ while [ $# -gt 0 ]; do
     --phase=*) RUN_PHASE="${1#*=}"; shift ;;
     --keep) KEEP_CONTAINER=true; shift ;;
     --verbose|-v) VERBOSE=true; shift ;;
+    --debug|-d) DEBUG_MODE=true; shift ;;
     --name) CONTAINER_NAME="$2"; shift 2 ;;
     --help|-h)
       echo "Usage: test-from-container.sh [OPTIONS]"
@@ -37,6 +39,7 @@ while [ $# -gt 0 ]; do
       echo "  --phase N     Run specific phase (1-4, 5a, 5, all, smoke)"
       echo "  --keep        Keep container after tests (for debugging)"
       echo "  --verbose     Show full output from test phases"
+      echo "  --debug       Save full workspace + transcripts in results/"
       echo "  --name NAME   Container name (default: auto-generated)"
       echo "  --help        This help"
       exit 0
@@ -105,7 +108,20 @@ trap cleanup EXIT
 echo "--- Step 1: Start Container ---"
 TIME_START=$(date +%s)
 
-podman run -d --name "$CONTAINER_NAME" "$IMAGE_TAG" >/dev/null 2>&1
+# Remove pre-existing container with same name
+podman rm -f "$CONTAINER_NAME" 2>/dev/null || true
+
+if $DEBUG_MODE; then
+  DEBUG_DIR="$RESULTS_DIR/debug-${TIMESTAMP}"
+  mkdir -p "$DEBUG_DIR"/{transcripts,workspace,artifacts}
+  podman run -d --name "$CONTAINER_NAME" \
+    -v "$DEBUG_DIR:/home/iwe/IWE/debug:rw" \
+    "$IMAGE_TAG" >/dev/null 2>&1
+  echo "  Debug dir: $DEBUG_DIR"
+else
+  podman run -d --name "$CONTAINER_NAME" "$IMAGE_TAG" >/dev/null 2>&1
+fi
+
 TIME_CREATE=$(date +%s)
 ELAPSED=$((TIME_CREATE - TIME_START))
 echo "  ✓ Container started: $CONTAINER_NAME (${ELAPSED}s)"
@@ -193,7 +209,7 @@ run_phase() {
   PHASE_RC=0
 
   podman exec "$CONTAINER_NAME" \
-    bash -c "$SECRETS_PREAMBLE cd ~/IWE/FMT-exocortex-template && source ~/test-phases.sh && $func" \
+    bash -c "$SECRETS_PREAMBLE export IWE_DEBUG=${DEBUG_MODE}; cd ~/IWE/FMT-exocortex-template && source ~/test-phases.sh && $func" \
     >"$PHASE_LOG" 2>"$PHASE_STDERR" || PHASE_RC=$?
 
   cat "$PHASE_LOG"
@@ -251,10 +267,11 @@ echo "  Failed:     $TOTAL_FAIL"
 echo "  Report:     $REPORT"
 echo ""
 
-if $KEEP_CONTAINER; then
+if $KEEP_CONTAINER || $DEBUG_MODE; then
   echo "  Container KEPT for debugging."
   echo "  Exec:  podman exec -it $CONTAINER_NAME bash"
   echo "  Stop:  podman rm -f $CONTAINER_NAME"
+  $DEBUG_MODE && echo "  Debug: $DEBUG_DIR"
   trap - EXIT
 fi
 

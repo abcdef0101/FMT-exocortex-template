@@ -22,6 +22,7 @@ SSH_KEY="$HOME/.ssh/id_ed25519_iwe_test"
 KEEP_VM=false
 SSH_PORT=""
 VERBOSE=false
+DEBUG_MODE=false
 
 # === Parse args ===
 while [ $# -gt 0 ]; do
@@ -34,6 +35,7 @@ while [ $# -gt 0 ]; do
     --port) SSH_PORT="$2"; shift 2 ;;
     --port=*) SSH_PORT="${1#*=}"; shift ;;
     --verbose|-v) VERBOSE=true; shift ;;
+    --debug|-d) DEBUG_MODE=true; shift ;;
     --help|-h)
       echo "Usage: test-from-golden.sh [OPTIONS]"
       echo ""
@@ -43,6 +45,7 @@ while [ $# -gt 0 ]; do
       echo "  --keep        Keep VM running after tests (for debugging)"
       echo "  --port N      SSH port forward (default: auto-find from 2222)"
       echo "  --verbose     Show full output from test phases"
+      echo "  --debug       Save full workspace + transcripts in results/"
       echo "  --help        This help"
       exit 0
       ;;
@@ -305,7 +308,7 @@ run_phase() {
 
   PHASE_STDERR="$RESULTS_DIR/phase-${num}-stderr-${TIMESTAMP}.log"
   PHASE_RC=0
-  ssh $SSH_OPTS iwe@localhost "$SECRETS_PREAMBLE cd ~/IWE/FMT-exocortex-template && source ~/test-phases.sh && $func" 2>"$PHASE_STDERR" || PHASE_RC=$?
+  ssh $SSH_OPTS iwe@localhost "$SECRETS_PREAMBLE export IWE_DEBUG=$DEBUG_MODE; cd ~/IWE/FMT-exocortex-template && source ~/test-phases.sh && $func" 2>"$PHASE_STDERR" || PHASE_RC=$?
 
   if [ -s "$PHASE_STDERR" ]; then
     if [ "$PHASE_RC" -ne 0 ]; then
@@ -363,7 +366,7 @@ echo "  Report:     $REPORT"
 echo "  Stderr log: $STDERR_LOG"
 echo ""
 
-if $KEEP_VM; then
+if $KEEP_VM || $DEBUG_MODE; then
   echo "  VM KEPT for debugging."
   echo "  SSH:  ssh $SSH_OPTS iwe@localhost"
   echo "  Kill: kill $VM_PID ; rm $TEST_IMAGE"

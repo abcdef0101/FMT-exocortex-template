@@ -504,6 +504,7 @@ phase5b_strategy_session() {
   reset_counters
   cd "$IWE_DIR"
 
+  IWE_DEBUG="${IWE_DEBUG:-false}"
   HAS_CLAUDE=false
   AI_CLI="${AI_CLI:-claude}"
   command -v "$AI_CLI" >/dev/null 2>&1 && HAS_CLAUDE=true
@@ -519,7 +520,6 @@ phase5b_strategy_session() {
     return 0
   fi
 
-  # Source AI CLI wrapper (provider-agnostic: claude ↔ opencode)
   if [ -f "scripts/ai-cli-wrapper.sh" ]; then
     source scripts/ai-cli-wrapper.sh
   else
@@ -527,36 +527,166 @@ phase5b_strategy_session() {
     return 1
   fi
 
-  # --- 5b.1: Seed test data ---
-  echo "--- [5b.1] seed test data ---"
-  SEED_DIR=$(mktemp -d -t iwe-e2e-seed-XXXXXX)
-  if bash scripts/test/seed-strategy-session.sh "$SEED_DIR/DS-strategy" >/dev/null 2>&1; then
-    _ok "seed: data created in $SEED_DIR"
+  # --- Debug setup ---
+  DEBUG_DIR=""
+  if $IWE_DEBUG; then
+    DEBUG_DIR="/home/iwe/IWE/debug"
+    mkdir -p "$DEBUG_DIR"/{transcripts,workspace,artifacts}
+    PREP_LOG="$DEBUG_DIR/transcripts/session-prep.log"
+    SESSION_LOG="$DEBUG_DIR/transcripts/strategy-session.log"
+    JUDGE_LOG="$DEBUG_DIR/transcripts/judge.log"
+    cat > "$DEBUG_DIR/MANIFEST.txt" <<DMANIFEST
+timestamp: $(date -Iseconds)
+ai_cli: ${AI_CLI:-claude}
+ai_model: ${AI_CLI_MODEL:-default}
+env: FMT-exocortex-template branch 0.25.1
+DMANIFEST
   else
-    _fail "seed: data creation failed"
-    rm -rf "$SEED_DIR"
+    PREP_LOG="/tmp/iwe-strategist-e2e-$$.log"
+    SESSION_LOG="$PREP_LOG"
+    JUDGE_LOG="$PREP_LOG"
+  fi
+
+  # --- 5b.1: Run setup.sh via expect (creates full workspace) ---
+  echo "--- [5b.1] setup.sh (expect) ---"
+  WS_DIR="workspaces/iwe2"
+  rm -rf "$WS_DIR" 2>/dev/null || true
+
+  if [ ! -f "setup.sh" ]; then
+    _fail "setup: setup.sh not found"
+    return 1
+  fi
+  if ! command -v expect >/dev/null 2>&1; then
+    _fail "setup: expect not installed"
     return 1
   fi
 
-  export WORKSPACE_DIR="$SEED_DIR"
-  export DS_STRATEGY_DIR="$SEED_DIR/DS-strategy"
+  expect -c "
+set timeout 120
+spawn bash setup.sh
+expect \"GitHub username\"          { send \"vm-test\r\" }
+expect \"Workspace name\"           { send \"iwe2\r\" }
+expect \"Claude CLI path\"          { send \"\r\" }
+expect \"Strategist launch\"        { send \"\r\" }
+expect \"Timezone description\"     { send \"\r\" }
+expect \"Data Policy (y/n)\"       { send \"y\" }
+expect \"Continue with setup\"      { send \"y\" }
+expect eof
+lassign \[wait] pid spawnid os_error_flag exit_code
+exit \$exit_code
+" >/dev/null 2>&1
+  SETUP_RC=$?
+
+  if [ "$SETUP_RC" -eq 0 ] && [ -d "$WS_DIR" ]; then
+    _ok "setup: workspace created"
+  else
+    _fail "setup: failed (rc=$SETUP_RC)"
+    return 1
+  fi
+
+  export WORKSPACE_DIR="$PWD/$WS_DIR"
+  export DS_STRATEGY_DIR="$WORKSPACE_DIR/DS-strategy"
   LOG_FILE="/tmp/iwe-strategist-e2e-$$.log"
 
-  # --- 5b.2: Run session-prep (headless) ---
-  echo "--- [5b.2] session-prep (headless) ---"
+  # --- 5b.2: Add test documents to DS-strategy ---
+  echo "--- [5b.2] add test documents ---"
+  mkdir -p "$DS_STRATEGY_DIR"/{docs,current,inbox,archive}
+  TODAY=$(date +%Y-%m-%d)
+  MONDAY=$(date -d "last monday" +%Y-%m-%d 2>/dev/null || echo "$TODAY")
+  PREV_MONDAY=$(date -d "$MONDAY -7 days" +%Y-%m-%d 2>/dev/null || echo "$MONDAY")
+  WEEK_NUM=$(date +%V)
+
+  cat > "$DS_STRATEGY_DIR/docs/Strategy.md" <<STRAT
+---
+type: strategy
+status: active
+---
+# Стратегия (тестовый workspace)
+
+## Фокус: Май 2026
+**Приоритеты месяца:**
+| # | Приоритет | Статус | Бюджет |
+|---|----------|--------|--------|
+| 1 | IWE testing pipeline | in_progress | ~20h |
+| 2 | Strategy session | pending | ~10h |
+| 3 | Documentation | pending | ~5h |
+STRAT
+
+  cat > "$DS_STRATEGY_DIR/docs/Dissatisfactions.md" <<DISSAT
+---
+type: doc
+status: active
+---
+# Неудовлетворённости (НЭП)
+
+## Активные
+| # | НЭП | Статус |
+|---|-----|--------|
+| 1 | Тестирование занимает >30 мин | active |
+| 2 | Golden image требует ручной пересборки | active |
+| 3 | Нет тестов для стратега | active |
+DISSAT
+
+  cat > "$DS_STRATEGY_DIR/docs/Session Agenda.md" <<AGENDA
+---
+type: doc
+status: active
+source: DP.ROLE.012.SC.01
+---
+# Повестка стратегической сессии
+1. Ревью НЭП
+2. Анализ прошлой недели
+3. Сдвиг фокуса месяца
+4. Формирование плана
+5. Утверждение и синхронизация
+AGENDA
+
+  cat > "$DS_STRATEGY_DIR/current/WeekPlan W$((WEEK_NUM - 1)) $PREV_MONDAY.md" <<WKPREV
+---
+type: week-plan
+week: W$((WEEK_NUM - 1))
+date_start: $PREV_MONDAY
+status: completed
+---
+# WeekPlan W$((WEEK_NUM - 1))
+## Итоги
+**Completion rate:** 4/5 (80%)
+**Carry-over:** #3 FPF review, #5 VM pidfile fix
+
+## План
+| # | РП | Бюджет | Статус |
+|---|-----|--------|--------|
+| 1 | Golden image pipeline fixes | 4h | done |
+| 2 | Container CI workflow | 6h | done |
+| 3 | FPF review findings | 3h | in_progress |
+| 4 | Production readiness R8-R12 | 5h | done |
+| 5 | VM cleanup pidfile fix | 2h | done |
+WKPREV
+
+  cat > "$DS_STRATEGY_DIR/inbox/fleeting-notes.md" <<NOTES
+# fleeting-notes
+## 🔄 (идеи)
+- "Автоматический деплой golden image" — 2026-04-28 (>7 дней)
+- "Интеграция с Grafana для CI метрик" — 2026-05-03 (свежая)
+
+## Заметки
+- 2026-05-05: обновить README после изменений
+NOTES
+
+  cp "$WORKSPACE_DIR/memory/MEMORY.md" "$DS_STRATEGY_DIR/memory/MEMORY.md" 2>/dev/null || true
+  _ok "docs: test documents added to DS-strategy"
+
+  # --- 5b.3: Run session-prep (headless) ---
+  echo "--- [5b.3] session-prep (headless) ---"
   SESSION_PREP_PROMPT="roles/strategist/prompts/session-prep.md"
   if [ -f "$SESSION_PREP_PROMPT" ]; then
     PREP_START=$(date +%s)
     PREP_PROMPT=$(sed "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g; s|{{GITHUB_USER}}|iwe-test|g" "$SESSION_PREP_PROMPT")
     AI_CLI_TIMEOUT=300
     if ai_cli_run "$PREP_PROMPT" --bare --allowed-tools "Read,Write,Edit,Glob,Grep,Bash" --budget 1.00 \
-      --allowedTools "Read,Write,Edit,Glob,Grep,Bash" \
-      --max-budget-usd 1.00 \
-      >>"$LOG_FILE" 2>&1; then
+      >>"$PREP_LOG" 2>&1; then
       PREP_DUR=$(( $(date +%s) - PREP_START ))
       _ok "session-prep: completed (${PREP_DUR}s)"
-      PREV_MONDAY=$(date -d "$(date -d 'last monday' +%Y-%m-%d) -7 days" +%Y-%m-%d 2>/dev/null || date -d "last monday -7 days" +%Y-%m-%d 2>/dev/null || echo "1970-01-01")
-      # Verify draft WeekPlan was created
       if ls "$DS_STRATEGY_DIR/current/WeekPlan"*".md" 2>/dev/null | grep -v "$PREV_MONDAY" >/dev/null 2>&1; then
         _ok "session-prep: WeekPlan draft found"
       else
@@ -570,17 +700,15 @@ phase5b_strategy_session() {
     _skip "session-prep: prompt not found"
   fi
 
-  # --- 5b.3: Run strategy-session (headless, test prompt) ---
-  echo "--- [5b.3] strategy-session (headless) ---"
+  # --- 5b.4: Run strategy-session (headless, test prompt) ---
+  echo "--- [5b.4] strategy-session (headless) ---"
   TEST_PROMPT="roles/strategist/prompts/strategy-session-test.md"
   if [ -f "$TEST_PROMPT" ]; then
     SESSION_START=$(date +%s)
     SESSION_PROMPT=$(sed "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g; s|{{GITHUB_USER}}|iwe-test|g" "$TEST_PROMPT")
     AI_CLI_TIMEOUT=600
     if ai_cli_run "$SESSION_PROMPT" --bare --allowed-tools "Read,Write,Edit,Glob,Grep,Bash" --budget 1.00 \
-      --allowedTools "Read,Write,Edit,Glob,Grep,Bash" \
-      --max-budget-usd 1.00 \
-      >>"$LOG_FILE" 2>&1; then
+      >>"$SESSION_LOG" 2>&1; then
       SESSION_DUR=$(( $(date +%s) - SESSION_START ))
       _ok "strategy-session: completed (${SESSION_DUR}s)"
     else
@@ -591,13 +719,11 @@ phase5b_strategy_session() {
     _fail "strategy-session: test prompt not found"
   fi
 
-  # --- 5b.4: Assert post-conditions ---
-  echo "--- [5b.4] assert post-conditions ---"
+  # --- 5b.5: Assert post-conditions ---
+  echo "--- [5b.5] assert post-conditions ---"
   if [ -f "scripts/test/assert-strategy-session.sh" ]; then
-    ASSERT_OUT=$(bash scripts/test/assert-strategy-session.sh "$DS_STRATEGY_DIR" "$LOG_FILE" 2>&1) || true
-    ASSERT_RC=$?
+    ASSERT_OUT=$(bash scripts/test/assert-strategy-session.sh "$DS_STRATEGY_DIR" "$PREP_LOG" 2>&1) || true
     echo "$ASSERT_OUT"
-    # Feed assertion results into our counters
     ASSERT_PASS=$(echo "$ASSERT_OUT" | grep -c '\[OK\]' 2>/dev/null || echo "0")
     ASSERT_FAIL=$(echo "$ASSERT_OUT" | grep -c '\[FAIL\]' 2>/dev/null || echo "0")
     for i in $(seq 1 $ASSERT_PASS); do PHASE_PASS=$((PHASE_PASS + 1)); done
@@ -606,15 +732,15 @@ phase5b_strategy_session() {
     _skip "assert: script not found"
   fi
 
-  # --- 5b.5: LLM-as-Judge (DeepSeek evaluates the generated WeekPlan) ---
-  echo "--- [5b.5] LLM-as-Judge ---"
+  # --- 5b.6: LLM-as-Judge (DeepSeek evaluates the generated WeekPlan) ---
+  echo "--- [5b.6] LLM-as-Judge ---"
   if [ -f "scripts/test/eval-strategy-session.sh" ]; then
-    # Find the confirmed WeekPlan (newer than Session Agenda.md, as assertion does)
     CONFIRMED_WP=$(find "$DS_STRATEGY_DIR/current" -name "WeekPlan*" \
       -newer "$DS_STRATEGY_DIR/docs/Session Agenda.md" 2>/dev/null | head -1)
     if [ -n "$CONFIRMED_WP" ] && [ -f "$CONFIRMED_WP" ]; then
       JUDGE_OUT=$(bash scripts/test/eval-strategy-session.sh "$DS_STRATEGY_DIR" "$CONFIRMED_WP" 2>&1) || true
       echo "$JUDGE_OUT"
+      $IWE_DEBUG && echo "$JUDGE_OUT" >> "$JUDGE_LOG"
       JUDGE_PASS=$(echo "$JUDGE_OUT" | grep -oP 'LLM_JUDGE_PASS=\K\d+' 2>/dev/null || echo "0")
       JUDGE_TOTAL=$(echo "$JUDGE_OUT" | grep -oP 'LLM_JUDGE_TOTAL=\K\d+' 2>/dev/null || echo "0")
       [ "${JUDGE_PASS:-0}" -ge 5 ] \
@@ -627,9 +753,20 @@ phase5b_strategy_session() {
     _skip "judge: eval script not found"
   fi
 
-  # Cleanup
-  rm -rf "$SEED_DIR" 2>/dev/null || true
-  rm -f "$LOG_FILE" 2>/dev/null || true
+  # --- Debug: save workspace + artifacts ---
+  if $IWE_DEBUG; then
+    cp -r "$WORKSPACE_DIR"/* "$DEBUG_DIR/workspace/" 2>/dev/null || true
+    if [ -n "${CONFIRMED_WP:-}" ] && [ -f "${CONFIRMED_WP:-}" ]; then
+      cp "$CONFIRMED_WP" "$DEBUG_DIR/artifacts/$(basename "$CONFIRMED_WP")" 2>/dev/null || true
+    fi
+    echo "total_duration_ms=$(( ($(date +%s) - PHASE_START) * 1000 ))" >> "$DEBUG_DIR/MANIFEST.txt"
+  fi
+
+  # Cleanup (skip if debug)
+  if ! $IWE_DEBUG; then
+    rm -rf "$WS_DIR" 2>/dev/null || true
+    rm -f "$PREP_LOG" "$SESSION_LOG" 2>/dev/null || true
+  fi
 
   PHASE_DURATION=$(( $(date +%s) - PHASE_START ))
   echo "phase5b_strategy_session PASS=$PHASE_PASS FAIL=$PHASE_FAIL MS=$(( PHASE_DURATION * 1000 ))" >> "$METRICS_FILE"
