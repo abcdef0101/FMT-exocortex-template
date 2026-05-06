@@ -86,6 +86,17 @@ ai_cli_run() {
   case "$provider" in
     claude)
       timeout "$timeout_val" claude $flags -p "$prompt"
+      local claude_rc=$?
+      # Fallback: if claude is not authenticated, try opencode
+      if [ $claude_rc -ne 0 ] || { grep -q "Not logged in" "$LOG_FILE" 2>/dev/null; }; then
+        if command -v opencode >/dev/null 2>&1; then
+          echo "WARN: claude unavailable (rc=$claude_rc), falling back to opencode" >&2
+          timeout "$timeout_val" opencode run "$prompt" \
+            -m "${AI_CLI_MODEL:-anthropic/claude-sonnet-4-20250514}" --dangerously-skip-permissions --pure
+          return $?
+        fi
+      fi
+      return $claude_rc
       ;;
     opencode)
       # Setup custom provider config if needed (baseURL or full config)
@@ -155,16 +166,10 @@ ai_cli_agent_create() {
 
   case "$provider" in
     opencode)
-      # Check if agent already exists
-      if opencode agent list 2>/dev/null | grep -q "$agent_name"; then
-        echo "  Agent '$agent_name' already exists"
-        return 0
-      fi
-      opencode agent create "$agent_name" \
-        --tools "$tools" \
-        --description "Headless agent for automated CI tasks" 2>/dev/null \
-        && echo "  Agent '$agent_name' created" \
-        || echo "  WARN: agent create failed (may need interactive setup)"
+      # Agent creation is interactive in opencode v1.x — skip in CI,
+      # return 0 so callers don't error. opencode run works without pre-created agent.
+      echo "  Agent creation skipped (interactive in this opencode version)"
+      return 0
       ;;
     claude)
       # claude uses --allowedTools flag directly, no agent needed
