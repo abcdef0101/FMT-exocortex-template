@@ -48,7 +48,7 @@ $(cat "$DS_DIR/docs/Dissatisfactions.md" 2>/dev/null || echo "Dissatisfactions.m
 $(cat "$PREV_WP" 2>/dev/null | head -120 || echo "Предыдущий WeekPlan не найден")
 
 === MEMORY.md ===
-$(cat "$DS_DIR/memory/MEMORY.md" 2>/dev/null || echo "MEMORY.md не найден")
+$(cat "$DS_DIR/../memory/MEMORY.md" 2>/dev/null || echo "MEMORY.md не найден")
 
 === fleeting-notes.md ===
 $(cat "$DS_DIR/inbox/fleeting-notes.md" 2>/dev/null || echo "fleeting-notes.md не найден")

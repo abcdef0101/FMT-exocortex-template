@@ -13,7 +13,7 @@ ENV TZ=UTC
 
 # --- Layer 1: System packages ---
 RUN apt-get update -qq && apt-get install -y -qq \
-    git curl wget ruby expect jq shellcheck \
+    git gh curl wget ruby expect jq shellcheck \
     tmux build-essential ca-certificates gnupg \
     python3 python3-yaml software-properties-common \
     bsdutils sudo \

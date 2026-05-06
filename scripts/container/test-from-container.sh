@@ -114,6 +114,7 @@ podman rm -f "$CONTAINER_NAME" 2>/dev/null || true
 if $DEBUG_MODE; then
   DEBUG_DIR="$RESULTS_DIR/debug-${TIMESTAMP}"
   mkdir -p "$DEBUG_DIR"/{transcripts,workspace,artifacts}
+  chmod -R 777 "$DEBUG_DIR" 2>/dev/null || true
   podman run -d --name "$CONTAINER_NAME" \
     -v "$DEBUG_DIR:/home/iwe/IWE/debug:rw" \
     "$IMAGE_TAG" >/dev/null 2>&1

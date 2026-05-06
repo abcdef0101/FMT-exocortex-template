@@ -22,7 +22,7 @@ echo "  DS-dir: $DS_DIR"
 # 1. WeekPlan W{N}.md exists with status: confirmed
 # -------------------------------------------------------------------
 echo "--- 1. WeekPlan confirmed ---"
-CONFIRMED=$(find "$DS_DIR/current" -name "WeekPlan*" -newer "$DS_DIR/docs/Session Agenda.md" 2>/dev/null | head -1)
+CONFIRMED=$(find "$DS_DIR/DS-strategy/current" -name "WeekPlan*" -newer "$DS_DIR/DS-strategy/docs/Session Agenda.md" 2>/dev/null | head -1)
 if [ -n "$CONFIRMED" ] && [ -f "$CONFIRMED" ]; then
   if grep -q "status: confirmed" "$CONFIRMED" 2>/dev/null; then
     _ok "WeekPlan confirmed: $(basename "$CONFIRMED")"
@@ -32,7 +32,7 @@ if [ -n "$CONFIRMED" ] && [ -f "$CONFIRMED" ]; then
   fi
 else
   _fail "No new WeekPlan found in current/"
-  ls -la "$DS_DIR/current/" 2>/dev/null | sed 's/^/   | /'
+  ls -la "$DS_DIR/DS-strategy/current/" 2>/dev/null | sed 's/^/   | /'
 fi
 
 # -------------------------------------------------------------------
@@ -114,7 +114,7 @@ fi
 echo "--- 3. MEMORY.md updated ---"
 MEMORY="$DS_DIR/memory/MEMORY.md"
 if [ -f "$MEMORY" ]; then
-  if [ "$MEMORY" -nt "$DS_DIR/docs/Strategy.md" ] 2>/dev/null; then
+  if [ "$MEMORY" -nt "$DS_DIR/DS-strategy/docs/Strategy.md" ] 2>/dev/null; then
     _ok "MEMORY.md updated (mtime newer than seed)"
   else
     _ok "MEMORY.md exists (mtime check skipped)"
@@ -147,7 +147,7 @@ fi
 # 5. Inbox processed (no 🔄 older than 7 days)
 # -------------------------------------------------------------------
 echo "--- 5. Inbox processed ---"
-NOTES="$DS_DIR/inbox/fleeting-notes.md"
+NOTES="$DS_DIR/DS-strategy/inbox/fleeting-notes.md"
 if [ -f "$NOTES" ]; then
   OLD_COUNT=$(grep -c "2026-04" "$NOTES" 2>/dev/null | tr -d '\n' || echo "0")
   if [ "${OLD_COUNT:-0}" -eq 0 ]; then

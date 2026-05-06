@@ -560,6 +560,11 @@ DMANIFEST
     _fail "setup: expect not installed"
     return 1
   fi
+  # Ensure GitHub CLI is available (required by setup.sh)
+  if ! command -v gh >/dev/null 2>&1; then
+    sudo apt-get update -qq && sudo apt-get install -y -qq gh 2>&1 | tail -1
+    command -v gh >/dev/null 2>&1 || { _fail "setup: gh not installed"; return 1; }
+  fi
 
   expect -c "
 set timeout 120
@@ -722,7 +727,7 @@ NOTES
   # --- 5b.5: Assert post-conditions ---
   echo "--- [5b.5] assert post-conditions ---"
   if [ -f "scripts/test/assert-strategy-session.sh" ]; then
-    ASSERT_OUT=$(bash scripts/test/assert-strategy-session.sh "$DS_STRATEGY_DIR" "$PREP_LOG" 2>&1) || true
+    ASSERT_OUT=$(bash scripts/test/assert-strategy-session.sh "$WORKSPACE_DIR" "$PREP_LOG" 2>&1) || true
     echo "$ASSERT_OUT"
     ASSERT_PASS=$(echo "$ASSERT_OUT" | grep -c '\[OK\]' 2>/dev/null || echo "0")
     ASSERT_FAIL=$(echo "$ASSERT_OUT" | grep -c '\[FAIL\]' 2>/dev/null || echo "0")
