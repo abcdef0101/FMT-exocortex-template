@@ -8,3 +8,4 @@
 |-----|------|--------|---------------------|
 | [ADR-005](../ADR-005-update-delivery-architecture.md) | [ADR-005-implementation-plan.md](ADR-005-implementation-plan.md) | Ready | 2026-05-01 |
 | [ADR-007](../ADR-007-golden-image-testing.md) | [ADR-007-implementation-plan.md](ADR-007-implementation-plan.md) | Planned | 2026-05-04 |
+| [ADR-008](../ADR-008-ai-provider-abstraction.md) | [ADR-008-implementation-plan.md](ADR-008-implementation-plan.md) | Planned | 2026-05-06 |
