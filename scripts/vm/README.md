@@ -22,9 +22,15 @@ bash scripts/vm/verify-golden.sh --image ~/.cache/iwe-golden/iwe-golden-0.25.1.q
 # 5. Прогнать тесты из золотого образа (<30 сек на создание окружения)
 bash scripts/vm/test-from-golden.sh --version 0.25.1
 
-# 6. Сравнить скорость
+# 6. Debug mode — сохраняет workspace через SCP
+bash scripts/vm/test-from-golden.sh --version 0.25.1 --debug
+
+# 7. Сравнить скорость
 bash scripts/vm/benchmark-golden.sh --version 0.25.1
 ```
+
+**Test phases:** Phase 1-4 (infrastructure), Phase 5a (structural), Phase 5b (headless E2E with LLM-Judge).
+See `PROCESSES.md` in repo root for full testing design document.
 
 **Архитектура:**
 - `build-golden.sh` — cloud-init seed → SSH provision: Слой 1 (apt) + Слой 2 (npm)
