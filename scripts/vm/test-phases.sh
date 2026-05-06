@@ -606,6 +606,27 @@ phase5b_strategy_session() {
     _skip "assert: script not found"
   fi
 
+  # --- 5b.5: LLM-as-Judge (DeepSeek evaluates the generated WeekPlan) ---
+  echo "--- [5b.5] LLM-as-Judge ---"
+  if [ -f "scripts/test/eval-strategy-session.sh" ]; then
+    # Find the confirmed WeekPlan (newer than Session Agenda.md, as assertion does)
+    CONFIRMED_WP=$(find "$DS_STRATEGY_DIR/current" -name "WeekPlan*" \
+      -newer "$DS_STRATEGY_DIR/docs/Session Agenda.md" 2>/dev/null | head -1)
+    if [ -n "$CONFIRMED_WP" ] && [ -f "$CONFIRMED_WP" ]; then
+      JUDGE_OUT=$(bash scripts/test/eval-strategy-session.sh "$DS_STRATEGY_DIR" "$CONFIRMED_WP" 2>&1) || true
+      echo "$JUDGE_OUT"
+      JUDGE_PASS=$(echo "$JUDGE_OUT" | grep -oP 'LLM_JUDGE_PASS=\K\d+' 2>/dev/null || echo "0")
+      JUDGE_TOTAL=$(echo "$JUDGE_OUT" | grep -oP 'LLM_JUDGE_TOTAL=\K\d+' 2>/dev/null || echo "0")
+      [ "${JUDGE_PASS:-0}" -ge 5 ] \
+        && _ok "judge: ${JUDGE_PASS}/${JUDGE_TOTAL} metrics passed" \
+        || _fail "judge: only ${JUDGE_PASS}/${JUDGE_TOTAL} metrics passed (<5)"
+    else
+      _skip "judge: no confirmed WeekPlan found"
+    fi
+  else
+    _skip "judge: eval script not found"
+  fi
+
   # Cleanup
   rm -rf "$SEED_DIR" 2>/dev/null || true
   rm -f "$LOG_FILE" 2>/dev/null || true
