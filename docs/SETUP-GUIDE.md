@@ -167,7 +167,34 @@ claude --version
 
 При первом запуске Claude Code попросит войти в аккаунт Anthropic — следуй инструкциям в терминале.
 
-### 0.5b Оптимизация стоимости: выбор модели
+### 0.5b Выбор AI-провайдера
+
+IWE поддерживает два AI-провайдера. Claude Code — основной (установлен по умолчанию). OpenCode — альтернатива с открытым исходным кодом.
+
+| Провайдер | CLI | Установка | Подписка |
+|----------|-----|----------|----------|
+| **Claude Code** | `claude` | `npm install -g @anthropic-ai/claude-code` | [Anthropic Pro/Max](https://claude.ai) ($20-100/мес) |
+| **OpenCode** | `opencode` | `npm install -g opencode-ai` | Любой LLM-провайдер (OpenAI, Anthropic, etc.) |
+
+**Переключение провайдера:**
+```bash
+# Claude Code (по умолчанию)
+export AI_CLI=claude
+export AI_CLI_API_KEY="$ANTHROPIC_API_KEY"
+
+# OpenCode
+export AI_CLI=opencode
+export AI_CLI_API_KEY="sk-..."
+```
+
+При смене провайдера:
+- Замени `ANTHROPIC_API_KEY` на `AI_CLI_API_KEY` в `.env` и GitHub Secrets
+- Создай `AGENTS.md` (OpenCode читает его как `CLAUDE.md` для Claude)
+- Запусти `opencode agent create strategist-test --tools "Read,Write,Edit,Glob,Grep,Bash"` для headless-сценариев
+
+Подробнее: [ADR-008](../docs/adr/ADR-008-ai-provider-abstraction.md)
+
+### 0.5c Оптимизация стоимости: выбор модели
 
 Claude Code позволяет выбирать модель для каждой задачи. Правильный выбор экономит лимит подписки:
 

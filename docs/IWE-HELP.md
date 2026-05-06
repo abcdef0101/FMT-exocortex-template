@@ -203,3 +203,43 @@ export TELEGRAM_CHAT_ID="your-id"
 - `DP.EXOCORTEX.001` — модульный экзокортекс: 3 слоя, template-sync, standard/personal
 - `DP.ARCH.002` — тиры T0-T4 + TM1-TM3 + TA1-TA4 + TD1: что доступно на каждом уровне
 - `DP.ROLE.001` — полный реестр ИИ-ролей (21 роль)
+
+---
+
+## Смена AI-провайдера (Claude Code ↔ OpenCode)
+
+### Claude Code → OpenCode
+
+1. Установи OpenCode: `npm install -g opencode-ai`
+2. Создай `AGENTS.md` (аналог `CLAUDE.md` для OpenCode):
+   ```bash
+   cp CLAUDE.md AGENTS.md
+   ```
+3. Переключи переменные:
+   ```bash
+   export AI_CLI=opencode
+   export AI_CLI_API_KEY="sk-..."
+   ```
+4. Создай headless-агента для cron-сценариев:
+   ```bash
+   opencode agent create strategist-test --tools "Read,Write,Edit,Glob,Grep,Bash"
+   ```
+
+### OpenCode → Claude Code
+
+1. Установи Claude Code: `npm install -g @anthropic-ai/claude-code`
+2. `CLAUDE.md` уже есть — Claude читает его автоматически
+3. Верни переменные:
+   ```bash
+   export AI_CLI=claude
+   export AI_CLI_API_KEY="$ANTHROPIC_API_KEY"
+   ```
+
+### Проверка
+
+```bash
+source scripts/ai-cli-wrapper.sh
+ai_cli_run "say exactly: provider check OK" --bare --budget 0.10
+```
+
+Подробнее: [ADR-008](../docs/adr/ADR-008-ai-provider-abstraction.md)

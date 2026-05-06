@@ -10,6 +10,11 @@
 #   2. Toggle в params.yaml — включён ли шаг (false = пропустить даже если файл есть)
 # Это позволяет хранить расширение в файле, но временно отключать без удаления.
 
+# === AI Provider ===
+# AI_CLI: "claude"          # AI CLI: claude (Anthropic) или opencode (OpenCode)
+# AI_CLI_API_KEY: "sk-..."  # Ключ AI-провайдера (заменяет ANTHROPIC_API_KEY)
+# AI_CLI_PACKAGE: "@anthropic-ai/claude-code"  # npm-пакет для golden image/container
+
 # === Day Open ===
 
 # Проверка видео за предыдущий день

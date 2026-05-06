@@ -5,6 +5,27 @@ All notable changes to FMT-exocortex-template will be documented in this file.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
+## [0.28.0] — 2026-05-06
+
+### Added (ADR-008: AI Provider Abstraction)
+
+- Provider-agnostic env vars: `AI_CLI_PATH`, `AI_CLI_API_KEY`, `AI_CLI_TIMEOUT` with backward-compatible fallbacks to `CLAUDE_PATH`, `ANTHROPIC_API_KEY`, `CLAUDE_TIMEOUT`
+- `scripts/ai-cli-wrapper.sh` — unified CLI invocation for Claude Code and OpenCode (detect → flag mapping → execute)
+- `ai_cli_agent_create()` — idempotent agent creation for OpenCode (no-op for Claude)
+- `--ai-cli-path` flag in strategist.sh, install.sh (aliases existing `--claude-path`)
+- Auto-detection: `AI_CLI` env var, fallback: `claude` → `opencode` → `claude`
+- `seed/params.yaml` — commented AI_CLI configuration example
+- `docs/SETUP-GUIDE.md` — section «Выбор AI-провайдера»
+- `docs/IWE-HELP.md` — troubleshooting for provider switch (Claude ↔ OpenCode)
+
+### Changed
+
+- `strategist.sh`: `run_claude()` uses `ai_cli_run()` wrapper with direct-invocation fallback
+- `test-phases.sh` Phase 5b: `ai_cli_run()` for both session-prep and strategy-session
+- `scheduler.sh`, `extractor/install.sh`: auto-detect `claude || opencode`
+- `packages-firstboot.sh`, `Containerfile`: `AI_CLI_PACKAGE` env override for npm
+- `run-weekly.sh`: `AI_CLI_API_KEY` gate alongside `ANTHROPIC_API_KEY`
+
 ## [0.27.0] — 2026-05-04
 
 ### Added (ADR-007: Golden Image Build Pipeline)
