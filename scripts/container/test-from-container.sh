@@ -142,6 +142,12 @@ podman cp "$ROOT_DIR/scripts/vm/test-phases.sh" "$CONTAINER_NAME:/home/iwe/test-
 }
 echo "  ✓ test-phases.sh uploaded"
 
+# Upload AI CLI wrapper (provider-agnostic: claude ↔ opencode)
+podman cp "$ROOT_DIR/scripts/ai-cli-wrapper.sh" "$CONTAINER_NAME:/home/iwe/IWE/FMT-exocortex-template/scripts/ai-cli-wrapper.sh" 2>/dev/null || {
+  echo "  WARN: ai-cli-wrapper.sh upload failed (Phase 5b may use fallback)"
+}
+echo "  ✓ ai-cli-wrapper.sh uploaded"
+
 # Overlay local test scripts (ensures current fixes are tested)
 podman cp "$ROOT_DIR/scripts/test/." "$CONTAINER_NAME:/home/iwe/IWE/FMT-exocortex-template/scripts/test/" 2>/dev/null || {
   echo "  WARN: test scripts upload failed (will use git clone version)"

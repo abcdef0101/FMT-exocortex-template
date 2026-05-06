@@ -242,6 +242,12 @@ scp $SCP_OPTS "$SCRIPT_DIR/test-phases.sh" "iwe@localhost:~/test-phases.sh" 2>/d
   exit 1
 }
 
+# Upload AI CLI wrapper (provider-agnostic: claude ↔ opencode)
+echo "  Uploading ai-cli-wrapper.sh..."
+scp $SCP_OPTS "$ROOT_DIR/scripts/ai-cli-wrapper.sh" "iwe@localhost:~/IWE/FMT-exocortex-template/scripts/ai-cli-wrapper.sh" 2>/dev/null || {
+  echo "  WARN: ai-cli-wrapper.sh upload failed (Phase 5b may use fallback)"
+}
+
 # Clone repo for testing (always fresh clone — runtime-only golden image)
 echo "  Cloning repo..."
 REPO_URL="${IWE_REPO_URL:-https://github.com/abcdef0101/FMT-exocortex-template.git}"

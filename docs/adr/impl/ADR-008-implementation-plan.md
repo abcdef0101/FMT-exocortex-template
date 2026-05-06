@@ -1,6 +1,6 @@
 # Implementation Plan: ADR-008
 
-> **Status:** Planned
+> **Status:** Ready for execution
 > **Last updated:** 2026-05-06
 > **ADR:** `docs/adr/ADR-008-ai-provider-abstraction.md`
 > **Project:** [FMT-exocortex-template](https://github.com/abcdef0101/FMT-exocortex-template/projects)

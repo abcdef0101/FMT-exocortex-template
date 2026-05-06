@@ -1,6 +1,6 @@
 # ADR-008: AI Provider Abstraction — Multi-Provider CLI Support
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-05-06
 **Context:** FMT-exocortex-template, roles/, scripts/, CI
 

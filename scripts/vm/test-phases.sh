@@ -519,6 +519,14 @@ phase5b_strategy_session() {
     return 0
   fi
 
+  # Source AI CLI wrapper (provider-agnostic: claude ↔ opencode)
+  if [ -f "scripts/ai-cli-wrapper.sh" ]; then
+    source scripts/ai-cli-wrapper.sh
+  else
+    _fail "headless: ai-cli-wrapper.sh not found"
+    return 1
+  fi
+
   # --- 5b.1: Seed test data ---
   echo "--- [5b.1] seed test data ---"
   SEED_DIR=$(mktemp -d -t iwe-e2e-seed-XXXXXX)
@@ -540,7 +548,8 @@ phase5b_strategy_session() {
   if [ -f "$SESSION_PREP_PROMPT" ]; then
     PREP_START=$(date +%s)
     PREP_PROMPT=$(sed "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g; s|{{GITHUB_USER}}|iwe-test|g" "$SESSION_PREP_PROMPT")
-    if timeout 300 "$AI_CLI" --bare -p "$PREP_PROMPT" \
+    AI_CLI_TIMEOUT=300
+    if ai_cli_run "$PREP_PROMPT" --bare --allowed-tools "Read,Write,Edit,Glob,Grep,Bash" --budget 1.00 \
       --allowedTools "Read,Write,Edit,Glob,Grep,Bash" \
       --max-budget-usd 1.00 \
       >>"$LOG_FILE" 2>&1; then
@@ -566,7 +575,8 @@ phase5b_strategy_session() {
   if [ -f "$TEST_PROMPT" ]; then
     SESSION_START=$(date +%s)
     SESSION_PROMPT=$(sed "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g; s|{{GITHUB_USER}}|iwe-test|g" "$TEST_PROMPT")
-    if timeout 600 "$AI_CLI" --bare -p "$SESSION_PROMPT" \
+    AI_CLI_TIMEOUT=600
+    if ai_cli_run "$SESSION_PROMPT" --bare --allowed-tools "Read,Write,Edit,Glob,Grep,Bash" --budget 1.00 \
       --allowedTools "Read,Write,Edit,Glob,Grep,Bash" \
       --max-budget-usd 1.00 \
       >>"$LOG_FILE" 2>&1; then

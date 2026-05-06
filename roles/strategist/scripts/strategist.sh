@@ -63,6 +63,7 @@ caffeinate -diu -w $$ &
 # Конфигурация
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(dirname "$SCRIPT_DIR")"
+FMT_DIR="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 STRATEGY_DIR="$WORKSPACE_DIR/DS-strategy"
 PROMPTS_DIR="$REPO_DIR/prompts"
 LOG_DIR="$WORKSPACE_DIR/logs/strategist"
@@ -154,13 +155,21 @@ ${prompt}"
 
   cd "$STRATEGY_DIR"
 
-  # Запуск AI CLI с содержимым команды как промпт (с timeout-защитой)
+  # Запуск AI CLI (с timeout-защитой). Используем wrapper если доступен.
   local rc=0
   AI_CLI_TIMEOUT="${AI_CLI_TIMEOUT:-${CLAUDE_TIMEOUT:-1800}}"
-  timeout "$AI_CLI_TIMEOUT" "$AI_CLI_PATH" --dangerously-skip-permissions \
-    --allowedTools "Read,Write,Edit,Glob,Grep,Bash" \
-    -p "$prompt" \
-    >>"$LOG_FILE" 2>&1 || rc=$?
+  WRAPPER="$FMT_DIR/scripts/ai-cli-wrapper.sh"
+
+  if [ -f "$WRAPPER" ]; then
+    source "$WRAPPER"
+    ai_cli_run "$prompt" --bare --allowed-tools "Read,Write,Edit,Glob,Grep,Bash" \
+      >>"$LOG_FILE" 2>&1 || rc=$?
+  else
+    timeout "$AI_CLI_TIMEOUT" "$AI_CLI_PATH" --dangerously-skip-permissions \
+      --allowedTools "Read,Write,Edit,Glob,Grep,Bash" \
+      -p "$prompt" \
+      >>"$LOG_FILE" 2>&1 || rc=$?
+  fi
 
   if [ $rc -eq 124 ]; then
     log "WARN: AI CLI timed out after ${AI_CLI_TIMEOUT}s for scenario: $command_file"
