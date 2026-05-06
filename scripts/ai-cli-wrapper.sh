@@ -95,9 +95,14 @@ ai_cli_run() {
         mkdir -p ~/.config/opencode 2>/dev/null || true
         echo "$AI_CLI_CONFIG" > ~/.config/opencode/opencode.json
       fi
+      # Validate model is in provider/model format
+      local model="${AI_CLI_MODEL:-anthropic/claude-sonnet-4-20250514}"
+      if [[ "$model" != */* ]]; then
+        echo "WARN: AI_CLI_MODEL missing provider prefix. Use 'provider/model' format (e.g. 'anthropic/claude-sonnet-4'). Got: '$model'" >&2
+      fi
       # opencode uses 'run' subcommand + -m provider/model
       timeout "$timeout_val" opencode run "$prompt" \
-        -m "${AI_CLI_MODEL:-claude-sonnet-4-20250514}" $flags
+        -m "$model" $flags
       ;;
     *)
       echo "ERROR: unknown AI CLI: $provider" >&2
