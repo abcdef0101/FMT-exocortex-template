@@ -19,7 +19,11 @@ bash scripts/container/test-from-container.sh --version 0.25.1
 # 4. Run specific phase
 bash scripts/container/test-from-container.sh --phase 5 --verbose
 
-# 5. Rebuild image
+# 5. Debug mode — saves full workspace + transcripts
+bash scripts/container/test-from-container.sh --phase 5 --debug
+# Output: scripts/container/results/debug-YYYYMMDD-HHMMSS/
+
+# 6. Rebuild image
 bash scripts/container/build-container.sh --version 0.25.1 --force
 ```
 
@@ -49,10 +53,34 @@ bash scripts/container/build-container.sh --version 0.25.1 --force
 1. podman run -d (sleep infinity)
 2. git clone FMT-exocortex-template inside container
 3. Upload: test-phases.sh, ai-cli-wrapper.sh, secrets, test scripts
-4. Configure: OpenCode provider from .env
-5. podman exec → source test-phases.sh → phaseN_xxx()
-6. podman rm -f (cleanup)
+4. podman exec → source test-phases.sh → phaseN_xxx()
+5. podman rm -f (cleanup, or --keep/--debug to preserve)
 ```
+
+## Test Phases
+
+| Phase | What | Cost |
+|-------|------|:---:|
+| 1 | Clean Install (setup.sh validation, manifest, structure) | $0 |
+| 2 | Update (check, apply, merge, E2E) | $0 |
+| 3 | AI Smoke (OpenCode file read, context, update check) | $0 |
+| 4 | CI + Migrations (semver, checksums, never-touch) | $0 |
+| 5a | Strategy Session (structural: prompts, dispatch, seeder) | $0 |
+| 5b | Strategy Session (headless E2E: setup.sh + Claude + LLM-Judge) | ~$0.50 |
+
+## Debug Mode
+
+```bash
+bash scripts/container/test-from-container.sh --phase 5 --debug
+```
+
+Preserves in `scripts/container/results/debug-YYYYMMDD-HHMMSS/`:
+- `transcripts/` — separate logs for session-prep, strategy-session, and judge
+- `workspace/` — full IWE workspace snapshot after tests
+- `artifacts/` — final WeekPlan copy
+- `MANIFEST.txt` — version, model, timing metadata
+
+Container stays alive for post-mortem: `podman exec -it <name> bash`
 
 ## Results
 

@@ -5,6 +5,39 @@ All notable changes to FMT-exocortex-template will be documented in this file.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
+## [0.28.1] — 2026-05-06
+
+### Added
+
+- Phase 5b v2: `expect setup.sh` replaces seed-script for full workspace creation (`workspaces/iwe2/`)
+- LLM-as-Judge (D2): DeepSeek Chat evaluates strategy session WeekPlan against 8 criteria
+- `--debug` flag in both test runners — saves full workspace, separate AI transcripts, MANIFEST.txt
+- Content-based assertion checks: size, table rows, frontmatter completeness, carry-over preservation
+- `scripts/test/rubrics-strategy-session.yaml` — 8 evaluation criteria with thresholds
+- `scripts/test/eval-strategy-session.sh` — judge runner with JSON parsing
+- `scripts/test/_parse_judge_output.py` — JSON parser with regex fallback for LLM output
+- `PROCESSES.md` — comprehensive testing design document
+- `scripts/container/README.md` — container pipeline documentation
+- `scripts/ai-cli-wrapper.sh` — claude→opencode fallback on authentication failure
+- `gh` (GitHub CLI) added to Containerfile for setup.sh prerequisites
+
+### Changed
+
+- Phase 5b: 4 steps → 6 steps (setup + seed docs + prep + session + assert + judge)
+- Assertion paths updated for workspace-level DS-strategy (`DS-strategy/current/` etc.)
+- `test-from-container.sh`/`test-from-golden.sh`: PHASE_RC capture for error display
+- `ai-cli-wrapper.sh`: `AI_CLI_MODEL` default uses full `provider/model` format
+- `ai-cli-wrapper.sh`: agent creation skipped for opencode v1.14.39 (interactive-only)
+- `run-weekly.sh`: `AI_CLI_API_KEY` gate alongside legacy `ANTHROPIC_API_KEY`
+
+### Fixed
+
+- `PREV_MONDAY: unbound variable` — computed from `date` instead of unset reference
+- Observability: stderr content shown on phase error (not just file path)
+- `MANIFEST.yaml` version: 0.27.0 → 0.28.0 to match CHANGELOG
+- `grep -c` arithmetic errors: `tr -d '\n'` pipe added to all integer comparisons
+- `assert-strategy-session.sh`: `-newer` reference file changed from `Strategy.md` to `Session Agenda.md`
+
 ## [0.28.0] — 2026-05-06
 
 ### Added (ADR-008: AI Provider Abstraction)

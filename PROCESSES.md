@@ -40,7 +40,9 @@ IWE testing runs on two independent infrastructure backends (VM and Container), 
 | Test phases | `scripts/vm/test-phases.sh` | Library sourced by both pipelines |
 | AI CLI wrapper | `scripts/ai-cli-wrapper.sh` | Provider-agnostic LLM execution |
 | Assertion script | `scripts/test/assert-strategy-session.sh` | Post-condition checks for Phase 5b |
-| Seed script | `scripts/test/seed-strategy-session.sh` | Test data creation for Phase 5b |
+| LLM-Judge evaluator | `scripts/test/eval-strategy-session.sh` | Semantic quality evaluation (8 criteria) |
+| LLM-Judge rubrics | `scripts/test/rubrics-strategy-session.yaml` | Evaluation criteria with thresholds |
+| Setup automation | `setup.sh` + `expect` | Full workspace creation via automated install |
 
 ### 1.3 CI Integration
 
@@ -80,6 +82,13 @@ bash scripts/container/test-from-container.sh --phase "5" --verbose   # headless
 bash scripts/container/test-from-container.sh --phase 3 --keep
 podman exec -it iwe-test-NNNNN bash
 podman rm -f iwe-test-NNNNN
+
+# Debug mode — saves full workspace + transcripts
+bash scripts/container/test-from-container.sh --phase "5" --debug
+# Output: results/debug-YYYYMMDD-HHMMSS/
+#   ├── transcripts/    (session-prep.log, strategy-session.log, judge.log)
+#   ├── workspace/      (full DS-strategy + memory after tests)
+#   └── artifacts/      (final WeekPlan copy)
 ```
 
 ### 2.2 Local — VM (full environment, mirrors Golden Image)
@@ -229,16 +238,20 @@ gh secret set AI_CLI_API_KEY --repo abcdef0101/FMT-exocortex-template --body "sk
 
 ### 3.6 Phase 5b: Strategy Session (Headless E2E)
 
-**Purpose:** Run actual strategy session via LLM in headless mode. **NOT in `all`** — runs only via `--phase 5` or `workflow_dispatch`.
+**Purpose:** Run actual strategy session via LLM in headless mode, using a full workspace created by `setup.sh`. **NOT in `all`** — runs only via `--phase 5` or `workflow_dispatch`.
+
+**Flow:** `expect setup.sh` creates workspace → test documents seeded → session-prep (Claude) → strategy-session (Claude) → structural assertions → LLM-as-Judge (DeepSeek).
 
 | # | Test | What it checks | Cost |
 |---|------|---------------|:---:|
-| 5b.1 | Seed test data | Creates mock DS-strategy with WeekPlan, NEP, Memory | $0 |
-| 5b.2 | Session-prep | `claude --bare -p session-prep.md` → WeekPlan draft created | ~$0.50 |
-| 5b.3 | Strategy-session | `claude --bare -p strategy-session-test.md` → WeekPlan confirmed | ~$0.50 |
-| 5b.4 | Assert post-conditions | Structural checks (see §3.6.1) | $0 |
+| 5b.1 | Setup workspace | `expect setup.sh` → full `workspaces/iwe2/` with CLAUDE.md, memory, protocols | $0 |
+| 5b.2 | Seed test documents | `Strategy.md`, `Dissatisfactions.md`, `Session Agenda.md`, past WeekPlan | $0 |
+| 5b.3 | Session-prep | `claude --bare -p session-prep.md` → WeekPlan draft created | ~$0.50 |
+| 5b.4 | Strategy-session | `claude --bare -p strategy-session-test.md` → WeekPlan confirmed | ~$0.50 |
+| 5b.5 | Assert post-conditions | Structural + content checks (see §3.6.1) | $0 |
+| 5b.6 | LLM-as-Judge | DeepSeek evaluates WeekPlan against 8 criteria (see §3.7) | ~$0.001 |
 
-**Skip conditions:** `ANTHROPIC_API_KEY` (or `AI_CLI_API_KEY`) not set → skip.
+**Skip conditions:** `AI_CLI_API_KEY` (or `ANTHROPIC_API_KEY`) not set → skip. `expect` not installed → skip.
 
 **AI provider flow:**
 ```
@@ -248,6 +261,16 @@ detect_ai_cli()
   │     └── failure (Not logged in) → fallback to opencode
   └── AI_CLI=opencode → opencode run -m AI_CLI_MODEL
 ```
+
+**Debug mode:** `--debug` flag mounts host directory into container, saves:
+```
+results/debug-YYYYMMDD-HHMMSS/
+├── transcripts/session-prep.log, strategy-session.log, judge.log
+├── workspace/ (full IWE workspace after tests)
+├── artifacts/WeekPlan-W{N}.md
+└── MANIFEST.txt (version, model, timing metadata)
+```
+
 
 #### 3.6.1 Post-condition Assertions
 
@@ -262,6 +285,34 @@ detect_ai_cli()
 | 7 | MEMORY.md: "РП текущей недели" section present | Content | Section exists |
 | 8 | No ERROR in strategist log | Signal | `grep -qi "ERROR"` must be empty |
 | 9 | Inbox processed | Structural | Old notes cleaned |
+
+---
+
+### 3.7 LLM-as-Judge Evaluation (Phase 5b.6)
+
+**Purpose:** Independent semantic quality evaluation of the generated WeekPlan. A separate LLM session (DeepSeek Chat) evaluates the plan against 8 criteria — no access to the generator's reasoning.
+
+**Architecture:** Generator (Claude Sonnet) and Judge (DeepSeek Chat) run in separate sessions with context isolation. The judge sees only the WeekPlan artifact and seed context files, not the generator's internal thoughts.
+
+**Criteria** (from `scripts/test/rubrics-strategy-session.yaml`):
+
+| # | Metric | Threshold | What it checks |
+|---|--------|:---:|---------|
+| 1 | `carry_over_fidelity` | 0.6 | Are carry-over РП from past week preserved? |
+| 2 | `budget_realism` | 0.6 | Is the weekly budget plausible? Each РП has time estimate? |
+| 3 | `priority_alignment` | 0.6 | Do РП align with Strategy.md priorities? |
+| 4 | `nep_coverage` | 0.5 | Do active dissatisfactions have corresponding plans? |
+| 5 | `inbox_resolution` | 0.6 | Did inbox notes receive decisions? |
+| 6 | `actionability` | 0.7 | Are РП concrete and measurable? |
+| 7 | `memory_sync` | 0.7 | Is MEMORY.md synchronized with the WeekPlan? |
+| 8 | `structural_completeness` | 0.8 | Are all sections filled with non-trivial content? |
+
+**Cost:** ~$0.001 per run (DeepSeek Chat). Judge runs only in `--phase 5` (not in `all`).
+
+**Files:**
+- `scripts/test/rubrics-strategy-session.yaml` — criteria definitions
+- `scripts/test/eval-strategy-session.sh` — judge runner (builds prompt, calls LLM, parses JSON)
+- `scripts/test/_parse_judge_output.py` — JSON parser with regex fallback
 
 ---
 
