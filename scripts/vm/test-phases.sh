@@ -555,6 +555,7 @@ phase5b_strategy_session() {
       >>"$LOG_FILE" 2>&1; then
       PREP_DUR=$(( $(date +%s) - PREP_START ))
       _ok "session-prep: completed (${PREP_DUR}s)"
+      PREV_MONDAY=$(date -d "$(date -d 'last monday' +%Y-%m-%d) -7 days" +%Y-%m-%d 2>/dev/null || date -d "last monday -7 days" +%Y-%m-%d 2>/dev/null || echo "1970-01-01")
       # Verify draft WeekPlan was created
       if ls "$DS_STRATEGY_DIR/current/WeekPlan"*".md" 2>/dev/null | grep -v "$PREV_MONDAY" >/dev/null 2>&1; then
         _ok "session-prep: WeekPlan draft found"
@@ -593,9 +594,9 @@ phase5b_strategy_session() {
   # --- 5b.4: Assert post-conditions ---
   echo "--- [5b.4] assert post-conditions ---"
   if [ -f "scripts/test/assert-strategy-session.sh" ]; then
-    ASSERT_OUT=$(bash scripts/test/assert-strategy-session.sh "$DS_STRATEGY_DIR" "$LOG_FILE" 2>&1)
-    echo "$ASSERT_OUT"
+    ASSERT_OUT=$(bash scripts/test/assert-strategy-session.sh "$DS_STRATEGY_DIR" "$LOG_FILE" 2>&1) || true
     ASSERT_RC=$?
+    echo "$ASSERT_OUT"
     # Feed assertion results into our counters
     ASSERT_PASS=$(echo "$ASSERT_OUT" | grep -c '\[OK\]' 2>/dev/null || echo "0")
     ASSERT_FAIL=$(echo "$ASSERT_OUT" | grep -c '\[FAIL\]' 2>/dev/null || echo "0")

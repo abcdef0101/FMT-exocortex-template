@@ -304,14 +304,18 @@ run_phase() {
   $HAS_SECRETS && SECRETS_PREAMBLE="[ -f ~/secrets/.env ] && set -a && source ~/secrets/.env && set +a;"
 
   PHASE_STDERR="$RESULTS_DIR/phase-${num}-stderr-${TIMESTAMP}.log"
-  ssh $SSH_OPTS iwe@localhost "$SECRETS_PREAMBLE cd ~/IWE/FMT-exocortex-template && source ~/test-phases.sh && $func" 2>"$PHASE_STDERR" || true
+  PHASE_RC=0
+  ssh $SSH_OPTS iwe@localhost "$SECRETS_PREAMBLE cd ~/IWE/FMT-exocortex-template && source ~/test-phases.sh && $func" 2>"$PHASE_STDERR" || PHASE_RC=$?
 
   if [ -s "$PHASE_STDERR" ]; then
-    echo "  Phase $num stderr captured: $PHASE_STDERR ($(wc -l < "$PHASE_STDERR") lines)"
-    if $VERBOSE; then
-      echo "  --- Phase $num stderr ---"
-      cat "$PHASE_STDERR" | sed 's/^/  | /'
-      echo "  --- end stderr ---"
+    if [ "$PHASE_RC" -ne 0 ]; then
+      echo "  Phase $num ERROR (rc=$PHASE_RC):"
+      sed 's/^/  | /' "$PHASE_STDERR"
+    elif $VERBOSE; then
+      echo "  Phase $num stderr ($(wc -l < "$PHASE_STDERR") lines):"
+      sed 's/^/  | /' "$PHASE_STDERR"
+    else
+      echo "  Phase $num stderr: $PHASE_STDERR ($(wc -l < "$PHASE_STDERR") lines)"
     fi
   fi
 }

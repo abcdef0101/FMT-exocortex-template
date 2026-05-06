@@ -200,19 +200,23 @@ run_phase() {
 
   PHASE_LOG="$RESULTS_DIR/phase-${num}-${TIMESTAMP}.log"
   PHASE_STDERR="$RESULTS_DIR/phase-${num}-stderr-${TIMESTAMP}.log"
+  PHASE_RC=0
 
   podman exec "$CONTAINER_NAME" \
     bash -c "$SECRETS_PREAMBLE cd ~/IWE/FMT-exocortex-template && source ~/test-phases.sh && $func" \
-    >"$PHASE_LOG" 2>"$PHASE_STDERR" || true
+    >"$PHASE_LOG" 2>"$PHASE_STDERR" || PHASE_RC=$?
 
   cat "$PHASE_LOG"
 
   if [ -s "$PHASE_STDERR" ]; then
-    echo "  Phase $num stderr captured: $PHASE_STDERR ($(wc -l < "$PHASE_STDERR") lines)"
-    if $VERBOSE; then
-      echo "  --- Phase $num stderr ---"
+    if [ "$PHASE_RC" -ne 0 ]; then
+      echo "  Phase $num ERROR (rc=$PHASE_RC):"
       sed 's/^/  | /' "$PHASE_STDERR"
-      echo "  --- end stderr ---"
+    elif $VERBOSE; then
+      echo "  Phase $num stderr ($(wc -l < "$PHASE_STDERR") lines):"
+      sed 's/^/  | /' "$PHASE_STDERR"
+    else
+      echo "  Phase $num stderr: $PHASE_STDERR ($(wc -l < "$PHASE_STDERR") lines)"
     fi
   fi
 }
