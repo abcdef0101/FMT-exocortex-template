@@ -14,6 +14,8 @@
 # AI_CLI: "claude"          # AI CLI: claude (Anthropic) или opencode (OpenCode)
 # AI_CLI_API_KEY: "sk-..."  # Ключ AI-провайдера (заменяет ANTHROPIC_API_KEY)
 # AI_CLI_PACKAGE: "@anthropic-ai/claude-code"  # npm-пакет для golden image/container
+# AI_CLI_MODEL: "deepseek/deepseek-v4-pro"    # Модель для opencode (формат: provider/model)
+# AI_CLI_BASE_URL: "https://my-api.company.com/v1"  # Custom API endpoint (опционально)
 
 # === Day Open ===
 

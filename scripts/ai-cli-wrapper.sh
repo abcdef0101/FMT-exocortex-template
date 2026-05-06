@@ -88,14 +88,54 @@ ai_cli_run() {
       timeout "$timeout_val" claude $flags -p "$prompt"
       ;;
     opencode)
-      # opencode uses 'run' subcommand instead of -p
-      timeout "$timeout_val" opencode run "$prompt" $flags
+      # Setup custom provider config if needed (baseURL or full config)
+      if [ -n "${AI_CLI_BASE_URL:-}" ]; then
+        _opencode_setup_config
+      elif [ -n "${AI_CLI_CONFIG:-}" ]; then
+        mkdir -p ~/.config/opencode 2>/dev/null || true
+        echo "$AI_CLI_CONFIG" > ~/.config/opencode/opencode.json
+      fi
+      # opencode uses 'run' subcommand + -m provider/model
+      timeout "$timeout_val" opencode run "$prompt" \
+        -m "${AI_CLI_MODEL:-claude-sonnet-4-20250514}" $flags
       ;;
     *)
       echo "ERROR: unknown AI CLI: $provider" >&2
       return 1
       ;;
   esac
+}
+
+# === Custom provider setup (opencode) ===
+# Generates opencode.json from AI_CLI_BASE_URL + AI_CLI_MODEL env vars.
+# Used when AI_CLI_BASE_URL is set (custom API endpoint).
+
+_opencode_setup_config() {
+  local base_url="${AI_CLI_BASE_URL}"
+  local model_id="${AI_CLI_MODEL##*/}"  # extract "my-model" from "custom/my-model"
+  local model_name="${model_id:-custom-model}"
+
+  mkdir -p ~/.config/opencode 2>/dev/null || true
+
+  cat > ~/.config/opencode/opencode.json <<OPECFG
+{
+  "\$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "custom": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Custom API (${base_url})",
+      "options": {
+        "baseURL": "${base_url}"
+      },
+      "models": {
+        "${model_id}": {
+          "name": "${model_name}"
+        }
+      }
+    }
+  }
+}
+OPECFG
 }
 
 # === Agent management (opencode-specific) ===

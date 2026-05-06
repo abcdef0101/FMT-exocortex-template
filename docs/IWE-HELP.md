@@ -218,9 +218,15 @@ export TELEGRAM_CHAT_ID="your-id"
 3. Переключи переменные:
    ```bash
    export AI_CLI=opencode
+   export AI_CLI_MODEL="deepseek/deepseek-v4-pro"
    export AI_CLI_API_KEY="sk-..."
    ```
-4. Создай headless-агента для cron-сценариев:
+4. Для кастомного API-эндпоинта:
+   ```bash
+   export AI_CLI_BASE_URL="https://my-api.company.com/v1"
+   export AI_CLI_MODEL="custom/my-model"
+   ```
+5. Создай headless-агента для cron-сценариев:
    ```bash
    opencode agent create strategist-test --tools "Read,Write,Edit,Glob,Grep,Bash"
    ```
