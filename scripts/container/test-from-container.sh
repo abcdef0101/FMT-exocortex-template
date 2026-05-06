@@ -165,12 +165,6 @@ if [ -d "$SECRETS_DIR" ] && [ -f "$SECRETS_DIR/.env" ]; then
   echo "  ✓ Secrets uploaded"
 fi
 
-# Create OpenCode agent for Phase 5b (idempotent — no-op if exists or claude)
-echo "  Configuring AI CLI provider..."
-# Ensure DEEPSEEK_API_KEY is exported (opencode auto-detects provider from env)
-podman exec "$CONTAINER_NAME" bash -c "[ -f ~/secrets/.env ] && source ~/secrets/.env && [ -n \"\${DEEPSEEK_API_KEY:-}\" ] && echo '  ✓ DEEPSEEK_API_KEY configured' || echo '  Skipping (DEEPSEEK_API_KEY not in .env)'" 2>/dev/null || true
-echo "  ✓ Agent setup complete"
-
 # =========================================================================
 # Step 4: Run tests
 # =========================================================================
