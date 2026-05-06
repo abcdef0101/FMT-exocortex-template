@@ -22,7 +22,7 @@ echo "  DS-dir: $DS_DIR"
 # 1. WeekPlan W{N}.md exists with status: confirmed
 # -------------------------------------------------------------------
 echo "--- 1. WeekPlan confirmed ---"
-CONFIRMED=$(find "$DS_DIR/current" -name "WeekPlan*" -newer "$DS_DIR/docs/Strategy.md" 2>/dev/null | head -1)
+CONFIRMED=$(find "$DS_DIR/current" -name "WeekPlan*" -newer "$DS_DIR/docs/Session Agenda.md" 2>/dev/null | head -1)
 if [ -n "$CONFIRMED" ] && [ -f "$CONFIRMED" ]; then
   if grep -q "status: confirmed" "$CONFIRMED" 2>/dev/null; then
     _ok "WeekPlan confirmed: $(basename "$CONFIRMED")"
@@ -47,6 +47,65 @@ if [ -n "${CONFIRMED:-}" ] && [ -f "${CONFIRMED:-}" ]; then
       _fail "section missing: $section"
     fi
   done
+fi
+
+# -------------------------------------------------------------------
+# 2b. WeekPlan size — not empty
+# -------------------------------------------------------------------
+echo "--- 2b. WeekPlan size ---"
+if [ -n "${CONFIRMED:-}" ] && [ -f "${CONFIRMED:-}" ]; then
+  SIZE=$(wc -c < "$CONFIRMED" 2>/dev/null | tr -d ' ')
+  if [ "${SIZE:-0}" -gt 500 ]; then
+    _ok "size: ${SIZE}b"
+  else
+    _fail "size: ${SIZE:-0}b (too small, may be empty)"
+  fi
+fi
+
+# -------------------------------------------------------------------
+# 2c. WeekPlan has РП table rows
+# -------------------------------------------------------------------
+echo "--- 2c. WeekPlan РП table ---"
+if [ -n "${CONFIRMED:-}" ] && [ -f "${CONFIRMED:-}" ]; then
+  TABLE_ROWS=$(grep -c '^| #' "$CONFIRMED" 2>/dev/null | tr -d '\n' || echo "0")
+  if [ "${TABLE_ROWS:-0}" -ge 1 ]; then
+    _ok "table: ${TABLE_ROWS} РП entries"
+  else
+    _fail "table: no РП entries found (plan may be empty)"
+  fi
+fi
+
+# -------------------------------------------------------------------
+# 2d. Frontmatter completeness
+# -------------------------------------------------------------------
+echo "--- 2d. Frontmatter ---"
+if [ -n "${CONFIRMED:-}" ] && [ -f "${CONFIRMED:-}" ]; then
+  for field in "type:" "week:" "date_start:" "status:" "agent:"; do
+    if grep -q "$field" "$CONFIRMED" 2>/dev/null; then
+      _ok "fm: $field"
+    else
+      _fail "fm: $field missing"
+    fi
+  done
+fi
+
+# -------------------------------------------------------------------
+# 2e. Carry-over — past РП preserved
+# -------------------------------------------------------------------
+echo "--- 2e. Carry-over ---"
+if [ -n "${CONFIRMED:-}" ] && [ -f "${CONFIRMED:-}" ]; then
+  # Seed WeekPlan has carry-over РП #3 and #5 — check they appear in new plan
+  CARRY_COUNT=0
+  for rp_ref in "Golden image pipeline" "Container CI" "pidfile"; do
+    if grep -qi "$rp_ref" "$CONFIRMED" 2>/dev/null; then
+      CARRY_COUNT=$((CARRY_COUNT + 1))
+    fi
+  done
+  if [ "$CARRY_COUNT" -ge 1 ]; then
+    _ok "carry-over: ${CARRY_COUNT}/3 past РП references found"
+  else
+    _fail "carry-over: 0/3 past РП references (carry-over may be lost)"
+  fi
 fi
 
 # -------------------------------------------------------------------
@@ -90,7 +149,7 @@ fi
 echo "--- 5. Inbox processed ---"
 NOTES="$DS_DIR/inbox/fleeting-notes.md"
 if [ -f "$NOTES" ]; then
-  OLD_COUNT=$(grep -c "2026-04" "$NOTES" 2>/dev/null || echo "0")
+  OLD_COUNT=$(grep -c "2026-04" "$NOTES" 2>/dev/null | tr -d '\n' || echo "0")
   if [ "${OLD_COUNT:-0}" -eq 0 ]; then
     _ok "inbox: old notes cleaned ($OLD_COUNT remaining)"
   else
