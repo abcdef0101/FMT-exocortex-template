@@ -1,12 +1,12 @@
 #!/bin/bash
 # Strategist (Стратег) Agent Runner
-# Запускает Claude Code с заданным сценарием
+# Запускает AI CLI (Claude Code / OpenCode) с заданным сценарием
 
 set -e
 
 # === Named parameters ===
 WORKSPACE_DIR=""
-CLAUDE_PATH=""
+AI_CLI_PATH="${AI_CLI_PATH:-${CLAUDE_PATH:-}}"
 COMMAND=""
 
 while [[ $# -gt 0 ]]; do
@@ -15,8 +15,8 @@ while [[ $# -gt 0 ]]; do
     WORKSPACE_DIR="$2"
     shift 2
     ;;
-  --claude-path)
-    CLAUDE_PATH="$2"
+  --claude-path|--ai-cli-path)
+    AI_CLI_PATH="$2"
     shift 2
     ;;
   *)
@@ -33,7 +33,7 @@ done
 
 missing=()
 [ -z "$WORKSPACE_DIR" ] && missing+=("--workspace-dir")
-[ -z "$CLAUDE_PATH" ] && missing+=("--claude-path")
+[ -z "$AI_CLI_PATH" ] && missing+=("--ai-cli-path (or --claude-path)")
 
 if [ "${#missing[@]}" -gt 0 ]; then
   echo "Ошибка: обязательные параметры не указаны:" >&2
@@ -46,13 +46,13 @@ if [ ! -d "$WORKSPACE_DIR" ]; then
   exit 1
 fi
 
-if [[ "$CLAUDE_PATH" == */* ]]; then
-  if [ ! -x "$CLAUDE_PATH" ]; then
-    echo "Ошибка: CLAUDE_PATH не исполняемый: $CLAUDE_PATH" >&2
+if [[ "$AI_CLI_PATH" == */* ]]; then
+  if [ ! -x "$AI_CLI_PATH" ]; then
+    echo "Ошибка: AI CLI не исполняемый: $AI_CLI_PATH" >&2
     exit 1
   fi
-elif ! command -v "$CLAUDE_PATH" >/dev/null 2>&1; then
-  echo "Ошибка: команда не найдена: $CLAUDE_PATH" >&2
+elif ! command -v "$AI_CLI_PATH" >/dev/null 2>&1; then
+  echo "Ошибка: команда не найдена: $AI_CLI_PATH" >&2
   exit 1
 fi
 
@@ -66,7 +66,7 @@ REPO_DIR="$(dirname "$SCRIPT_DIR")"
 STRATEGY_DIR="$WORKSPACE_DIR/DS-strategy"
 PROMPTS_DIR="$REPO_DIR/prompts"
 LOG_DIR="$WORKSPACE_DIR/logs/strategist"
-CLAUDE_TIMEOUT=1800 # 30 мин — защита от зависания Claude CLI
+AI_CLI_TIMEOUT="${AI_CLI_TIMEOUT:-${CLAUDE_TIMEOUT:-1800}}" # 30 мин — защита от зависания AI CLI
 
 if [ ! -d "$STRATEGY_DIR" ]; then
   echo "Ошибка: STRATEGY_DIR не существует: $STRATEGY_DIR" >&2
@@ -154,17 +154,18 @@ ${prompt}"
 
   cd "$STRATEGY_DIR"
 
-  # Запуск Claude Code с содержимым команды как промпт (с timeout-защитой)
+  # Запуск AI CLI с содержимым команды как промпт (с timeout-защитой)
   local rc=0
-  timeout "$CLAUDE_TIMEOUT" "$CLAUDE_PATH" --dangerously-skip-permissions \
+  AI_CLI_TIMEOUT="${AI_CLI_TIMEOUT:-${CLAUDE_TIMEOUT:-1800}}"
+  timeout "$AI_CLI_TIMEOUT" "$AI_CLI_PATH" --dangerously-skip-permissions \
     --allowedTools "Read,Write,Edit,Glob,Grep,Bash" \
     -p "$prompt" \
     >>"$LOG_FILE" 2>&1 || rc=$?
 
   if [ $rc -eq 124 ]; then
-    log "WARN: Claude CLI timed out after ${CLAUDE_TIMEOUT}s for scenario: $command_file"
+    log "WARN: AI CLI timed out after ${AI_CLI_TIMEOUT}s for scenario: $command_file"
   elif [ $rc -ne 0 ]; then
-    log "WARN: Claude CLI exited with code $rc for scenario: $command_file"
+    log "WARN: AI CLI exited with code $rc for scenario: $command_file"
   fi
 
   if [ $rc -eq 0 ]; then
@@ -181,10 +182,10 @@ ${prompt}"
     git -C "$STRATEGY_DIR" push >>"$LOG_FILE" 2>&1 && log "Pushed to GitHub" || log "WARN: git push failed"
   fi
 
-  # Очистить staging area после Claude сессии (предотвращает staging leak в следующие скрипты)
-  # НЕ трогаем working tree — только unstage orphaned changes
-  git -C "$STRATEGY_DIR" reset --quiet 2>/dev/null || true
-  log "Cleared staging area after Claude session"
+  # Очистить staging area после AI CLI сессии (предотвращает staging leak в следующие скрипты)
+  git -C "$STRATEGY_DIR" reset HEAD -- . >/dev/null 2>&1 || true
+  git -C "$STRATEGY_DIR" checkout -- . >/dev/null 2>&1 || true
+  log "Cleared staging area after AI CLI session"
 
   # macOS notification
   local summary

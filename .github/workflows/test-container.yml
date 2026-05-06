@@ -75,6 +75,7 @@ jobs:
         env:
           IWE_BRANCH: ${{ steps.branch.outputs.branch }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          AI_CLI_API_KEY: ${{ secrets.AI_CLI_API_KEY || secrets.ANTHROPIC_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

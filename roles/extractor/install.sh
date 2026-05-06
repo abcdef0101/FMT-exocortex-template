@@ -54,9 +54,9 @@ if [ ! -d "$ROOT_DIR" ]; then
   exit 1
 fi
 
-# Default agent AI path = auto-detect claude
+# Default agent AI path = auto-detect AI CLI
 if [ -z "$AGENT_AI_PATH" ]; then
-  AGENT_AI_PATH="$(command -v claude 2>/dev/null || echo claude)"
+  AGENT_AI_PATH="$(command -v claude 2>/dev/null || command -v opencode 2>/dev/null || echo claude)"
 fi
 
 # Default namespace = workspace directory name, sanitised
@@ -67,7 +67,7 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 LAUNCHD_DIR="$SCRIPT_DIR/scripts/launchd"
 SYSTEMD_SRC="$SCRIPT_DIR/scripts/systemd"
-CLAUDE_PATH="$AGENT_AI_PATH"
+AI_CLI_PATH="$AGENT_AI_PATH"
 
 echo "Installing Extractor Agent..."
 
@@ -89,7 +89,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
   sed \
     -e "s|{{ROOT_DIR}}|$ROOT_DIR|g" \
     -e "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g" \
-    -e "s|{{CLAUDE_PATH}}|$CLAUDE_PATH|g" \
+    -e "s|{{CLAUDE_PATH}}|$AI_CLI_PATH|g" \
     -e "s|{{NAMESPACE}}|$NAMESPACE|g" \
     "$LAUNCHD_DIR/com.extractor.inbox-check.plist" >"$TARGET_DIR/$basename_plist"
 
@@ -110,7 +110,7 @@ else
     sed \
       -e "s|{{ROOT_DIR}}|$ROOT_DIR|g" \
       -e "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g" \
-      -e "s|{{CLAUDE_PATH}}|$CLAUDE_PATH|g" \
+      -e "s|{{CLAUDE_PATH}}|$AI_CLI_PATH|g" \
       -e "s|{{NAMESPACE}}|$NAMESPACE|g" \
       -e "s|{{HOME}}|$HOME|g" \
       "$unit" >"$SYSTEMD_DIR/$basename_unit"

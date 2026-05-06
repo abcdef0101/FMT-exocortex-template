@@ -5,7 +5,7 @@ set -euo pipefail
 
 # === Named parameters ===
 WORKSPACE_DIR=""
-CLAUDE_PATH=""
+AI_CLI_PATH="${AI_CLI_PATH:-${CLAUDE_PATH:-}}"
 TIMEZONE_HOUR=""
 NAMESPACE=""
 
@@ -15,8 +15,8 @@ while [[ $# -gt 0 ]]; do
     WORKSPACE_DIR="$2"
     shift 2
     ;;
-  --claude-path)
-    CLAUDE_PATH="$2"
+  --claude-path|--ai-cli-path)
+    AI_CLI_PATH="$2"
     shift 2
     ;;
   --timezone-hour)
@@ -36,7 +36,7 @@ done
 
 missing=()
 [ -z "$WORKSPACE_DIR" ] && missing+=("--workspace-dir")
-[ -z "$CLAUDE_PATH" ] && missing+=("--claude-path")
+[ -z "$AI_CLI_PATH" ] && missing+=("--ai-cli-path (or --claude-path)")
 [ -z "$TIMEZONE_HOUR" ] && missing+=("--timezone-hour")
 
 if [ "${#missing[@]}" -gt 0 ]; then
@@ -52,8 +52,8 @@ for f in "$WORKSPACE_DIR"; do
   fi
 done
 
-if ! command -v "$CLAUDE_PATH" &>/dev/null; then
-  echo "Ошибка: claude не найден по пути: $CLAUDE_PATH" >&2
+if ! command -v "$AI_CLI_PATH" &>/dev/null; then
+  echo "Ошибка: AI CLI не найден по пути: $AI_CLI_PATH" >&2
   exit 1
 fi
 
@@ -87,7 +87,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     basename_plist="$(basename "$plist" | sed "s/\.plist$/\.${NAMESPACE}\.plist/")"
     sed \
       -e "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g" \
-      -e "s|{{CLAUDE_PATH}}|$CLAUDE_PATH|g" \
+      -e "s|{{CLAUDE_PATH}}|$AI_CLI_PATH|g" \
       -e "s|{{TIMEZONE_HOUR}}|$TIMEZONE_HOUR|g" \
       -e "s|{{NAMESPACE}}|$NAMESPACE|g" \
       "$plist" >"$TARGET_DIR/$basename_plist"
@@ -97,20 +97,19 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
   launchctl load "$TARGET_DIR/com.strategist.${NAMESPACE}.morning.plist"
   launchctl load "$TARGET_DIR/com.strategist.${NAMESPACE}.weekreview.plist"
 
-  echo "Done. Agents loaded:"
-  launchctl list | grep "com.strategist.${NAMESPACE}" || true
-else
-  # === Linux: systemd user timers ===
-  SYSTEMD_DIR="$HOME/.config/systemd/user"
-  mkdir -p "$SYSTEMD_DIR"
 
-  # Copy service/timer files with placeholder substitution
-  for unit in "$SYSTEMD_SRC"/*.{service,timer}; do
-    [ -f "$unit" ] || continue
-    basename_unit="$(basename "$unit")"
+
+# Linux: systemd user timers
+elif systemctl --user 2>/dev/null; then
+  SYSTEMD_DIR="$SCRIPT_DIR/systemd"
+  TARGET_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/systemd/user"
+  mkdir -p "$TARGET_DIR"
+
+  for unit in "$SYSTEMD_DIR"/*.service; do
+    basename_unit="$(basename "$unit" | sed "s/\.service$/\.${NAMESPACE}\.service/")"
     sed \
       -e "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g" \
-      -e "s|{{CLAUDE_PATH}}|$CLAUDE_PATH|g" \
+      -e "s|{{CLAUDE_PATH}}|$AI_CLI_PATH|g" \
       -e "s|{{TIMEZONE_HOUR}}|$TIMEZONE_HOUR|g" \
       -e "s|{{NAMESPACE}}|$NAMESPACE|g" \
       -e "s|{{HOME}}|$HOME|g" \

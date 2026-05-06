@@ -505,16 +505,17 @@ phase5b_strategy_session() {
   cd "$IWE_DIR"
 
   HAS_CLAUDE=false
-  command -v claude >/dev/null 2>&1 && HAS_CLAUDE=true
+  AI_CLI="${AI_CLI:-claude}"
+  command -v "$AI_CLI" >/dev/null 2>&1 && HAS_CLAUDE=true
   HAS_API_KEY=false
-  [ -n "${ANTHROPIC_API_KEY:-}" ] && HAS_API_KEY=true
+  [ -n "${AI_CLI_API_KEY:-${ANTHROPIC_API_KEY:-}}" ] && HAS_API_KEY=true
 
   if ! $HAS_CLAUDE; then
-    _skip "headless: claude CLI not installed"
+    _skip "headless: $AI_CLI CLI not installed"
     return 0
   fi
   if ! $HAS_API_KEY; then
-    _skip "headless: no ANTHROPIC_API_KEY"
+    _skip "headless: no AI_CLI_API_KEY (or ANTHROPIC_API_KEY)"
     return 0
   fi
 
@@ -539,7 +540,7 @@ phase5b_strategy_session() {
   if [ -f "$SESSION_PREP_PROMPT" ]; then
     PREP_START=$(date +%s)
     PREP_PROMPT=$(sed "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g; s|{{GITHUB_USER}}|iwe-test|g" "$SESSION_PREP_PROMPT")
-    if timeout 300 claude --bare -p "$PREP_PROMPT" \
+    if timeout 300 "$AI_CLI" --bare -p "$PREP_PROMPT" \
       --allowedTools "Read,Write,Edit,Glob,Grep,Bash" \
       --max-budget-usd 1.00 \
       >>"$LOG_FILE" 2>&1; then
@@ -565,7 +566,7 @@ phase5b_strategy_session() {
   if [ -f "$TEST_PROMPT" ]; then
     SESSION_START=$(date +%s)
     SESSION_PROMPT=$(sed "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g; s|{{GITHUB_USER}}|iwe-test|g" "$TEST_PROMPT")
-    if timeout 600 claude --bare -p "$SESSION_PROMPT" \
+    if timeout 600 "$AI_CLI" --bare -p "$SESSION_PROMPT" \
       --allowedTools "Read,Write,Edit,Glob,Grep,Bash" \
       --max-budget-usd 1.00 \
       >>"$LOG_FILE" 2>&1; then

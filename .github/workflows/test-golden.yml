@@ -77,6 +77,7 @@ jobs:
             --phase "$PHASE"
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          AI_CLI_API_KEY: ${{ secrets.AI_CLI_API_KEY || secrets.ANTHROPIC_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
       - name: Archive test report

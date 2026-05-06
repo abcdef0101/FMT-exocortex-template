@@ -38,7 +38,7 @@ RUN mkdir -p ~/.local/bin ~/.opencode ~/IWE
 ENV PATH="/home/iwe/.local/bin:/home/iwe/.opencode/bin:/home/iwe/.opencode/node_modules/.bin:/usr/local/bin:/usr/bin:/bin"
 
 RUN npm set prefix ~/.local \
-  && npm install -g @anthropic-ai/claude-code 2>&1 | tail -1 \
+  && npm install -g ${AI_CLI_PACKAGE:-@anthropic-ai/claude-code} 2>&1 | tail -1 \
   && npm install -g @openai/codex 2>&1 | tail -1 \
   && npm install -g opencode-ai 2>&1 | tail -1 \
   || true

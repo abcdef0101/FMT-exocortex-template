@@ -48,7 +48,7 @@ if [ -z "$RUN_AS_IWE" ]; then
   npm set prefix ~/.local 2>/dev/null || true
 fi
 
-_npm_install "claude-code" "npm install -g @anthropic-ai/claude-code"
+_npm_install "claude-code" "npm install -g ${AI_CLI_PACKAGE:-@anthropic-ai/claude-code}"
 _npm_install "codex"      "npm install -g @openai/codex"
 _npm_install "opencode"   "npm install -g opencode-ai"
 

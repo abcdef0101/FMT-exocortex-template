@@ -52,19 +52,19 @@ fi
 
 # --- L4: Promptfoo Red Team ---
 echo "--- L4: Promptfoo ---"
-if command -v npx &> /dev/null && [ -n "${ANTHROPIC_API_KEY:-}" ]; then
+if command -v npx &> /dev/null && [ -n "${AI_CLI_API_KEY:-${ANTHROPIC_API_KEY:-}}" ]; then
     cd "$AGENT_DIR/promptfoo"
     npx promptfoo eval --config promptfoo.yaml --output "$WORKSPACE_DIR/redteam-$DATE.json" 2>&1
     PROMPTFOO_STATUS=$?
 else
-    echo "WARN: npx or ANTHROPIC_API_KEY not available, skipping"
+    echo "WARN: npx or AI_CLI_API_KEY/ANTHROPIC_API_KEY not available, skipping"
     PROMPTFOO_STATUS=-1
 fi
 
 # --- L6: Synthetic Conversation Testing ---
 echo "--- L6: Synthetic Conversations ---"
 cd "$BOT_DIR"
-if [ -d ".venv" ] && [ -n "${ANTHROPIC_API_KEY:-}" ]; then
+if [ -d ".venv" ] && [ -n "${AI_CLI_API_KEY:-${ANTHROPIC_API_KEY:-}}" ]; then
     BOT_ROOT="$BOT_DIR" .venv/bin/python -m pytest \
         "$AGENT_DIR/synthetic/test_synthetic.py" \
         --rootdir="$BOT_DIR" \
@@ -73,7 +73,7 @@ if [ -d ".venv" ] && [ -n "${ANTHROPIC_API_KEY:-}" ]; then
         | tee "$WORKSPACE_DIR/synthetic-$DATE.log"
     SYNTHETIC_STATUS=$?
 else
-    echo "WARN: .venv or ANTHROPIC_API_KEY not available, skipping"
+    echo "WARN: .venv or AI_CLI_API_KEY/ANTHROPIC_API_KEY not available, skipping"
     SYNTHETIC_STATUS=-1
 fi
 

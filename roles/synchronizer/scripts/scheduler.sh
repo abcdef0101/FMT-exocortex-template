@@ -71,7 +71,7 @@ set -a
 source "$ENV_FILE"
 set +a
 
-CLAUDE_PATH="${CLAUDE_PATH:-$(command -v claude 2>/dev/null || echo claude)}"
+AI_CLI_PATH="${AI_CLI_PATH:-${CLAUDE_PATH:-$(command -v claude 2>/dev/null || command -v opencode 2>/dev/null || echo claude)}}"
 ROOT_DIR="$(dirname "$(dirname "$WORKSPACE_DIR")")"
 WORKSPACE_NAME="$(basename "$WORKSPACE_DIR")"
 
@@ -250,7 +250,7 @@ dispatch() {
   # --- Стратег: week-review (Пн, до morning) ---
   if [ "$DOW" = "1" ] && ! ran_this_week "strategist-week-review"; then
     log "→ strategist week-review (catch-up: hour=$HOUR)"
-    if timeout "$TASK_TIMEOUT_LONG" "$STRATEGIST_SH" --workspace-dir "$WORKSPACE_DIR" --claude-path "$CLAUDE_PATH" week-review >>"$LOG_FILE" 2>&1; then
+    if timeout "$TASK_TIMEOUT_LONG" "$STRATEGIST_SH" --workspace-dir "$WORKSPACE_DIR" --claude-path "$AI_CLI_PATH" week-review >>"$LOG_FILE" 2>&1; then
       mark_done_week "strategist-week-review"
     else
       log "WARN: strategist week-review failed (will retry next dispatch)"
@@ -261,7 +261,7 @@ dispatch() {
   # --- Стратег: morning (04:00-21:59) ---
   if ((10#$HOUR >= 4 && 10#$HOUR < 22)) && ! ran_today "strategist-morning"; then
     log "→ strategist morning (catch-up: hour=$HOUR)"
-    if timeout "$TASK_TIMEOUT_LONG" "$STRATEGIST_SH" --workspace-dir "$WORKSPACE_DIR" --claude-path "$CLAUDE_PATH" morning >>"$LOG_FILE" 2>&1; then
+    if timeout "$TASK_TIMEOUT_LONG" "$STRATEGIST_SH" --workspace-dir "$WORKSPACE_DIR" --claude-path "$AI_CLI_PATH" morning >>"$LOG_FILE" 2>&1; then
       mark_done "strategist-morning"
     else
       log "WARN: strategist morning failed (will retry next dispatch)"
@@ -272,7 +272,7 @@ dispatch() {
   # --- Стратег: note-review (22:00+) ---
   if ((10#$HOUR >= 22)) && ! ran_today "strategist-note-review"; then
     log "→ strategist note-review (catch-up: hour=$HOUR)"
-    if timeout "$TASK_TIMEOUT_LONG" "$STRATEGIST_SH" --workspace-dir "$WORKSPACE_DIR" --claude-path "$CLAUDE_PATH" note-review >>"$LOG_FILE" 2>&1; then
+    if timeout "$TASK_TIMEOUT_LONG" "$STRATEGIST_SH" --workspace-dir "$WORKSPACE_DIR" --claude-path "$AI_CLI_PATH" note-review >>"$LOG_FILE" 2>&1; then
       mark_done "strategist-note-review"
     else
       log "WARN: strategist note-review failed (will retry next dispatch)"
@@ -283,7 +283,7 @@ dispatch() {
     yesterday=$(portable_date_offset 1)
     if [ -n "$yesterday" ] && [ ! -f "$STATE_DIR/strategist-note-review-$yesterday" ]; then
       log "→ strategist note-review (catch-up for yesterday $yesterday)"
-      if timeout "$TASK_TIMEOUT_LONG" "$STRATEGIST_SH" --workspace-dir "$WORKSPACE_DIR" --claude-path "$CLAUDE_PATH" note-review >>"$LOG_FILE" 2>&1; then
+      if timeout "$TASK_TIMEOUT_LONG" "$STRATEGIST_SH" --workspace-dir "$WORKSPACE_DIR" --claude-path "$AI_CLI_PATH" note-review >>"$LOG_FILE" 2>&1; then
         echo "$(date '+%H:%M:%S') catch-up" >"$STATE_DIR/strategist-note-review-$yesterday"
       else
         log "WARN: strategist note-review catch-up failed"
