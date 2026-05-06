@@ -165,6 +165,16 @@ if [ -d "$SECRETS_DIR" ] && [ -f "$SECRETS_DIR/.env" ]; then
   echo "  ✓ Secrets uploaded"
 fi
 
+# Create OpenCode agent for Phase 5b (idempotent — no-op if exists or claude)
+echo "  Creating AI CLI agent..."
+podman exec "$CONTAINER_NAME" bash -c "
+  if command -v opencode >/dev/null 2>&1; then
+    source ~/IWE/FMT-exocortex-template/scripts/ai-cli-wrapper.sh 2>/dev/null || true
+    ai_cli_agent_create strategist-test 'Read,Write,Edit,Glob,Grep,Bash' 2>/dev/null || true
+  fi
+" 2>/dev/null || true
+echo "  ✓ Agent setup complete"
+
 # =========================================================================
 # Step 4: Run tests
 # =========================================================================

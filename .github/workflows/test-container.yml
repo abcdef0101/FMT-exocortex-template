@@ -70,6 +70,16 @@ jobs:
           rm -f /tmp/iwe-image.tar
 
       - name: Run tests
+
+      - name: Create AI CLI agent
+        run: |
+          echo "=== Agent setup ==="
+          if command -v opencode >/dev/null 2>&1; then
+            source scripts/ai-cli-wrapper.sh
+            ai_cli_agent_create strategist-test "Read,Write,Edit,Glob,Grep,Bash"
+          else
+            echo "  opencode not found — skipping agent creation"
+          fi
         id: tests
         continue-on-error: true
         env:
