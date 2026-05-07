@@ -4,12 +4,11 @@
 # Если проверка не пройдена → Phase 7 не завершён.
 set -euo pipefail
 
-ROOT_DIR="${ROOT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 FAIL=0
 _pass()  { echo "  ✓ $1"; }
 _fail() { echo "  ✗ $1"; FAIL=$((FAIL + 1)); }
 
-# P1-FIX: auto-detect repo from git remote, require python3
+# === Guards ===
 if ! command -v python3 &>/dev/null; then
   _fail "python3 required but not installed"
   exit $FAIL
@@ -18,7 +17,6 @@ fi
 OWNER="${AUDIT_OWNER:-}"
 REPO="${AUDIT_REPO:-}"
 if [ -z "$OWNER" ] || [ -z "$REPO" ]; then
-  # Prefer origin remote (user's fork); fallback to any remote
   REMOTE_URL=$(git remote get-url origin 2>/dev/null || git remote get-url upstream 2>/dev/null || echo "")
   if [ -n "$REMOTE_URL" ]; then
     REPO_FULL=$(echo "$REMOTE_URL" | sed 's|.*github\.com[:/]||;s|\.git$||')
@@ -37,6 +35,31 @@ LABEL="${AUDIT_LABEL:-test-suite-remediation}"
 echo "  --- project board coverage check ---"
 echo "  repo: $OWNER/$REPO  project: #$PROJECT_NUMBER  label: $LABEL"
 
+# === Helper: run python3, verify exit code and output non-empty ===
+_py_parse() {
+  # Usage: _py_parse <label> <json_input> <python_code>
+  # Exits script on failure (exit code, empty output, parse error on stderr)
+  local label="$1" json_data="$2" py_code="$3"
+  local result stderr_out rc
+  stderr_out=$(mktemp -t py-err-XXXXXX)
+  trap 'rm -f "$stderr_out"' RETURN
+  result=$(echo "$json_data" | python3 -c "$py_code" 2>"$stderr_out") && rc=$? || rc=$?
+  if [ "$rc" -ne 0 ]; then
+    _fail "$label: python3 exit $rc"
+    cat "$stderr_out" | sed 's/^/    | /' >&2
+    exit $FAIL
+  fi
+  if [ -s "$stderr_out" ]; then
+    echo "  WARN: $label produced stderr:" >&2
+    cat "$stderr_out" | sed 's/^/    | /' >&2
+  fi
+  if [ -z "$result" ]; then
+    _fail "$label: empty output (JSON structure may have changed)"
+    exit $FAIL
+  fi
+  echo "$result"
+}
+
 # === Step 1: fetch all issues with audit label (open + closed) ===
 echo "  fetching issues with label: $LABEL..."
 ISSUE_DATA=$(gh issue list --repo "$OWNER/$REPO" \
@@ -47,11 +70,14 @@ if [ -z "$ISSUE_DATA" ]; then
   exit $FAIL
 fi
 
-ISSUE_NUMBERS=$(echo "$ISSUE_DATA" | python3 -c '
+# Single Python call: parse both issue numbers and state mapping
+ISSUE_PARSED=$(_py_parse "issue-list" "$ISSUE_DATA" '
 import sys, json
 try:
     for i in json.load(sys.stdin):
-        print(i["number"])
+        num = i["number"]
+        state = i["state"]
+        print(f"{num}\t{state}")
 except json.JSONDecodeError as e:
     sys.stderr.write(f"JSON parse error: {e}\n")
     sys.exit(1)
@@ -59,22 +85,9 @@ except KeyError as e:
     sys.stderr.write(f"Missing field: {e}\n")
     sys.exit(1)
 ')
-ISSUE_COUNT=$(echo "$ISSUE_NUMBERS" | grep -c . 2>/dev/null || echo 0)
+ISSUE_NUMBERS=$(echo "$ISSUE_PARSED" | cut -f1)
+ISSUE_COUNT=$(echo "$ISSUE_NUMBERS" | wc -l)
 echo "  found $ISSUE_COUNT issues"
-
-# Build a lookup: issue_number → state (for status check)
-ISSUE_STATES=$(echo "$ISSUE_DATA" | python3 -c '
-import sys, json
-try:
-    for i in json.load(sys.stdin):
-        print(f"{i["number"]}={i["state"]}")
-except json.JSONDecodeError as e:
-    sys.stderr.write(f"JSON parse error: {e}\n")
-    sys.exit(1)
-except KeyError as e:
-    sys.stderr.write(f"Missing field: {e}\n")
-    sys.exit(1)
-')
 
 # === Step 2: fetch project board data (once, reused) ===
 echo "  fetching project board items..."
@@ -85,23 +98,8 @@ if [ -z "$BOARD_RAW" ] || [ "$BOARD_RAW" = "{}" ]; then
   exit $FAIL
 fi
 
-BOARD_ISSUES=$(echo "$BOARD_RAW" | python3 -c '
-import sys, json
-try:
-    for item in json.load(sys.stdin).get("items", []):
-        c = item.get("content", {})
-        if c and c.get("number"):
-            print(c["number"])
-except (json.JSONDecodeError, AttributeError, KeyError) as e:
-    sys.stderr.write(f"Board JSON parse error: {e}\n")
-    sys.exit(1)
-' 2>&1)
-
-BOARD_COUNT=$(echo "$BOARD_ISSUES" | grep -c . 2>/dev/null || echo 0)
-echo "  found $BOARD_COUNT items on project board"
-
-# Board status lookup: issue_number → status_name
-BOARD_STATUSES=$(echo "$BOARD_RAW" | python3 -c '
+# Single Python call: extract both issue numbers and status mapping
+BOARD_PARSED=$(_py_parse "board-data" "$BOARD_RAW" '
 import sys, json
 try:
     for item in json.load(sys.stdin).get("items", []):
@@ -109,17 +107,22 @@ try:
         num = c.get("number")
         if not num:
             continue
-        field = item.get("fieldValues", {}).get("nodes", [])
+        # Extract status from fieldValues
         status = ""
-        for fv in field:
+        for fv in item.get("fieldValues", {}).get("nodes", []):
             if fv and fv.get("field", {}).get("name") == "Status":
-                status = fv.get("name", "")
+                s = fv.get("name", "")
+                if s:
+                    status = s
                 break
-        print(f"{num}={status}")
+        print(f"{num}\t{status}")
 except (json.JSONDecodeError, AttributeError, KeyError) as e:
-    sys.stderr.write(f"Board status parse error: {e}\n")
+    sys.stderr.write(f"Board JSON parse error: {e}\n")
     sys.exit(1)
-' || true)
+')
+BOARD_ISSUES=$(echo "$BOARD_PARSED" | cut -f1)
+BOARD_COUNT=$(echo "$BOARD_ISSUES" | wc -l)
+echo "  found $BOARD_COUNT items on project board"
 
 # === Step 3: find issues NOT on board ===
 MISSING=0
@@ -146,9 +149,9 @@ CLOSED_NOT_DONE=0
 while IFS= read -r num; do
   [ -z "$num" ] && continue
 
-  STATE=$(echo "$ISSUE_STATES" | grep "^${num}=" | cut -d= -f2)
+  STATE=$(echo "$ISSUE_PARSED" | awk -F'\t' -v n="$num" '$1 == n { print $2 }')
   if [ "$STATE" = "CLOSED" ]; then
-    STATUS=$(echo "$BOARD_STATUSES" | grep "^${num}=" | cut -d= -f2)
+    STATUS=$(echo "$BOARD_PARSED" | awk -F'\t' -v n="$num" '$1 == n { print $2 }')
     if [ "$STATUS" != "Done" ] && [ -n "$STATUS" ]; then
       echo "  • #$num: CLOSED but status='$STATUS' (should be 'Done')"
       CLOSED_NOT_DONE=$((CLOSED_NOT_DONE + 1))
