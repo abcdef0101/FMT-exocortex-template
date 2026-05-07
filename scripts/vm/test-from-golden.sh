@@ -328,7 +328,8 @@ run_phase() {
       echo "  Phase $num stderr ($(wc -l < "$PHASE_STDERR") lines):"
       sed 's/^/  | /' "$PHASE_STDERR"
     else
-      echo "  Phase $num stderr: $PHASE_STDERR ($(wc -l < "$PHASE_STDERR") lines)"
+      echo "  Phase $num [INFO] stderr:"
+      sed 's/^/  | /' "$PHASE_STDERR"
     fi
   fi
 }

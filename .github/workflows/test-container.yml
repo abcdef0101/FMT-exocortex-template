@@ -144,6 +144,7 @@ jobs:
         run: |
           MSG="❌ IWE Container Tests failed on ${{ github.ref_name }}"
           URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          JSON=$(printf '{"text": "%s\n%s"}' "$MSG" "$URL")
           curl -s -X POST "$SLACK_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
-            -d "{\"text\": \"$MSG\n$URL\"}" > /dev/null 2>&1 || true
+            -d "$JSON" > /dev/null 2>&1 || true

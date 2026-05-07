@@ -6,7 +6,7 @@
 export PATH="$HOME/.local/bin:$HOME/.opencode/bin:$HOME/.opencode/node_modules/.bin:$PATH"
 
 if ! git config --global user.email >/dev/null 2>&1; then
-  git config --global user.email "iwe-test@localhost" 2>/dev/null || true
+  git config --global user.email "iwe-test@localhost" 2>/dev/null || echo "WARN: git config failed" >&2
 fi
 if ! git config --global user.name >/dev/null 2>&1; then
   git config --global user.name "IWE Test" 2>/dev/null || true
@@ -53,8 +53,10 @@ phase1_setup() {
   echo "--- [1.1] setup.sh --validate ---"
   output=$(bash setup.sh --validate 2>&1) && rc=0 || rc=$?
   if [ "$rc" -eq 0 ]; then
-    echo "$output" | grep -q "Template source files" && _ok "validate: template section"
-    echo "$output" | grep -q "Workspace runtime" && _ok "validate: workspace section" || true
+    echo "$output" | grep -q "Template source files" && _ok "validate: template section" \
+      || _fail "validate: template section missing"
+    echo "$output" | grep -q "Workspace runtime" && _ok "validate: workspace section" \
+      || _fail "validate: workspace section missing"
     _ok "validate: exit 0"
   else
     _fail "validate: exit non-zero (rc=$rc)"
@@ -80,9 +82,12 @@ phase1_setup() {
   echo "--- [1.3] copy-once enforcement ---"
   echo "# user-test-edit" >> "$WS/params.yaml"
   before=$(sha256sum "$WS/params.yaml" | cut -d' ' -f1)
-  apply_manifest seed/manifest.yaml false >/dev/null 2>&1
-  after=$(sha256sum "$WS/params.yaml" | cut -d' ' -f1)
-  [ "$before" = "$after" ] && _ok "copy-once: params.yaml preserved" || _fail "copy-once: overwritten"
+  if apply_manifest seed/manifest.yaml false >/dev/null 2>&1; then
+    after=$(sha256sum "$WS/params.yaml" | cut -d' ' -f1)
+    [ "$before" = "$after" ] && _ok "copy-once: params.yaml preserved" || _fail "copy-once: overwritten"
+  else
+    _fail "copy-once: apply_manifest failed (rc=$?)"
+  fi
 
   # 1.4: Workspace structure
   echo "--- [1.4] workspace structure ---"
@@ -148,8 +153,10 @@ phase2_update() {
     echo "$output" | grep -q "up to date\|Already up to date" 2>/dev/null \
       && _ok "check: up-to-date (exit 0)" \
       || _ok "check: changes available (exit 1 — upstream may differ)"
-  else
+  elif [ "$rc" -eq 1 ]; then
     _ok "check: exit 1 (changes available)"
+  else
+    _fail "check: unexpected exit code (rc=$rc)"
     _info "output: $(echo "$output" | tail -3)"
   fi
 
@@ -395,10 +402,12 @@ phase5a_strategy_session() {
   echo "--- [5a.2] script dispatch ---"
   STRATEGIST_SH="roles/strategist/scripts/strategist.sh"
   if [ -f "$STRATEGIST_SH" ]; then
-    if bash -n "$STRATEGIST_SH" 2>/dev/null; then
+    if SYNTAX_ERR=$(bash -n "$STRATEGIST_SH" 2>&1); then
       _ok "syntax: strategist.sh valid"
     else
       _fail "syntax: strategist.sh has errors"
+      echo "   >>> $STRATEGIST_SH errors:"
+      echo "$SYNTAX_ERR" | sed 's/^/   | /'
     fi
     if grep -q '"strategy-session")' "$STRATEGIST_SH" 2>/dev/null; then
       _ok "dispatch: strategy-session case present"
@@ -447,14 +456,16 @@ phase5a_strategy_session() {
   if [ -f "$PACK_SCENARIO" ]; then
     _ok "pack: scenario file found"
     # Check key Pack steps are covered in the prompt
+    PACK_STEP_FAILS=0
     for step in "НЭП" "прошлой недели" "inbox" "стратегическ" "план на неделю" "утвержден" "синхронизац"; do
       if grep -qi "$step" "$PROMPT_FILE" 2>/dev/null; then
         :
       else
         _fail "prompt-pack: step '$step' from Pack not found in prompt"
+        PACK_STEP_FAILS=$((PACK_STEP_FAILS + 1))
       fi
     done
-    _ok "prompt-pack: key Pack steps verified"
+    [ "$PACK_STEP_FAILS" -eq 0 ] && _ok "prompt-pack: all 7 Pack steps verified"
   else
     _skip "prompt-pack: Pack scenario not found at $PACK_SCENARIO"
   fi
@@ -466,7 +477,8 @@ phase5a_strategy_session() {
   if [ -f "$SEEDER" ]; then
     if bash -n "$SEEDER" 2>/dev/null; then
       TMPDIR=$(mktemp -d -t iwe-seed-test-XXXXXX)
-      if bash "$SEEDER" "$TMPDIR/DS-strategy" >/dev/null 2>&1; then
+      SEEDER_LOG="/tmp/iwe-seeder-$$.log"
+      if bash "$SEEDER" "$TMPDIR/DS-strategy" >"$SEEDER_LOG" 2>&1; then
         _ok "seeder: runs successfully"
         # Verify key files were created
         for f in "docs/Strategy.md" "docs/Dissatisfactions.md" "memory/MEMORY.md" "inbox/fleeting-notes.md"; do
@@ -476,8 +488,12 @@ phase5a_strategy_session() {
             _fail "seeder: missing $f"
           fi
         done
+        rm -f "$SEEDER_LOG"
       else
         _fail "seeder: execution failed"
+        echo "   >>> seeder output:"
+        sed 's/^/   | /' "$SEEDER_LOG"
+        rm -f "$SEEDER_LOG"
       fi
       rm -rf "$TMPDIR"
     else
@@ -503,6 +519,10 @@ phase5b_strategy_session() {
   PHASE_START=$(date +%s)
   reset_counters
   cd "$IWE_DIR"
+
+  # Trap for workspace cleanup on early exit
+  local _ws_created=false
+  trap 'if $_ws_created && ! ${IWE_DEBUG:-false}; then rm -rf "$WS_DIR" 2>/dev/null; fi' RETURN
 
   IWE_DEBUG="${IWE_DEBUG:-false}"
   HAS_CLAUDE=false
@@ -566,6 +586,7 @@ DMANIFEST
     command -v gh >/dev/null 2>&1 || { _fail "setup: gh not installed"; return 1; }
   fi
 
+  EXPECT_LOG="/tmp/iwe-expect-$$.log"
   expect -c "
 set timeout 120
 spawn bash setup.sh
@@ -579,14 +600,16 @@ expect \"Continue with setup\"      { send \"y\" }
 expect eof
 lassign \[wait] pid spawnid os_error_flag exit_code
 exit \$exit_code
-" >/dev/null 2>&1
+" >"$EXPECT_LOG" 2>&1
   SETUP_RC=$?
 
   if [ "$SETUP_RC" -eq 0 ] && [ -d "$WS_DIR" ]; then
     _ok "setup: workspace created"
+    _ws_created=true
   else
     _fail "setup: failed (rc=$SETUP_RC)"
-    return 1
+    echo "   >>> expect log (last 30 lines):"
+    tail -30 "$EXPECT_LOG" 2>/dev/null | sed 's/^/   | /'
   fi
 
   export WORKSPACE_DIR="$PWD/$WS_DIR"
@@ -686,7 +709,8 @@ NOTES
   SESSION_PREP_PROMPT="roles/strategist/prompts/session-prep.md"
   if [ -f "$SESSION_PREP_PROMPT" ]; then
     PREP_START=$(date +%s)
-    PREP_PROMPT=$(sed "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g; s|{{GITHUB_USER}}|iwe-test|g" "$SESSION_PREP_PROMPT")
+    ESCAPED_DIR=$(printf '%s' "$WORKSPACE_DIR" | sed 's/[|&\\]/\\&/g')
+    PREP_PROMPT=$(sed "s|{{WORKSPACE_DIR}}|$ESCAPED_DIR|g; s|{{GITHUB_USER}}|iwe-test|g" "$SESSION_PREP_PROMPT")
     AI_CLI_TIMEOUT=300
     if ai_cli_run "$PREP_PROMPT" --bare --allowed-tools "Read,Write,Edit,Glob,Grep,Bash" --budget 1.00 \
       >>"$PREP_LOG" 2>&1; then
@@ -710,7 +734,7 @@ NOTES
   TEST_PROMPT="roles/strategist/prompts/strategy-session-test.md"
   if [ -f "$TEST_PROMPT" ]; then
     SESSION_START=$(date +%s)
-    SESSION_PROMPT=$(sed "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g; s|{{GITHUB_USER}}|iwe-test|g" "$TEST_PROMPT")
+    SESSION_PROMPT=$(sed "s|{{WORKSPACE_DIR}}|$ESCAPED_DIR|g; s|{{GITHUB_USER}}|iwe-test|g" "$TEST_PROMPT")
     AI_CLI_TIMEOUT=600
     if ai_cli_run "$SESSION_PROMPT" --bare --allowed-tools "Read,Write,Edit,Glob,Grep,Bash" --budget 1.00 \
       >>"$SESSION_LOG" 2>&1; then

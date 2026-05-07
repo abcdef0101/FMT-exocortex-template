@@ -80,7 +80,14 @@ echo ""
 # =========================================================================
 command -v podman >/dev/null 2>&1 || { echo "ERROR: podman not found" >&2; exit 1; }
 
-IMAGE_ID=$(podman images -q "$IMAGE_TAG" 2>/dev/null || true)
+PODMAN_ERR="/tmp/podman-images-err-$$"
+if ! IMAGE_ID=$(podman images -q "$IMAGE_TAG" 2>"$PODMAN_ERR"); then
+  echo "ERROR: podman images failed:" >&2
+  cat "$PODMAN_ERR" >&2 2>/dev/null || true
+  rm -f "$PODMAN_ERR"
+  exit 1
+fi
+rm -f "$PODMAN_ERR"
 if [ -z "$IMAGE_ID" ]; then
   echo "ERROR: Image not found: $IMAGE_TAG" >&2
   echo "  Build it first: bash scripts/container/build-container.sh --version $REPO_VERSION" >&2
@@ -224,7 +231,8 @@ run_phase() {
       echo "  Phase $num stderr ($(wc -l < "$PHASE_STDERR") lines):"
       sed 's/^/  | /' "$PHASE_STDERR"
     else
-      echo "  Phase $num stderr: $PHASE_STDERR ($(wc -l < "$PHASE_STDERR") lines)"
+      echo "  Phase $num [INFO] stderr: $PHASE_STDERR ($(wc -l < "$PHASE_STDERR") lines)"
+      sed 's/^/  | /' "$PHASE_STDERR"
     fi
   fi
 }

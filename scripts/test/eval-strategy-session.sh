@@ -74,7 +74,14 @@ WRAPPER="$SCRIPT_DIR_REPO/scripts/ai-cli-wrapper.sh"
 
 if [ -f "$WRAPPER" ]; then
   source "$WRAPPER"
-  JUDGE_OUT=$(ai_cli_run "$JUDGE_PROMPT" --bare --budget 0.10 2>/dev/null) || JUDGE_OUT=""
+  JUDGE_RC=0
+  JUDGE_OUT=$(ai_cli_run "$JUDGE_PROMPT" --bare --budget 0.10 2>/dev/null) || JUDGE_RC=$?
+  if [ "$JUDGE_RC" -ne 0 ]; then
+    echo "LLM_JUDGE_PASS=0"
+    echo "LLM_JUDGE_TOTAL=0"
+    echo "ERROR: LLM-as-Judge call failed (rc=$JUDGE_RC)" >&2
+    exit 2
+  fi
 else
   echo "ERROR: ai-cli-wrapper.sh not found" >&2
   exit 1
