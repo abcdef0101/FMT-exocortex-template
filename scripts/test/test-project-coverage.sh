@@ -38,26 +38,27 @@ echo "  repo: $OWNER/$REPO  project: #$PROJECT_NUMBER  label: $LABEL"
 # === Helper: run python3, verify exit code and output non-empty ===
 _py_parse() {
   # Usage: _py_parse <label> <json_input> <python_code>
-  # Exits script on failure (exit code, empty output, parse error on stderr)
+  # Returns 0 + prints result on stdout. Returns 1 on failure (_fail already called).
   local label="$1" json_data="$2" py_code="$3"
   local result stderr_out rc
   stderr_out=$(mktemp -t py-err-XXXXXX)
   trap 'rm -f "$stderr_out"' RETURN
-  result=$(echo "$json_data" | python3 -c "$py_code" 2>"$stderr_out") && rc=$? || rc=$?
+  result=$(printf '%s\n' "$json_data" | python3 -c "$py_code" 2>"$stderr_out") && rc=$? || rc=$?
   if [ "$rc" -ne 0 ]; then
     _fail "$label: python3 exit $rc"
-    cat "$stderr_out" | sed 's/^/    | /' >&2
-    exit $FAIL
+    sed 's/^/    | /' "$stderr_out" >&2
+    return 1
   fi
   if [ -s "$stderr_out" ]; then
     echo "  WARN: $label produced stderr:" >&2
-    cat "$stderr_out" | sed 's/^/    | /' >&2
+    sed 's/^/    | /' "$stderr_out" >&2
   fi
   if [ -z "$result" ]; then
     _fail "$label: empty output (JSON structure may have changed)"
-    exit $FAIL
+    return 1
   fi
   echo "$result"
+  return 0
 }
 
 # === Step 1: fetch all issues with audit label (open + closed) ===
@@ -84,7 +85,7 @@ except json.JSONDecodeError as e:
 except KeyError as e:
     sys.stderr.write(f"Missing field: {e}\n")
     sys.exit(1)
-')
+') || exit $FAIL
 ISSUE_NUMBERS=$(echo "$ISSUE_PARSED" | cut -f1)
 ISSUE_COUNT=$(echo "$ISSUE_NUMBERS" | wc -l)
 echo "  found $ISSUE_COUNT issues"
@@ -119,7 +120,7 @@ try:
 except (json.JSONDecodeError, AttributeError, KeyError) as e:
     sys.stderr.write(f"Board JSON parse error: {e}\n")
     sys.exit(1)
-')
+') || exit $FAIL
 BOARD_ISSUES=$(echo "$BOARD_PARSED" | cut -f1)
 BOARD_COUNT=$(echo "$BOARD_ISSUES" | wc -l)
 echo "  found $BOARD_COUNT items on project board"
