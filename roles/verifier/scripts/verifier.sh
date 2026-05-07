@@ -143,9 +143,23 @@ ${prompt}"
 
   cd "$WORKSPACE_DIR"
 
-  "$AI_CLI" $AI_CLI_EXTRA_FLAGS \
-    $AI_CLI_PROMPT_FLAG "$prompt" \
-    >>"$LOG_FILE" 2>&1
+  local rc=0
+  WRAPPER="$ROOT_DIR/scripts/ai-cli-wrapper.sh"
+
+  if [ -f "$WRAPPER" ]; then
+    source "$WRAPPER"
+    AI_CLI_TIMEOUT="${AI_CLI_TIMEOUT:-1800}"
+    ai_cli_run "$prompt" --bare --allowed-tools "Read,Write,Edit,Glob,Grep,Bash" \
+      >>"$LOG_FILE" 2>&1 || rc=$?
+  else
+    "$AI_CLI" $AI_CLI_EXTRA_FLAGS \
+      $AI_CLI_PROMPT_FLAG "$prompt" \
+      >>"$LOG_FILE" 2>&1 || rc=$?
+  fi
+
+  if [ $rc -eq 124 ]; then
+    log "WARN: AI CLI timed out after ${AI_CLI_TIMEOUT:-1800}s for scenario: $command_file"
+  fi
 
   log "Completed scenario: $command_file"
   notify "Верификатор: $command_file" "Верификация завершена"
