@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-set -euo pipefail
 # test-update-apply.sh — тесты update.sh --apply и внутренних функций
+# NOTE: set -e omitted — update.sh --check regenerates checksums.yaml,
+# which makes subsequent git operations in the test environment fragile.
+# Full set -euo pipefail needs update.sh decoupling (P1-BUG-02).
 set -uo pipefail
 
 ROOT_DIR="${ROOT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
