@@ -329,12 +329,31 @@ fi
 | L14 | Both runners | Show non-empty stderr always with `[INFO]` prefix |
 | L20 | CI YAML | Use `printf '{"text": "%s\n%s"}'` for JSON |
 
+### Remaining LOW (14 findings, ~45 min)
+
+| # | File | Fix |
+|---|------|-----|
+| L2 | `test-phases.sh:69` | `export WORKSPACE_FULL_PATH="$WS"` — standard form |
+| L3 | `test-phases.sh:97` | Save `PHASE_FAIL` before workspace loop or use local counter |
+| L4 | `test-phases.sh:293` | `printf '%s'` instead of `echo` for AI output piping |
+| L7 | `test-phases.sh:565` | Check passwordless sudo before `sudo apt-get` |
+| L9 | `test-phases.sh:158,468` | `mktemp -d /tmp/iwe-XXXXXX` — portable across Linux/BSD |
+| L10 | `test-from-golden.sh:170` | TOCTOU: let QEMU pick port, parse from output |
+| L11 | `test-from-golden.sh:118` | Check `ssh-keygen` exit code |
+| L12 | `test-from-golden.sh:184` | Single atomic PID file read |
+| L13 | `test-from-golden.sh:283` | Add GIT_LOG to cleanup trap |
+| L15 | `test-from-container.sh:253` | Check podman cp exit code separately from file existence |
+| L16 | Both `test-from-*.sh` | Use `yq` or `python3 -c "import yaml"` for MANIFEST version |
+| L17 | `ai-cli-wrapper.sh:111` | **False positive** — `$model` quoted in `[[ ]]`, safe. Document as intentional |
+| L18 | `ai-cli-wrapper.sh:136` | Backup `opencode.json` before overwrite |
+| L19 | `test-container.yml:37` | `rm -f /tmp/trivy*` at end of security scan |
+
 ---
 
 ## Execution Order
 
 ```
-C3 → C4 → C1 → C2 → H1 → H2 → H3 → H4 → H5 → M11 → M1-M6 → M8-M10 → L1,L5,L6,L8,L14,L20
+C3 → C4 → C1 → C2 → H1 → H2 → H3 → H4 → H5 → M11 → M1-M6 → M8-M10 → L1,L5,L6,L8,L14,L20 → L2-L4,L7,L9-L13,L15-L19
 ```
 
 After each phase:
@@ -350,11 +369,11 @@ After each phase:
 | 1: CRITICAL | 4 | 6 lines | 81% → 88% |
 | 2: HIGH | 5 | 15 lines | 88% → 92% |
 | 3: MEDIUM | 11 | 40 lines | 92% → 94% |
-| 4: LOW (picks) | 6 | 20 lines | 94% → 94% |
-| **Total** | **26** | **~80 lines** | 81% → **94%** |
+| 4: LOW | **20** | 35 lines | 94% → 94% |
+| **Total** | **40** | **~96 lines** | 81% → **94%** |
 
 Remaining 6%: systemic changes (observability, shadow eval, regression dataset) — require separate ADRs.
 
 ---
 
-*Plan created: 2026-05-06. Based on audit-2026-05-06-testing-system.md.*
+*Plan created: 2026-05-06. Updated: 2026-05-06 (all 40 findings). Based on audit-2026-05-06-testing-system.md.*
