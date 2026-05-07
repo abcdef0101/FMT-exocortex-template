@@ -1,0 +1,79 @@
+# LLM-as-Judge rubrics for Day Open testing
+# DeepSeek Chat evaluates Day-Open-generated DayPlan
+# Threshold: ≥6/8 metrics must pass
+
+metrics:
+  - name: carry_over_fidelity
+    threshold: 0.7
+    criteria: |
+      ALL RP from «Завтра начать с» in yesterday's DayPlan MUST be present in today's plan.
+      This is a blocking rule — Day Open does not filter or trim carry-over items.
+      Check: read yesterday's DayPlan, find «Завтра начать с» section, verify every RP
+      mentioned there appears in today's plan table. Deduct if any carry-over RP is missing.
+      Score 0 if carry-over section exists but no RP carried; 0.5 if partial; 1.0 if complete.
+
+  - name: week_plan_alignment
+    threshold: 0.7
+    criteria: |
+      in_progress RP from WeekPlan should be reflected in the DayPlan.
+      Read WeekPlan (confirmed). Find RP with status in_progress.
+      Verify they appear in today's plan or have an explicit reason for absence.
+      pending RP with deadlines today/tomorrow must be included.
+      Score based on coverage: how many of the relevant WeekPlan RP are addressed.
+
+  - name: note_categorization
+    threshold: 0.6
+    criteria: |
+      Bold notes from fleeting-notes.md should receive meaningful categorization.
+      Read fleeting-notes.md. Find bold (**text**) notes.
+      Check the «Разбор заметок» section of DayPlan: are these notes categorized
+      (Задача / Знание / НЭП / Черновик / Шум)? Is the categorization logical?
+      🔄 notes should be assessed for age (>7 days → proposed for plan).
+      Score based on completeness and logic of categorization.
+
+  - name: budget_correctness
+    threshold: 0.6
+    criteria: |
+      The daily budget should be arithmetically plausible.
+      Sum of RP hour estimates should be reasonable for a work day (not <1h, not >16h).
+      Budget Spread should be applied for RP with budget ≥2h.
+      The total should NOT exceed the remaining weekly budget divided by remaining work days
+      (i.e., the daily budget should be a reasonable fraction of the weekly total).
+      Score 1.0 if budget is explicitly stated and arithmetically consistent with plan.
+
+  - name: priority_ordering
+    threshold: 0.8
+    criteria: |
+      Carry-over RP from «Завтра начать с» must appear BEFORE other RP in the plan.
+      🔴 critical RP before 🟡 medium before 🟢 low.
+      Self-development (⚫) should be the first slot.
+      Check the order of items in the plan table. Deduct if carry-over items are buried
+      below non-carry-over items, or if priorities are inverted.
+
+  - name: structural_completeness
+    threshold: 0.8
+    criteria: |
+      All required DayPlan sections must be filled with non-trivial content.
+      Check: «План на сегодня» has ≥2 rows, «Календарь» has time blocks,
+      «IWE за ночь» has status assessment (even if marked "тестовый прогон"),
+      «Разбор заметок» references actual notes from fleeting-notes.md,
+      «Итоги вчера» contains concrete data (commits, RP closed).
+      Score 1.0 if all sections have meaningful content; deduct for empty/placeholder sections.
+
+  - name: self_dev_slot
+    threshold: 0.7
+    criteria: |
+      Self-development must be the first slot in the plan (⚫, Slot 1).
+      Read the plan table. The first data row (after header) should contain
+      «Саморазвитие» or equivalent. It should have a time budget (1-2h).
+      Score 0 if self-development is absent; 0.5 if present but not first; 1.0 if first.
+
+  - name: attention_section
+    threshold: 0.6
+    criteria: |
+      «Требует внимания» should be non-empty when there are real issues,
+      and should not contain noise.
+      Check: if there are GitHub issues (seed-issues.md), IWE update available,
+      or carry-over unresolved questions → section should have items.
+      If no issues → section should be absent or explicitly empty.
+      Score 1.0 if the section accurately reflects the presence/absence of issues.

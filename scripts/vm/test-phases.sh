@@ -810,3 +810,225 @@ NOTES
   PHASE_DURATION=$(( $(date +%s) - PHASE_START ))
   echo "phase5b_strategy_session PASS=$PHASE_PASS FAIL=$PHASE_FAIL MS=$(( PHASE_DURATION * 1000 ))" >> "$METRICS_FILE"
 }
+
+# =========================================================================
+# Фаза 6b: Day Open (Headless E2E)
+# =========================================================================
+phase6b_day_open() {
+  echo ""
+  echo "=== Phase 6b: Day Open (headless E2E) ==="
+  PHASE_START=$(date +%s)
+  reset_counters
+  cd "$IWE_DIR"
+
+  local _ws_created=false
+  local _gh_repo_created=false
+  trap 'if $_ws_created && ! ${IWE_DEBUG:-false}; then rm -rf "$WS_DIR" 2>/dev/null; fi; if $_gh_repo_created && ! ${IWE_DEBUG:-false}; then gh repo delete "$IWE_TEST_REPO" --yes 2>/dev/null || true; fi' RETURN
+
+  IWE_DEBUG="${IWE_DEBUG:-false}"
+  HAS_CLAUDE=false
+  AI_CLI="${AI_CLI:-claude}"
+  command -v "$AI_CLI" >/dev/null 2>&1 && HAS_CLAUDE=true
+  HAS_API_KEY=false
+  [ -n "${AI_CLI_API_KEY:-${ANTHROPIC_API_KEY:-}}" ] && HAS_API_KEY=true
+
+  if ! $HAS_CLAUDE; then
+    _skip "headless: $AI_CLI CLI not installed"
+    return 0
+  fi
+  if ! $HAS_API_KEY; then
+    _skip "headless: no AI_CLI_API_KEY (or ANTHROPIC_API_KEY)"
+    return 0
+  fi
+
+  if [ -f "scripts/ai-cli-wrapper.sh" ]; then
+    source scripts/ai-cli-wrapper.sh
+  else
+    _fail "headless: ai-cli-wrapper.sh not found"
+    return 1
+  fi
+
+  # --- Debug setup ---
+  DEBUG_DIR=""
+  if $IWE_DEBUG; then
+    DEBUG_DIR="/home/iwe/IWE/debug-dayopen"
+    mkdir -p "$DEBUG_DIR"/{transcripts,workspace,artifacts}
+    DAYOPEN_LOG="$DEBUG_DIR/transcripts/day-open.log"
+    JUDGE_LOG="$DEBUG_DIR/transcripts/judge.log"
+    cat > "$DEBUG_DIR/MANIFEST.txt" <<DMANIFEST
+timestamp: $(date -Iseconds)
+ai_cli: ${AI_CLI:-claude}
+ai_model: ${AI_CLI_MODEL:-default}
+phase: 6b (Day Open headless E2E)
+DMANIFEST
+  else
+    DAYOPEN_LOG="/tmp/iwe-dayopen-$$.log"
+    JUDGE_LOG="/tmp/iwe-dayopen-judge-$$.log"
+  fi
+
+  # --- 6b.1: Run setup.sh via expect (creates full workspace) ---
+  echo "--- [6b.1] setup.sh (expect) ---"
+  WS_DIR="workspaces/iwe2"
+  rm -rf "$WS_DIR" 2>/dev/null || true
+
+  if [ ! -f "setup.sh" ]; then
+    _fail "setup: setup.sh not found"
+    return 1
+  fi
+  if ! command -v expect >/dev/null 2>&1; then
+    _fail "setup: expect not installed"
+    return 1
+  fi
+  if ! command -v gh >/dev/null 2>&1; then
+    sudo apt-get update -qq && sudo apt-get install -y -qq gh 2>&1 | tail -1
+    command -v gh >/dev/null 2>&1 || _info "setup: gh not installed (GitHub repo test skipped)"
+  fi
+
+  EXPECT_LOG="/tmp/iwe-expect-dayopen-$$.log"
+  expect -c "
+set timeout 120
+spawn bash setup.sh
+expect \"GitHub username\"          { send \"vm-test\r\" }
+expect \"Workspace name\"           { send \"iwe2\r\" }
+expect \"Claude CLI path\"          { send \"\r\" }
+expect \"Strategist launch\"        { send \"\r\" }
+expect \"Timezone description\"     { send \"\r\" }
+expect \"Data Policy (y/n)\"       { send \"y\" }
+expect \"Continue with setup\"      { send \"y\" }
+expect eof
+lassign \[wait] pid spawnid os_error_flag exit_code
+exit \$exit_code
+" >"$EXPECT_LOG" 2>&1
+  SETUP_RC=$?
+
+  if [ "$SETUP_RC" -eq 0 ] && [ -d "$WS_DIR" ]; then
+    _ok "setup: workspace created"
+    _ws_created=true
+  else
+    _fail "setup: failed (rc=$SETUP_RC)"
+    echo "   >>> expect log (last 30 lines):"
+    tail -30 "$EXPECT_LOG" 2>/dev/null | sed 's/^/   | /'
+    return 1
+  fi
+
+  export WORKSPACE_DIR="$PWD/$WS_DIR"
+  export DS_STRATEGY_DIR="$WORKSPACE_DIR/DS-strategy"
+
+  # --- 6b.2: Seed Day Open test data ---
+  echo "--- [6b.2] seed test documents ---"
+  if [ -f "scripts/test/seed-day-open.sh" ]; then
+    TODAY=$(date +%Y-%m-%d)
+    TUESDAY="$TODAY"
+    MONDAY=$(date -d "$TODAY -1 day" +%Y-%m-%d 2>/dev/null || date -d "$TODAY -1 day" +%Y-%m-%d)
+    YESTERDAY="$MONDAY"
+
+    mkdir -p "$DS_STRATEGY_DIR"/{docs,current,inbox,archive,memory}
+    SEED_OUT=$(bash scripts/test/seed-day-open.sh "$DS_STRATEGY_DIR" "$TUESDAY" 2>&1) || {
+      _fail "seed: script failed"
+      echo "$SEED_OUT" | tail -10 | sed 's/^/   | /'
+    }
+
+    # Load GitHub test repo info if created
+    if [ -f "$DS_STRATEGY_DIR/.test-repo.env" ]; then
+      source "$DS_STRATEGY_DIR/.test-repo.env"
+      if [ -n "${IWE_TEST_REPO:-}" ]; then
+        _ok "seed: GitHub test repo created ($IWE_TEST_REPO)"
+        _gh_repo_created=true
+      else
+        _ok "seed: test documents seeded (no GitHub repo)"
+      fi
+    else
+      _ok "seed: test documents seeded"
+    fi
+  else
+    _fail "seed: seed-day-open.sh not found"
+    return 1
+  fi
+
+  # --- 6b.3: Run Day Open (headless) ---
+  echo "--- [6b.3] Day Open (headless) ---"
+  TEST_PROMPT="roles/strategist/prompts/day-open-test.md"
+  if [ -f "$TEST_PROMPT" ]; then
+    DAYOPEN_START=$(date +%s)
+    ESCAPED_DIR=$(printf '%s' "$WORKSPACE_DIR" | sed 's/[|&\\]/\\&/g')
+    ESCAPED_FMT=$(printf '%s' "$IWE_DIR" | sed 's/[|&\\]/\\&/g')
+    DAYOPEN_PROMPT=$(sed "s|{{WORKSPACE_DIR}}|$ESCAPED_DIR|g; s|{{FMT_DIR}}|$ESCAPED_FMT|g; s|{{YESTERDAY}}|$YESTERDAY|g" "$TEST_PROMPT")
+    AI_CLI_TIMEOUT=600
+    if ai_cli_run "$DAYOPEN_PROMPT" --bare --allowed-tools "Read,Write,Edit,Glob,Grep,Bash" --budget 1.00 \
+      >>"$DAYOPEN_LOG" 2>&1; then
+      DAYOPEN_DUR=$(( $(date +%s) - DAYOPEN_START ))
+      _ok "day-open: completed (${DAYOPEN_DUR}s)"
+    else
+      DAYOPEN_RC=$?
+      _fail "day-open: failed or timed out (rc=$DAYOPEN_RC)"
+    fi
+  else
+    _fail "day-open: test prompt not found"
+    return 1
+  fi
+
+  # --- 6b.4: Assert post-conditions ---
+  echo "--- [6b.4] assert post-conditions ---"
+  if [ -f "scripts/test/assert-day-open.sh" ]; then
+    ASSERT_RC=0
+    ASSERT_OUT=$(bash scripts/test/assert-day-open.sh "$WORKSPACE_DIR" "$DAYOPEN_LOG" 2>&1) || ASSERT_RC=$?
+    echo "$ASSERT_OUT"
+    if [ "$ASSERT_RC" -gt 1 ]; then
+      _fail "assert: script crashed (rc=$ASSERT_RC)"
+    else
+      ASSERT_PASS=$(echo "$ASSERT_OUT" | grep -c '\[OK\]' 2>/dev/null || echo "0")
+      ASSERT_FAIL=$(echo "$ASSERT_OUT" | grep -c '\[FAIL\]' 2>/dev/null || echo "0")
+      for i in $(seq 1 $ASSERT_PASS); do PHASE_PASS=$((PHASE_PASS + 1)); done
+      for i in $(seq 1 $ASSERT_FAIL); do PHASE_FAIL=$((PHASE_FAIL + 1)); done
+    fi
+  else
+    _skip "assert: script not found"
+  fi
+
+  # --- 6b.5: LLM-as-Judge (DeepSeek evaluates the generated DayPlan) ---
+  echo "--- [6b.5] LLM-as-Judge ---"
+  if [ -f "scripts/test/eval-day-open.sh" ]; then
+    TODAY_DP=$(find "$DS_STRATEGY_DIR/current" -name "Day*Plan*" \
+      -newer "$DS_STRATEGY_DIR/docs/Strategy.md" 2>/dev/null | head -1)
+    if [ -z "$TODAY_DP" ]; then
+      TODAY_DP=$(find "$DS_STRATEGY_DIR/current" -name "Day*Plan*" 2>/dev/null | head -1)
+    fi
+    if [ -n "$TODAY_DP" ] && [ -f "$TODAY_DP" ]; then
+      JUDGE_RC=0
+      JUDGE_OUT=$(bash scripts/test/eval-day-open.sh "$WORKSPACE_DIR" "$TODAY_DP" 2>&1) || JUDGE_RC=$?
+      echo "$JUDGE_OUT"
+      $IWE_DEBUG && echo "$JUDGE_OUT" >> "$JUDGE_LOG"
+      if [ "$JUDGE_RC" -gt 1 ]; then
+        _fail "judge: eval script crashed (rc=$JUDGE_RC)"
+      else
+        JUDGE_PASS=$(echo "$JUDGE_OUT" | grep -oP 'LLM_JUDGE_PASS=\K\d+' 2>/dev/null || echo "0")
+        JUDGE_TOTAL=$(echo "$JUDGE_OUT" | grep -oP 'LLM_JUDGE_TOTAL=\K\d+' 2>/dev/null || echo "0")
+        [ "${JUDGE_PASS:-0}" -ge 6 ] \
+          && _ok "judge: ${JUDGE_PASS}/${JUDGE_TOTAL} metrics passed (≥6)" \
+          || _fail "judge: only ${JUDGE_PASS}/${JUDGE_TOTAL} metrics passed (<6)"
+      fi
+    else
+      _skip "judge: no DayPlan found"
+    fi
+  else
+    _skip "judge: eval script not found"
+  fi
+
+  # --- Debug: save workspace + artifacts ---
+  if $IWE_DEBUG; then
+    cp -r "$WORKSPACE_DIR"/* "$DEBUG_DIR/workspace/" 2>/dev/null || true
+    if [ -n "${TODAY_DP:-}" ] && [ -f "${TODAY_DP:-}" ]; then
+      cp "$TODAY_DP" "$DEBUG_DIR/artifacts/$(basename "$TODAY_DP")" 2>/dev/null || true
+    fi
+    echo "total_duration_ms=$(( ($(date +%s) - PHASE_START) * 1000 ))" >> "$DEBUG_DIR/MANIFEST.txt"
+  fi
+
+  # Cleanup (skip if debug)
+  if ! $IWE_DEBUG; then
+    rm -rf "$WS_DIR" 2>/dev/null || true
+    rm -f "$DAYOPEN_LOG" "$JUDGE_LOG" 2>/dev/null || true
+  fi
+
+  PHASE_DURATION=$(( $(date +%s) - PHASE_START ))
+  echo "phase6b_day_open PASS=$PHASE_PASS FAIL=$PHASE_FAIL MS=$(( PHASE_DURATION * 1000 ))" >> "$METRICS_FILE"
+}
