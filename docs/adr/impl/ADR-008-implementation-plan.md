@@ -173,3 +173,75 @@ Before marking this plan as `Ready for execution`:
 | M2: Wrapper (Phase B) | Planned | #1-#4 |
 | M3: Agent setup (Phase C) | Planned | #5-#8 |
 | M4: Docs (Phase D) | Planned | #9-#12 |
+| M5: Day Open E2E (Phase 6b) | In Progress | #107-#115 |
+
+---
+
+## M5: Day Open E2E (Phase 6b) — расширение ADR-008
+
+**Scope:** Применить AI Provider Abstraction (`ai_cli_run()`) к новому headless E2E-тесту: Day Open протокол. Паттерн Generator (Claude) + Judge (DeepSeek) — тот же что в Phase 5b, но для другого протокола.
+
+**Архитектура:**
+```
+seed-day-open.sh (bash, 483 строки)
+  → создаёт workspace «утро вторника»: WeekPlan(confirmed), DayPlan(вчера),
+    MEMORY, fleeting-notes(6 заметок), Strategy, Dissatisfactions, 2 WP contexts,
+    day-rhythm-config, опционально GitHub test repo с 2 issues
+  → init git + commit
+
+day-open-test.md (Claude headless, 117 строк)
+  → 8 автономных правил заменяют интерактивного пользователя
+  → сокращённый 17-шаговый алгоритм
+  → {{WORKSPACE_DIR}} / {{FMT_DIR}} / {{YESTERDAY}} плейсхолдеры
+
+assert-day-open.sh (bash, 199 строк)
+  → 11 структурных пост-условий
+
+eval-day-open.sh (bash + DeepSeek, 91 строка)
+  → composite prompt: rubrics (8 критериев) + DayPlan + 5 seed-файлов
+  → ai_cli_run() --bare --budget 0.10
+  → _parse_judge_output.py для извлечения JSON
+  → порог: ≥6/8 метрик
+
+phase6b_day_open() в test-phases.sh (+222 строки)
+  → интеграция: 6b.1 setup → 6b.2 seed → 6b.3 Generator → 6b.4 assert → 6b.5 judge
+  → trap RETURN для удаления GitHub repo + workspace
+```
+
+**Правила автономных решений (day-open-test.md):**
+1. Календарь — тестовые блоки, не вызывать реальный
+2. GitHub Issues — из seed-issues.md, не вызывать gh
+3. Scout / IWE-здоровье / Мир / Видео — пометить «тестовый прогон»
+4. Заметки — автономная категоризация (Задача / Знание / НЭП / Черновик / Шум)
+5. Budget Spread — автономно: threshold 2h, rounding 0.5h
+6. Саморазвитие — тестовый слот «Чтение FPF» 1h, первый в плане
+7. План дня — строгий приоритет входов: carry-over → WeekPlan → MEMORY → mandatory
+8. Commit — закоммитить DayPlan после создания
+
+**GitHub Repo Management:**
+- `gh repo create "$GITHUB_USER/iwe-test-dayopen-$(date +%s)"` — приватный
+- 2 issues: bug + docs
+- Удаление в trap RETURN (кроме debug mode)
+- Fallback: если GH_TOKEN не установлен — skip, читать seed-issues.md
+
+**Edge Cases:**
+- `gh` не аутентифицирован → skip GitHub блока
+- GitHub rate limit → retry ×3 с backoff 2s
+- `expect` не установлен → skip всей фазы
+- Judge вернул не-JSON → `_parse_judge_output.py` regex fallback
+- DayPlan пустой (<500b) → assert #4 ловит, judge добивает structural_completeness
+
+**Файлы (5 новых + 1 изменён):**
+
+| # | Файл | Строк | Назначение |
+|---|------|:---:|-----------|
+| 1 | `scripts/test/seed-day-open.sh` | 483 | Seed workspace «утро вторника» |
+| 2 | `roles/strategist/prompts/day-open-test.md` | 117 | Headless-промпт |
+| 3 | `scripts/test/assert-day-open.sh` | 199 | 11 пост-условий |
+| 4 | `scripts/test/rubrics-day-open.yaml` | 79 | 8 критериев Judge |
+| 5 | `scripts/test/eval-day-open.sh` | 91 | Judge runner |
+| 6 | `scripts/vm/test-phases.sh` | +222 | Интеграция phase6b_day_open() |
+
+**Стоимость прогона:** ~$0.50 (Generator $0.50 + Judge $0.001)
+
+**Verification:** `bash -n` на всех скриптах, `seed-day-open.sh` dry-run, Phase 5a unaffected.

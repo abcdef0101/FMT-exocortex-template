@@ -29,7 +29,7 @@ bash scripts/vm/test-from-golden.sh --version 0.25.1 --debug
 bash scripts/vm/benchmark-golden.sh --version 0.25.1
 ```
 
-**Test phases:** Phase 1-4 (infrastructure), Phase 5a (structural), Phase 5b (headless E2E with LLM-Judge).
+**Test phases:** Phase 1-4 (infrastructure), Phase 5a (structural), Phase 5b (headless E2E with LLM-Judge), Phase 6b (Day Open headless E2E).
 See `PROCESSES.md` in repo root for full testing design document.
 
 **Архитектура:**
@@ -122,5 +122,7 @@ bash scripts/vm/destroy-vm.sh
 | 14 unit-тестов | `run-phase0.sh` | ✅ |
 | 5 E2E-тестов | `run-e2e.sh` | ✅ |
 | OpenCode smoke | «скажи: IWE test OK» | ✅ |
-| Day Open/Close | Claude Code | ❌ (нет API-ключа) |
+| Strategy Session E2E | Claude Code headless + Judge | ✅ |
+| Day Open E2E | Claude Code headless + Judge | ✅ |
+| Day Open/Close | Claude Code | ❌ (smoke tests) |
 | Роли (launchd) | macOS only | ❌ |

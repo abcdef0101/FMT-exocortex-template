@@ -14,12 +14,13 @@
 IWE testing runs on two independent infrastructure backends (VM and Container), sharing a single test library (`test-phases.sh`).
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│                    test-phases.sh                         │
-│   Phase 1: Clean Install      Phase 4: CI + Migrations   │
-│   Phase 2: Update              Phase 5a: Strategy Session │
-│   Phase 3: AI Smoke            Phase 5b: Headless E2E     │
-└──────────────┬────────────────────┬──────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                    test-phases.sh                                 │
+│   Phase 1: Clean Install      Phase 4: CI + Migrations           │
+│   Phase 2: Update              Phase 5a: Strategy Session        │
+│   Phase 3: AI Smoke            Phase 5b: Headless E2E            │
+│                                Phase 6b: Day Open E2E            │
+└──────────────┬────────────────────┬──────────────────────────────┘
                │                    │
 ┌──────────────▼──────────┐  ┌──────▼──────────────────────┐
 │   VM Pipeline            │  │   Container Pipeline         │
@@ -39,9 +40,12 @@ IWE testing runs on two independent infrastructure backends (VM and Container), 
 |-----------|------|------|
 | Test phases | `scripts/vm/test-phases.sh` | Library sourced by both pipelines |
 | AI CLI wrapper | `scripts/ai-cli-wrapper.sh` | Provider-agnostic LLM execution |
-| Assertion script | `scripts/test/assert-strategy-session.sh` | Post-condition checks for Phase 5b |
+| Assertion script (strategy) | `scripts/test/assert-strategy-session.sh` | Post-condition checks for Phase 5b |
+| Assertion script (day-open) | `scripts/test/assert-day-open.sh` | Post-condition checks for Phase 6b (11 checks) |
 | LLM-Judge evaluator | `scripts/test/eval-strategy-session.sh` | Semantic quality evaluation (8 criteria) |
 | LLM-Judge rubrics | `scripts/test/rubrics-strategy-session.yaml` | Evaluation criteria with thresholds |
+| Seed script (strategy) | `scripts/test/seed-strategy-session.sh` | DS-strategy workspace seeder |
+| Seed script (day-open) | `scripts/test/seed-day-open.sh` | Day Open workspace seeder (483 lines) |
 | Setup automation | `setup.sh` + `expect` | Full workspace creation via automated install |
 
 ### 1.3 CI Integration
@@ -246,8 +250,8 @@ gh secret set AI_CLI_API_KEY --repo abcdef0101/FMT-exocortex-template --body "sk
 |---|------|---------------|:---:|
 | 5b.1 | Setup workspace | `expect setup.sh` → full `workspaces/iwe2/` with CLAUDE.md, memory, protocols | $0 |
 | 5b.2 | Seed test documents | `Strategy.md`, `Dissatisfactions.md`, `Session Agenda.md`, past WeekPlan | $0 |
-| 5b.3 | Session-prep | `claude --bare -p session-prep.md` → WeekPlan draft created | ~$0.50 |
-| 5b.4 | Strategy-session | `claude --bare -p strategy-session-test.md` → WeekPlan confirmed | ~$0.50 |
+| 5b.3 | Session-prep | `ai_cli_run() --bare` via `ai-cli-wrapper.sh` → WeekPlan draft created | ~$0.50 |
+| 5b.4 | Strategy-session | `ai_cli_run() --bare` via `ai-cli-wrapper.sh` → WeekPlan confirmed | ~$0.50 |
 | 5b.5 | Assert post-conditions | Structural + content checks (see §3.6.1) | $0 |
 | 5b.6 | LLM-as-Judge | DeepSeek evaluates WeekPlan against 8 criteria (see §3.7) | ~$0.001 |
 
@@ -255,11 +259,13 @@ gh secret set AI_CLI_API_KEY --repo abcdef0101/FMT-exocortex-template --body "sk
 
 **AI provider flow:**
 ```
-detect_ai_cli()
-  ├── AI_CLI=claude (default) → claude --bare -p
-  │     ├── success → done
-  │     └── failure (Not logged in) → fallback to opencode
-  └── AI_CLI=opencode → opencode run -m AI_CLI_MODEL
+ai_cli_run() via ai-cli-wrapper.sh
+  ├── detect_ai_cli() → claude (default) or opencode
+  │     ├── claude --bare -p
+  │     │     ├── success → done
+  │     │     └── failure → fallback to opencode
+  │     └── opencode run -m provider/model --pure
+  └── fallback: direct $AI_CLI invocation (wrapper not available)
 ```
 
 **Debug mode:** `--debug` flag mounts host directory into container, saves:
@@ -313,6 +319,70 @@ results/debug-YYYYMMDD-HHMMSS/
 - `scripts/test/rubrics-strategy-session.yaml` — criteria definitions
 - `scripts/test/eval-strategy-session.sh` — judge runner (builds prompt, calls LLM, parses JSON)
 - `scripts/test/_parse_judge_output.py` — JSON parser with regex fallback
+
+### 3.8 Phase 6b: Day Open (Headless E2E)
+
+**Purpose:** Run Day Open protocol via LLM in headless mode, verifying 17-step daily planning produces a valid DayPlan. Uses Generator (Claude) + Judge (DeepSeek) pattern (same as Phase 5b).
+
+**Flow:** `expect setup.sh` creates workspace → `seed-day-open.sh` seeds "Tuesday morning" state → Day Open (Claude headless via `day-open-test.md`) → structural assertions → LLM-as-Judge (DeepSeek, 8 criteria, threshold ≥6/8).
+
+| # | Test | What it checks | Cost |
+|---|------|---------------|:---:|
+| 6b.1 | Setup workspace | `expect setup.sh` → full `workspaces/iwe2/` with CLAUDE.md, memory, protocols | $0 |
+| 6b.2 | Seed test data + GitHub repo | `seed-day-open.sh`: WeekPlan(confirmed), DayPlan(yesterday with итоги), MEMORY, fleeting-notes, Strategy, Dissatisfactions, 2 WP contexts, optional GitHub test repo with 2 issues | $0 |
+| 6b.3 | Day Open generate | `ai_cli_run()` via `ai-cli-wrapper.sh` → DayPlan with all sections | ~$0.50 |
+| 6b.4 | Assert post-conditions | 11 structural + content checks (see §3.8.1) | $0 |
+| 6b.5 | LLM-as-Judge | DeepSeek evaluates DayPlan against 8 criteria (see §3.8.2), threshold ≥6/8 | ~$0.001 |
+
+**Skip conditions:** `AI_CLI_API_KEY` (or `ANTHROPIC_API_KEY`) not set → skip. `expect` not installed → skip.
+
+**Exit criteria:** 5/5 [OK]. LLM-as-Judge ≥6/8 metrics passed.
+
+#### 3.8.1 Post-condition Assertions
+
+| # | Check | Type | Threshold |
+|---|-------|------|-----------|
+| 1 | DayPlan exists in `current/` | Structural | Must exist |
+| 2 | Frontmatter: `type:`, `date:`, `week:`, `status:`, `agent:` | Content | All 5 present; `status: active` |
+| 3 | Sections: "План на сегодня", "Календарь", "IWE за ночь", "Разбор заметок", "Итоги вчера" | Content | All 5 present |
+| 4 | File size > 500 bytes | Content | Guards empty files |
+| 5 | Table rows: ≥1 РП entry | Content | `grep -c '\|.*#.*\|.*РП.*\|'` |
+| 6 | Carry-over: RP from «Завтра начать с» appear in plan | Content | ≥2/3 keyword matches |
+| 7 | Budget: "Бюджет" line present | Content | Budget stated |
+| 8 | Self-development: «Саморазвитие» slot present | Content | Self-dev in plan |
+| 9 | «Требует внимания» section present | Content | Present (may be empty) |
+| 10 | No ERROR in strategist log | Signal | `grep -qi "ERROR"` must be empty |
+| 11 | Previous DayPlan archived to `archive/day-plans/` | Structural | Yesterday DayPlan moved |
+
+#### 3.8.2 LLM-as-Judge Evaluation (Phase 6b.5)
+
+**Purpose:** Independent semantic quality evaluation of the generated DayPlan. A separate LLM session (DeepSeek Chat) evaluates the plan against 8 criteria — no access to the generator's reasoning.
+
+**Architecture:** Generator (Claude Sonnet/OpenCode) and Judge (DeepSeek Chat) run in separate sessions with context isolation. The judge sees only the DayPlan artifact and seed context files, not the generator's internal thoughts.
+
+**Criteria** (from `scripts/test/rubrics-day-open.yaml`):
+
+| # | Metric | Threshold | What it checks |
+|---|--------|:---:|---------|
+| 1 | `carry_over_fidelity` | 0.7 | ALL RP from «Завтра начать с» in yesterday's DayPlan must be in today's plan |
+| 2 | `week_plan_alignment` | 0.7 | in_progress RP from WeekPlan reflected in DayPlan |
+| 3 | `note_categorization` | 0.6 | Bold notes from fleeting-notes.md correctly categorized |
+| 4 | `budget_correctness` | 0.6 | Daily budget arithmetically plausible, Budget Spread applied |
+| 5 | `priority_ordering` | 0.8 | Carry-over RP BEFORE other RP; 🔴 before 🟡 before 🟢; self-dev first |
+| 6 | `structural_completeness` | 0.8 | All sections filled with non-trivial content |
+| 7 | `self_dev_slot` | 0.7 | Self-development is the first slot (⚫) |
+| 8 | `attention_section` | 0.6 | «Требует внимания» accurate: non-empty when issues exist, empty otherwise |
+
+**Cost:** ~$0.001 per run (DeepSeek Chat). Judge runs only in `--phase 6b` (not in `all`).
+
+**Files:**
+- `scripts/test/rubrics-day-open.yaml` — criteria definitions
+- `scripts/test/eval-day-open.sh` — judge runner (builds prompt, calls LLM, parses JSON)
+- `scripts/test/seed-day-open.sh` — workspace seeder (483 lines)
+- `roles/strategist/prompts/day-open-test.md` — headless test prompt (117 lines)
+- `scripts/test/assert-day-open.sh` — post-condition checks (199 lines, 11 checks)
+
+**Integration notes:** Phase 6b creates a temporary GitHub repo with 2 issues via `gh repo create`. The repo is cleaned up in the `trap RETURN` handler unless `IWE_DEBUG=true`. If `GH_TOKEN` is not set, the GitHub repo step is skipped and issues are read from a seed file instead.
 
 ---
 
