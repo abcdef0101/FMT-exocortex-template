@@ -69,8 +69,6 @@ jobs:
             echo "⚠ Trivy: CVE found in base image packages (non-blocking)"
           rm -f /tmp/iwe-image.tar
 
-      - name: Run tests
-
       - name: Create AI CLI agent
         run: |
           echo "=== Agent setup ==="
@@ -80,6 +78,8 @@ jobs:
           else
             echo "  opencode not found — skipping agent creation"
           fi
+
+      - name: Run tests
         id: tests
         continue-on-error: true
         env:

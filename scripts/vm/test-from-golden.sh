@@ -155,7 +155,10 @@ trap cleanup EXIT
 echo "--- Step 1: Create Ephemeral VM ---"
 TIME_START=$(date +%s)
 
-qemu-img create -f qcow2 -b "$GOLDEN_IMAGE" -F qcow2 "$TEST_IMAGE" 20G >/dev/null 2>&1
+if ! qemu-img create -f qcow2 -b "$GOLDEN_IMAGE" -F qcow2 "$TEST_IMAGE" 20G >/dev/null 2>&1; then
+  echo "ERROR: qemu-img create failed (rc=$?)" >&2
+  exit 1
+fi
 TIME_CREATE=$(date +%s)
 ELAPSED=$((TIME_CREATE - TIME_START))
 echo "  ✓ Created ephemeral image (${ELAPSED}s)"
@@ -188,6 +191,11 @@ for i in $(seq 1 10); do
   fi
   sleep 0.5
 done
+
+if [ -z "${VM_PID:-}" ]; then
+  echo "ERROR: QEMU failed to start (no PID file after 5s)" >&2
+  exit 1
+fi
 
 echo "  Port: $SSH_PORT (PID ${VM_PID:-?})"
 
@@ -270,7 +278,9 @@ REPO_BRANCH="${IWE_BRANCH:-0.25.1}"
 ssh $SSH_OPTS iwe@localhost "rm -rf ~/IWE/FMT-exocortex-template" 2>/dev/null || true
 
 GIT_LOG="/tmp/iwe-git-clone-$$.log"
-ssh $SSH_OPTS iwe@localhost "git clone --branch $REPO_BRANCH $REPO_URL ~/IWE/FMT-exocortex-template" >"$GIT_LOG" 2>&1
+REPO_URL_ESC=$(printf '%q' "$REPO_URL")
+REPO_BRANCH_ESC=$(printf '%q' "$REPO_BRANCH")
+ssh $SSH_OPTS iwe@localhost "git clone --branch $REPO_BRANCH_ESC $REPO_URL_ESC ~/IWE/FMT-exocortex-template" >"$GIT_LOG" 2>&1
 CLONE_RC=$?
 
 if [ "$CLONE_RC" -eq 0 ]; then
@@ -308,7 +318,7 @@ run_phase() {
 
   PHASE_STDERR="$RESULTS_DIR/phase-${num}-stderr-${TIMESTAMP}.log"
   PHASE_RC=0
-  ssh $SSH_OPTS iwe@localhost "$SECRETS_PREAMBLE export IWE_DEBUG=$DEBUG_MODE; cd ~/IWE/FMT-exocortex-template && source ~/test-phases.sh && $func" 2>"$PHASE_STDERR" || PHASE_RC=$?
+  ssh $SSH_OPTS iwe@localhost "set -euo pipefail; $SECRETS_PREAMBLE export IWE_DEBUG=$DEBUG_MODE; cd ~/IWE/FMT-exocortex-template && source ~/test-phases.sh && $func" 2>"$PHASE_STDERR" || PHASE_RC=$?
 
   if [ -s "$PHASE_STDERR" ]; then
     if [ "$PHASE_RC" -ne 0 ]; then

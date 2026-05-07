@@ -727,12 +727,17 @@ NOTES
   # --- 5b.5: Assert post-conditions ---
   echo "--- [5b.5] assert post-conditions ---"
   if [ -f "scripts/test/assert-strategy-session.sh" ]; then
-    ASSERT_OUT=$(bash scripts/test/assert-strategy-session.sh "$WORKSPACE_DIR" "$PREP_LOG" 2>&1) || true
+    ASSERT_RC=0
+    ASSERT_OUT=$(bash scripts/test/assert-strategy-session.sh "$WORKSPACE_DIR" "$PREP_LOG" 2>&1) || ASSERT_RC=$?
     echo "$ASSERT_OUT"
-    ASSERT_PASS=$(echo "$ASSERT_OUT" | grep -c '\[OK\]' 2>/dev/null || echo "0")
-    ASSERT_FAIL=$(echo "$ASSERT_OUT" | grep -c '\[FAIL\]' 2>/dev/null || echo "0")
-    for i in $(seq 1 $ASSERT_PASS); do PHASE_PASS=$((PHASE_PASS + 1)); done
-    for i in $(seq 1 $ASSERT_FAIL); do PHASE_FAIL=$((PHASE_FAIL + 1)); done
+    if [ "$ASSERT_RC" -gt 1 ]; then
+      _fail "assert: script crashed (rc=$ASSERT_RC)"
+    else
+      ASSERT_PASS=$(echo "$ASSERT_OUT" | grep -c '\[OK\]' 2>/dev/null || echo "0")
+      ASSERT_FAIL=$(echo "$ASSERT_OUT" | grep -c '\[FAIL\]' 2>/dev/null || echo "0")
+      for i in $(seq 1 $ASSERT_PASS); do PHASE_PASS=$((PHASE_PASS + 1)); done
+      for i in $(seq 1 $ASSERT_FAIL); do PHASE_FAIL=$((PHASE_FAIL + 1)); done
+    fi
   else
     _skip "assert: script not found"
   fi
@@ -743,14 +748,19 @@ NOTES
     CONFIRMED_WP=$(find "$DS_STRATEGY_DIR/current" -name "WeekPlan*" \
       -newer "$DS_STRATEGY_DIR/docs/Session Agenda.md" 2>/dev/null | head -1)
     if [ -n "$CONFIRMED_WP" ] && [ -f "$CONFIRMED_WP" ]; then
-      JUDGE_OUT=$(bash scripts/test/eval-strategy-session.sh "$DS_STRATEGY_DIR" "$CONFIRMED_WP" 2>&1) || true
+      JUDGE_RC=0
+      JUDGE_OUT=$(bash scripts/test/eval-strategy-session.sh "$DS_STRATEGY_DIR" "$CONFIRMED_WP" 2>&1) || JUDGE_RC=$?
       echo "$JUDGE_OUT"
       $IWE_DEBUG && echo "$JUDGE_OUT" >> "$JUDGE_LOG"
-      JUDGE_PASS=$(echo "$JUDGE_OUT" | grep -oP 'LLM_JUDGE_PASS=\K\d+' 2>/dev/null || echo "0")
-      JUDGE_TOTAL=$(echo "$JUDGE_OUT" | grep -oP 'LLM_JUDGE_TOTAL=\K\d+' 2>/dev/null || echo "0")
-      [ "${JUDGE_PASS:-0}" -ge 5 ] \
-        && _ok "judge: ${JUDGE_PASS}/${JUDGE_TOTAL} metrics passed" \
-        || _fail "judge: only ${JUDGE_PASS}/${JUDGE_TOTAL} metrics passed (<5)"
+      if [ "$JUDGE_RC" -gt 1 ]; then
+        _fail "judge: eval script crashed (rc=$JUDGE_RC)"
+      else
+        JUDGE_PASS=$(echo "$JUDGE_OUT" | grep -oP 'LLM_JUDGE_PASS=\K\d+' 2>/dev/null || echo "0")
+        JUDGE_TOTAL=$(echo "$JUDGE_OUT" | grep -oP 'LLM_JUDGE_TOTAL=\K\d+' 2>/dev/null || echo "0")
+        [ "${JUDGE_PASS:-0}" -ge 5 ] \
+          && _ok "judge: ${JUDGE_PASS}/${JUDGE_TOTAL} metrics passed" \
+          || _fail "judge: only ${JUDGE_PASS}/${JUDGE_TOTAL} metrics passed (<5)"
+      fi
     else
       _skip "judge: no confirmed WeekPlan found"
     fi

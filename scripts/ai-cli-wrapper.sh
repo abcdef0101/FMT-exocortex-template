@@ -50,7 +50,7 @@ ai_cli_flags() {
     claude)
       local flags="--dangerously-skip-permissions"
       $bare && flags="$flags --bare"
-      [ -n "$tools" ] && flags="$flags --allowedTools \"$tools\""
+      [ -n "$tools" ] && flags="$flags --allowedTools $tools"
       [ -n "$budget" ] && flags="$flags --max-budget-usd $budget"
       echo "$flags"
       ;;
@@ -87,8 +87,7 @@ ai_cli_run() {
     claude)
       timeout "$timeout_val" claude $flags -p "$prompt"
       local claude_rc=$?
-      # Fallback: if claude is not authenticated, try opencode
-      if [ $claude_rc -ne 0 ] || { grep -q "Not logged in" "$LOG_FILE" 2>/dev/null; }; then
+      if [ $claude_rc -ne 0 ]; then
         if command -v opencode >/dev/null 2>&1; then
           echo "WARN: claude unavailable (rc=$claude_rc), falling back to opencode" >&2
           timeout "$timeout_val" opencode run "$prompt" \

@@ -136,7 +136,8 @@ echo "--- Step 2: Clone Repo ---"
 REPO_URL="${IWE_REPO_URL:-https://github.com/abcdef0101/FMT-exocortex-template.git}"
 REPO_BRANCH="${IWE_BRANCH:-0.25.1}"
 
-podman exec "$CONTAINER_NAME" bash -c "rm -rf ~/IWE/FMT-exocortex-template && git clone --branch $REPO_BRANCH $REPO_URL ~/IWE/FMT-exocortex-template" 2>&1
+podman exec -e "REPO_BRANCH=$REPO_BRANCH" -e "REPO_URL=$REPO_URL" "$CONTAINER_NAME" bash -c \
+  'rm -rf ~/IWE/FMT-exocortex-template && git clone --branch "$REPO_BRANCH" "$REPO_URL" ~/IWE/FMT-exocortex-template' 2>&1
 CLONE_RC=$?
 
 if [ "$CLONE_RC" -eq 0 ]; then
@@ -210,7 +211,7 @@ run_phase() {
   PHASE_RC=0
 
   podman exec "$CONTAINER_NAME" \
-    bash -c "$SECRETS_PREAMBLE export IWE_DEBUG=${DEBUG_MODE}; cd ~/IWE/FMT-exocortex-template && source ~/test-phases.sh && $func" \
+    bash -c "set -euo pipefail; $SECRETS_PREAMBLE export IWE_DEBUG=${DEBUG_MODE}; cd ~/IWE/FMT-exocortex-template && source ~/test-phases.sh && $func" \
     >"$PHASE_LOG" 2>"$PHASE_STDERR" || PHASE_RC=$?
 
   cat "$PHASE_LOG"
