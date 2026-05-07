@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # test-template-sync-mock.sh — тест template-sync с мок params.yaml (author_mode: true)
 set -uo pipefail
 

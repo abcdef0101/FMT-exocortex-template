@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # E2E-10: Author sync — template-sync.sh full pipeline
 set -uo pipefail
 source "$(dirname "$0")/_lib.sh"

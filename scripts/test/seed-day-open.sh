@@ -428,10 +428,10 @@ if [ -n "${GH_TOKEN:-}" ] && command -v gh >/dev/null 2>&1; then
         --description "IWE Day Open E2E test (auto-cleanup)" \
         --clone 2>/dev/null; then
         GITHUB_REPO_CREATED=true
-        cd "/tmp/$TEST_REPO_NAME" 2>/dev/null || true
+        cd "/tmp/$TEST_REPO_NAME" 2>/dev/null || echo "  [WARN] cd to test repo failed"
         echo "# IWE Day Open E2E Test" > README.md
-        git add README.md && git commit -m "init: test repo for Day Open E2E" --quiet 2>/dev/null || true
-        git push -u origin main --quiet 2>/dev/null || true
+        git add README.md && git commit -m "init: test repo for Day Open E2E" --quiet 2>/dev/null || echo "  [WARN] git commit failed"
+        git push -u origin main --quiet 2>/dev/null || echo "  [WARN] git push failed"
 
         gh issue create --repo "$GITHUB_USER/$TEST_REPO_NAME" \
           --title "Fix CI pipeline timeout" \
@@ -444,7 +444,7 @@ if [ -n "${GH_TOKEN:-}" ] && command -v gh >/dev/null 2>&1; then
 
         echo "[seed] GitHub test repo: $GITHUB_USER/$TEST_REPO_NAME"
         echo "IWE_TEST_REPO=$GITHUB_USER/$TEST_REPO_NAME" > "$TARGET/.test-repo.env"
-        cd "$TARGET" 2>/dev/null || true
+        cd "$TARGET" 2>/dev/null || echo "  [WARN] cd to TARGET failed"
       else
         echo "[seed] WARN: failed to create GitHub test repo (rate limit?)"
       fi
@@ -474,10 +474,10 @@ SPOKE
 # Init git in the seeded directory
 # =========================================================================
 cd "$TARGET"
-git init --quiet 2>/dev/null || true
-git config user.email "iwe-test@localhost" 2>/dev/null || true
-git config user.name "IWE Test" 2>/dev/null || true
-git add -A >/dev/null 2>&1 || true
-git commit -m "test: seed data for Day Open E2E test" --quiet 2>/dev/null || true
+git init --quiet 2>/dev/null || echo "  [WARN] git init failed"
+git config user.email "iwe-test@localhost" 2>/dev/null || echo "  [WARN] git config failed"
+git config user.name "IWE Test" 2>/dev/null || echo "  [WARN] git config failed"
+git add -A >/dev/null 2>&1 || echo "  [WARN] git add failed"
+git commit -m "test: seed data for Day Open E2E test" --quiet 2>/dev/null || echo "  [WARN] git commit failed"
 
 echo "$TARGET"

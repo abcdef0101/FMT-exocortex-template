@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # run-phase0.sh — главный раннер тестов Фазы 0 (ADR-005)
 # Использование: bash scripts/test/run-phase0.sh [--verbose]
-set -uo pipefail
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # E2E-1: Fresh install — clean workspace
 # E2E-2: Duplicate workspace — error
 # E2E-3: Install + immediate update check

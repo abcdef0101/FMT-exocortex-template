@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # test-update-apply-mock.sh — интеграционный тест с мок-upstream
 # Клонирует репо, симулирует upstream изменения, проверяет --check и --apply
 set -uo pipefail

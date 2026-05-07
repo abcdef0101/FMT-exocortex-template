@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # test-setup-integration.sh — интеграционный тест setup.sh --core --dry-run на чистом workspace
-set -uo pipefail
+set -euo pipefail
 
 ROOT_DIR="${ROOT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 FAIL=0

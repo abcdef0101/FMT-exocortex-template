@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # E2E-7: 3-way merge — non-conflicting changes merge clean
 # E2E-8: 3-way merge — conflict detection
 set -uo pipefail

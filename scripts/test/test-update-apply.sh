@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # test-update-apply.sh — тесты update.sh --apply и внутренних функций
 set -uo pipefail
 

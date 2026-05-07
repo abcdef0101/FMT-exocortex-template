@@ -73,7 +73,7 @@ fi
 output=$("$UPDATER" --check 2>&1)
 if echo "$output" | grep -q "symlink valid"; then
   _pass "--check: symlink validation present"
-elif echo "$output" | grep -q "symlink.*broken\|symlink.*missing"; then
+elif echo "$output" | grep -E -q "symlink.*(broken|missing)"; then
   _pass "--check: symlink validation present (needs fix)"
 else
   _fail "--check: no symlink validation"

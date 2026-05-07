@@ -112,10 +112,22 @@ if command -v ruby &>/dev/null; then
     fi
   done
   [ "$yaml_fail" -eq 0 ] \
-    && _pass "YAML valid: $yaml_ok/$total" \
+    && _pass "YAML valid (ruby): $yaml_ok/$total" \
+    || _fail "YAML valid: $yaml_ok/$total, $yaml_fail errors"
+elif command -v python3 &>/dev/null && python3 -c "import yaml" 2>/dev/null; then
+  for mf in "${manifests[@]}"; do
+    if python3 -c "import yaml; yaml.safe_load(open('$mf'))" 2>/dev/null; then
+      yaml_ok=$((yaml_ok + 1))
+    else
+      _fail "invalid YAML: ${mf#$ROOT_DIR/}"
+      yaml_fail=$((yaml_fail + 1))
+    fi
+  done
+  [ "$yaml_fail" -eq 0 ] \
+    && _pass "YAML valid (python3): $yaml_ok/$total" \
     || _fail "YAML valid: $yaml_ok/$total, $yaml_fail errors"
 else
-  echo "  - skipped YAML validation (no ruby)"
+  echo "  - skipped YAML validation (no ruby or python3 yaml)"
 fi
 
 # -------------------------------------------------------------------

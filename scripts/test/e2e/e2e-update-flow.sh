@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # E2E-4: Update: upstream has changes detected by --check
 # E2E-5: Update: --apply + verify integrity
 # E2E-6: Update: NEVER-TOUCH enforcement

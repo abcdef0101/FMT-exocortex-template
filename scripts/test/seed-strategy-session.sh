@@ -225,10 +225,10 @@ touch "$TARGET/archive/.gitkeep"
 
 # Init git in the seeded directory (needed for commits)
 cd "$TARGET"
-git init --quiet 2>/dev/null || true
-git config user.email "iwe-test@localhost" 2>/dev/null || true
-git config user.name "IWE Test" 2>/dev/null || true
-git add -A >/dev/null 2>&1 || true
-git commit -m "test: seed data for strategy-session E2E test" --quiet 2>/dev/null || true
+git init --quiet 2>/dev/null || echo "  [WARN] git init failed"
+git config user.email "iwe-test@localhost" 2>/dev/null || echo "  [WARN] git config failed"
+git config user.name "IWE Test" 2>/dev/null || echo "  [WARN] git config failed"
+git add -A >/dev/null 2>&1 || echo "  [WARN] git add failed"
+git commit -m "test: seed data for strategy-session E2E test" --quiet 2>/dev/null || echo "  [WARN] git commit failed"
 
 echo "$TARGET"

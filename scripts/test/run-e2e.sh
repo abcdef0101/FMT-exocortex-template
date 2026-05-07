@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # run-e2e.sh — главный раннер E2E тестов
 # Запускает все скрипты в scripts/test/e2e/ (кроме _lib.sh и SMOKE-TEST.md)
-set -uo pipefail
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"

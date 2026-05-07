@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # E2E-9: Migration — broken symlink repair via migration script
 set -uo pipefail
 source "$(dirname "$0")/_lib.sh"
