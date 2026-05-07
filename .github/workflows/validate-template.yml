@@ -25,6 +25,19 @@ jobs:
           done < <(find . -name "*.sh" -type f -print0)
           exit $FAIL
 
+      - name: Run bash syntax check on all .sh files
+        run: |
+          FAIL=0
+          while IFS= read -r -d '' f; do
+            if ! bash -n "$f" 2>/dev/null; then
+              echo "FAIL: syntax error in $f"
+              bash -n "$f"
+              FAIL=1
+            fi
+          done < <(find . -name "*.sh" -type f -print0)
+          [ "$FAIL" -eq 0 ] && echo "PASS: All .sh files pass bash -n"
+          exit $FAIL
+
   validate:
     runs-on: ubuntu-latest
     steps:
