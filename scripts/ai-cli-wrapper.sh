@@ -57,11 +57,11 @@ ai_cli_flags() {
     opencode)
       local flags="--dangerously-skip-permissions"
       $bare && flags="$flags --pure"
-      # opencode doesn't have --allowedTools CLI flag — uses agents instead.
-      # The --allowed-tools param is stored for agent-based execution.
       if [ -n "$tools" ]; then
-        # Export for ai_cli_run to use when creating/running agent
-        export AI_CLI_TOOLS="$tools"
+        # opencode agents manage tools per-agent, not per-call.
+        # Use 'build' agent (all permissions) or AI_CLI_AGENT override.
+        local agent="${AI_CLI_AGENT:-build}"
+        flags="$flags --agent $agent"
       fi
       [ -n "$budget" ] && flags="$flags --variant minimal"
       echo "$flags"
@@ -153,9 +153,18 @@ _opencode_setup_config() {
 OPECFG
 }
 
-# === Agent management (opencode-specific) ===
-# Creates an agent with allowed tools for opencode.
-# No-op for claude.
+# === Agent management ===
+# opencode: create agent with allowed tools (idempotent — skips if exists)
+# claude: uses --allowedTools flag directly, no agent needed
+
+_opencode_ensure_agent() {
+  local agent_name="$1" tools="$2"
+  # Check if agent already exists
+  if opencode agent list 2>/dev/null | grep -q "\"name\": \"$agent_name\"" 2>/dev/null; then
+    return 0  # already created
+  fi
+  opencode agent create --name "$agent_name" --tools "$tools" --mode primary 2>/dev/null || true
+}
 
 ai_cli_agent_create() {
   local agent_name="${1:-strategist-test}"
@@ -165,10 +174,10 @@ ai_cli_agent_create() {
 
   case "$provider" in
     opencode)
-      # Agent creation is interactive in opencode v1.x — skip in CI,
-      # return 0 so callers don't error. opencode run works without pre-created agent.
-      echo "  Agent creation skipped (interactive in this opencode version)"
-      return 0
+      local oc_tools
+      oc_tools=$(echo "$tools" | tr '[:upper:]' '[:lower:]' | sed 's/write/edit/g' | tr ',' ' ')
+      _opencode_ensure_agent "$agent_name" "$oc_tools"
+      echo "  Agent '$agent_name' ready (tools: $oc_tools)"
       ;;
     claude)
       # claude uses --allowedTools flag directly, no agent needed
