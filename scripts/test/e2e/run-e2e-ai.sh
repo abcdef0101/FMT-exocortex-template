@@ -16,26 +16,41 @@ run_e2e() {
   echo " E2E: $name"
   echo "========================================="
   
-  # 1. Seed
+  # 1. Seed — take last line only (seed scripts may print info to stdout)
   echo "  [seed] $seed..."
-  WS=$(bash "$TEST_DIR/$seed" 2>/dev/null) && rc=0 || rc=$?
-  if [ "$rc" -ne 0 ] || [ -z "$WS" ]; then
-    echo "  ✗ SEED FAILED"
+  WS=$(bash "$TEST_DIR/$seed" 2>/dev/null | tail -1) && rc=0 || rc=$?
+  if [ "$rc" -ne 0 ] || [ -z "$WS" ] || [ ! -d "$WS" ]; then
+    echo "  ✗ SEED FAILED (ws='$WS')"
     FAIL=$((FAIL + 1))
     return
   fi
   [ -d "$WS" ] && ln -sfn . "$WS/DS-strategy" 2>/dev/null || true
   echo "  ✓ seed: $WS"
   
-  # 2. Run (AI process — optional)
+  # 2. Run or Judge (AI process or LLM evaluation)
   if [ -n "$run_flag" ] && [ -f "$TEST_DIR/$eval" ]; then
-    echo "  [run] $eval --run..."
-    if bash "$TEST_DIR/$eval" "$WS" --run 2>/dev/null; then
-      echo "  ✓ run complete"
-    else
-      echo "  ✗ RUN FAILED"
-      FAIL=$((FAIL + 1))
-    fi
+    case "$run_flag" in
+      --run)
+        echo "  [run] $eval --run..."
+        if bash "$TEST_DIR/$eval" "$WS" --run 2>/dev/null; then
+          echo "  ✓ run complete"
+        else
+          echo "  ✗ RUN FAILED"
+          FAIL=$((FAIL + 1))
+        fi
+        ;;
+      --judge)
+        # Auto-detect artifact for judge: DayPlan or WeekPlan
+        ARTIFACT=$(find "$WS/DS-strategy/current" "$WS/current" -name "DayPlan*" -o -name "WeekPlan*" 2>/dev/null | head -1)
+        echo "  [judge] $eval $ARTIFACT..."
+        if bash "$TEST_DIR/$eval" "$WS" "$ARTIFACT" 2>/dev/null; then
+          echo "  ✓ judge passed"
+        else
+          echo "  ✗ JUDGE FAILED"
+          FAIL=$((FAIL + 1))
+        fi
+        ;;
+    esac
   fi
   
   # 3. Assert (structural invariants)
@@ -49,9 +64,7 @@ run_e2e() {
     fi
   fi
   
-  # 4. Judge (LLM evaluation — already done in eval script, skip here to avoid double billing)
   echo ""
-  
   PASS=$((PASS + 1))
 }
 
@@ -68,11 +81,23 @@ case "$E2E_PHASE" in
   wp-new)
     run_e2e "wp-new" "seed-wp-new.sh" "eval-wp-new.sh" "assert-wp-new.sh" "--run"
     ;;
+  day-open)
+    run_e2e "Day Open" "seed-day-open.sh" "eval-day-open.sh" "assert-day-open.sh" "--judge"
+    ;;
+  strategy-session)
+    run_e2e "Strategy Session" "seed-strategy-session.sh" "eval-strategy-session.sh" "assert-strategy-session.sh" "--judge"
+    ;;
+  session-prep)
+    run_e2e "Session Prep" "seed-session-prep.sh" "eval-session-prep.sh" "assert-session-prep.sh" "--judge"
+    ;;
   all|*)
     run_e2e "Quick Close" "seed-quick-close.sh" "eval-quick-close.sh" "assert-quick-close.sh" "--run"
     run_e2e "wp-new" "seed-wp-new.sh" "eval-wp-new.sh" "assert-wp-new.sh" "--run"
     run_e2e "Day Close" "seed-day-close.sh" "eval-day-close.sh" "assert-day-close.sh" "--run"
     run_e2e "Week Close" "seed-week-close.sh" "eval-week-close.sh" "assert-week-close.sh" "--run"
+    run_e2e "Day Open" "seed-day-open.sh" "eval-day-open.sh" "assert-day-open.sh" "--judge"
+    run_e2e "Strategy Session" "seed-strategy-session.sh" "eval-strategy-session.sh" "assert-strategy-session.sh" "--judge"
+    run_e2e "Session Prep" "seed-session-prep.sh" "eval-session-prep.sh" "assert-session-prep.sh" "--judge"
     ;;
 esac
 
