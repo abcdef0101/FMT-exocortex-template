@@ -26,21 +26,34 @@ if $RUN_MODE; then
   [ ! -f "$WRAPPER" ] && { echo "ERROR: ai-cli-wrapper not found" >&2; exit 1; }
   source "$WRAPPER"
 
-  WPNEW_PROMPT="Создай новый РП 'WP-5 CI gates' атомарно в 5 местах:
-1. WP-REGISTRY.md: новая строка | 5 | WP-5 CI gates | ⏳ | сегодня |
-2. MEMORY.md: новый РП в таблице
-3. WeekPlan: новый РП с бюджетом 4h и статусом pending
-4. DayPlan (если активен): добавить в план дня
-5. WP-context file: WP-5-ci-gates.md с секцией 'Осталось'
-Название РП — существительное-артефакт. Номер — следующий целый (без букв).
-Используй файлы в $DS_DIR/docs/, $WS_DIR/memory/, $DS_DIR/current/"
+  # Use full SKILL.md (81 lines) + workspace context
+  SKILL_MD="$ROOT_DIR/.claude/skills/wp-new/SKILL.md"
+  if [ -f "$SKILL_MD" ]; then
+    WPNEW_PROMPT="$(cat "$SKILL_MD")
+
+---
+## Workspace Context (from test harness)
+Create a new work product named 'WP-5 CI gates' with budget 4h.
+Workspace root: $WS_DIR
+DS-strategy directory: $DS_DIR
+Files to update:
+  WP-REGISTRY: $DS_DIR/docs/WP-REGISTRY.md
+  MEMORY.md: $WS_DIR/memory/MEMORY.md
+  WeekPlan: $(find "$DS_DIR/current" -name "WeekPlan*" -type f 2>/dev/null | head -1 || echo "not found")
+  DayPlan: $(find "$DS_DIR/current" -name "Day*Plan*" -type f 2>/dev/null | head -1 || echo "not found")
+
+Follow the SKILL.md atomic write instructions above."
+  else
+    WPNEW_PROMPT="wp-new SKILL.md not found"
+  fi
 
   echo "=== wp-new: running AI process ==="
-  AI_CLI_TIMEOUT=300
+  echo "  prompt: $(wc -l < "$SKILL_MD" 2>/dev/null || echo 0) lines from wp-new/SKILL.md"
+  AI_CLI_TIMEOUT=600
   export AI_CLI="${AI_CLI:-opencode}"
   export AI_CLI_MODEL="${AI_CLI_MODEL:-deepseek/deepseek-chat}"
   RUN_RC=0
-  RUN_OUT=$(ai_cli_run "$WPNEW_PROMPT" --bare --allowed-tools "Read,Write,Edit,Glob,Grep,Bash" --budget 0.15 2>/dev/null) || RUN_RC=$?
+  RUN_OUT=$(ai_cli_run "$WPNEW_PROMPT" --allowed-tools "Read,Write,Edit,Glob,Grep,Bash" --budget 1.00 2>/dev/null) || RUN_RC=$?
   if [ "$RUN_RC" -ne 0 ]; then echo "ERROR: wp-new AI failed (rc=$RUN_RC)" >&2; exit 2; fi
   echo "=== wp-new: AI process done ==="
 fi

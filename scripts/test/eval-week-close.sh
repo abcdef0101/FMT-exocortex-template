@@ -28,24 +28,34 @@ if $RUN_MODE; then
   [ ! -f "$WRAPPER" ] && { echo "ERROR: ai-cli-wrapper not found" >&2; exit 1; }
   source "$WRAPPER"
 
-  WEEKCLOSE_PROMPT_FILE="$ROOT_DIR/roles/strategist/prompts/week-review.md"
-  if [ -f "$WEEKCLOSE_PROMPT_FILE" ]; then
-    WEEKCLOSE_PROMPT=$(cat "$WEEKCLOSE_PROMPT_FILE")
+  # Use full SKILL.md (209 lines, 15 steps) + workspace context
+  SKILL_MD="$ROOT_DIR/.claude/skills/week-close/SKILL.md"
+  if [ -f "$SKILL_MD" ]; then
+    WEEKCLOSE_PROMPT="$(cat "$SKILL_MD")
+
+---
+## Workspace Context (from test harness)
+Workspace root: $WS_DIR
+DS-strategy directory: $DS_DIR
+WeekPlan: $(find "$DS_DIR/current" -name "WeekPlan*" -type f 2>/dev/null | head -1 || echo "not found")
+DayPlans: $(find "$DS_DIR/current" -name "Day*Plan*" -type f 2>/dev/null | wc -l) files
+MEMORY.md: $WS_DIR/memory/MEMORY.md
+Strategy: $DS_DIR/docs/Strategy.md
+Dissatisfactions: $DS_DIR/docs/Dissatisfactions.md
+
+Execute Week Close following the SKILL.md instructions above.
+Use TodoWrite to track all 15 steps."
   else
-    WEEKCLOSE_PROMPT="Выполни Week Close. Собери статистику за неделю из всех DayPlans.
-Добавь '## Итоги W{N}' в WeekPlan: completion rate, carry-over, инсайты, контент-план.
-Выполни memory audit (≤11 файлов, лимиты строк).
-Выполни ротацию уроков (не применённые за 2 нед → lessons-archive.md).
-Обнови MEMORY.md свежей таблицей РП.
-Сделай commit + push."
+    WEEKCLOSE_PROMPT="Week Close SKILL.md not found at $SKILL_MD"
   fi
 
   echo "=== Week Close: running AI process ==="
-  AI_CLI_TIMEOUT=600
+  echo "  prompt: $(wc -l < "$SKILL_MD" 2>/dev/null || echo 0) lines from week-close/SKILL.md"
+  AI_CLI_TIMEOUT=900
   export AI_CLI="${AI_CLI:-opencode}"
   export AI_CLI_MODEL="${AI_CLI_MODEL:-deepseek/deepseek-chat}"
   RUN_RC=0
-  RUN_OUT=$(ai_cli_run "$WEEKCLOSE_PROMPT" --bare --budget 0.20 2>/dev/null) || RUN_RC=$?
+  RUN_OUT=$(ai_cli_run "$WEEKCLOSE_PROMPT" --allowed-tools "Read,Write,Edit,Glob,Grep,Bash" --budget 1.00 2>/dev/null) || RUN_RC=$?
   if [ "$RUN_RC" -ne 0 ]; then echo "ERROR: Week Close AI failed (rc=$RUN_RC)" >&2; exit 2; fi
   echo "=== Week Close: AI process done ==="
 fi

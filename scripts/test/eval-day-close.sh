@@ -30,27 +30,34 @@ if $RUN_MODE; then
   [ ! -f "$WRAPPER" ] && { echo "ERROR: ai-cli-wrapper.sh not found" >&2; exit 1; }
   source "$WRAPPER"
 
-  DAYCLOSE_PROMPT_FILE="$ROOT_DIR/roles/strategist/prompts/day-close.md"
-  if [ -f "$DAYCLOSE_PROMPT_FILE" ]; then
-    DAYCLOSE_PROMPT=$(cat "$DAYCLOSE_PROMPT_FILE")
+  # Use full SKILL.md (272 lines, 17 steps) + workspace path context
+  SKILL_MD="$ROOT_DIR/.claude/skills/day-close/SKILL.md"
+  if [ -f "$SKILL_MD" ]; then
+    DAYCLOSE_PROMPT="$(cat "$SKILL_MD")
+
+---
+## Workspace Context (from test harness)
+Workspace root: $WS_DIR
+DS-strategy directory: $DS_DIR
+Today's DayPlan: $(find "$DS_DIR/current" -name "Day*Plan*" -type f 2>/dev/null | head -1 || echo "not found")
+WeekPlan: $(find "$DS_DIR/current" -name "WeekPlan*" -type f 2>/dev/null | head -1 || echo "not found")
+MEMORY.md: $WS_DIR/memory/MEMORY.md
+WP-REGISTRY: $DS_DIR/docs/WP-REGISTRY.md
+
+Execute Day Close following the SKILL.md instructions above.
+Use TodoWrite to track all 17 steps."
   else
-    # Fallback: inline minimal prompt
-    DAYCLOSE_PROMPT="Выполни Day Close для сегодняшнего DayPlan в $DS_DIR/current/.
-Обнови DayPlan: добавь '## Итоги дня' с таблицей РП и результатами.
-Добавь multiplier (budget_closed / wakatime_hours).
-Добавь praise ('Что получилось хорошо') и 'Завтра начать с'.
-Обнови MEMORY.md статусы РП.
-Обнови WeekPlan статусы РП.
-Сделай commit + push."
+    DAYCLOSE_PROMPT="Day Close not available — SKILL.md missing at $SKILL_MD"
   fi
 
   echo "=== Day Close: running AI process ==="
-  AI_CLI_TIMEOUT=300
+  echo "  prompt: $(wc -l < "$SKILL_MD" 2>/dev/null || echo 0) lines from day-close/SKILL.md"
+  AI_CLI_TIMEOUT=600
   export AI_CLI="${AI_CLI:-opencode}"
   export AI_CLI_MODEL="${AI_CLI_MODEL:-deepseek/deepseek-chat}"
 
   RUN_RC=0
-  RUN_OUT=$(ai_cli_run "$DAYCLOSE_PROMPT" --bare --budget 0.15 2>/dev/null) || RUN_RC=$?
+  RUN_OUT=$(ai_cli_run "$DAYCLOSE_PROMPT" --allowed-tools "Read,Write,Edit,Glob,Grep,Bash" --budget 1.00 2>/dev/null) || RUN_RC=$?
   if [ "$RUN_RC" -ne 0 ]; then
     echo "ERROR: Day Close AI process failed (rc=$RUN_RC)" >&2
     exit 2
