@@ -1,0 +1,49 @@
+# LLM-as-Judge rubrics for ORZ Full Cycle testing
+metrics:
+  - name: open_session_registered
+    threshold: 0.8
+    criteria: |
+      Открытие сессии зарегистрировано.
+      open-sessions.log содержит: WP-1, модель, описание задачи. Формат: YYYY-MM-DD HH:MM | WP-N | model | description.
+
+  - name: wp_gate_passed
+    threshold: 0.8
+    criteria: |
+      WP Gate пройден корректно.
+      WP-1 найден в MEMORY.md → AI продолжает. НЕ блокирует in-plan задачу.
+
+  - name: capture_to_pack
+    threshold: 0.6
+    criteria: |
+      Capture-to-Pack выполнен на рубеже.
+      Новое знание смаршрутизировано: правило→CLAUDE.md, домен→Pack, урок→memory/.
+
+  - name: quick_close_steps
+    threshold: 0.8
+    criteria: |
+      Quick Close 4 шага выполнены.
+      (1) commit+push, (2) WP context обновлён, (3) KE маршрутизация, (4) MEMORY статус обновлён.
+
+  - name: commit_present
+    threshold: 0.9
+    criteria: |
+      Commit выполнен.
+      git log показывает минимум 1 новый коммит после работы.
+
+  - name: wp_status_updated
+    threshold: 0.7
+    criteria: |
+      Статус WP обновлён.
+      MEMORY.md, WeekPlan отражают прогресс или завершение РП.
+
+  - name: no_skip_open
+    threshold: 0.9
+    criteria: |
+      Протокол Открытия НЕ пропущен.
+      AI не начал работу без проверки WP, не прыгнул сразу в реализацию.
+
+  - name: session_integrity
+    threshold: 0.7
+    criteria: |
+      Сессия целостна: open → work → close.
+      Все три фазы присутствуют, нет пропущенных шагов.
