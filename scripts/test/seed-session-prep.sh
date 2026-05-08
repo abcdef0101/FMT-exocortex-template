@@ -3,7 +3,7 @@
 # Usage: bash scripts/test/seed-session-prep.sh [target_dir]
 set -euo pipefail
 
-TARGET="${1:-$(mktemp -d -t sessprep-seed-XXXXXX)}"
+TARGET="${1:-$(mktemp -d "${ROOT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}/.audit/test-seeds/session-prep-XXXXXX")}"
 mkdir -p "$TARGET/DS-strategy/"{current,inbox,docs,archive/week-plans}
 mkdir -p "$TARGET/memory"
 

@@ -3,7 +3,7 @@
 # Usage: bash scripts/test/seed-quick-close.sh [target_dir]
 set -euo pipefail
 
-TARGET="${1:-$(mktemp -d -t qclose-seed-XXXXXX)}"
+TARGET="${1:-$(mktemp -d "${ROOT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}/.audit/test-seeds/quick-close-XXXXXX")}"
 mkdir -p "$TARGET/DS-strategy/"{inbox,current}
 mkdir -p "$TARGET/memory"
 

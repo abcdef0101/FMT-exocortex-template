@@ -3,7 +3,7 @@
 # Usage: bash scripts/test/seed-wp-new.sh [target_dir]
 set -euo pipefail
 
-TARGET="${1:-$(mktemp -d -t wpnew-seed-XXXXXX)}"
+TARGET="${1:-$(mktemp -d "${ROOT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}/.audit/test-seeds/wp-new-XXXXXX")}"
 mkdir -p "$TARGET/DS-strategy/"{current,inbox,docs}
 mkdir -p "$TARGET/memory"
 

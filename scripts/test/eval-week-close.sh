@@ -28,35 +28,25 @@ if $RUN_MODE; then
   [ ! -f "$WRAPPER" ] && { echo "ERROR: ai-cli-wrapper not found" >&2; exit 1; }
   source "$WRAPPER"
 
-  # Use full SKILL.md (209 lines, 15 steps) + workspace context
-  SKILL_MD="$ROOT_DIR/.claude/skills/week-close/SKILL.md"
-  if [ -f "$SKILL_MD" ]; then
-    WEEKCLOSE_PROMPT="$(cat "$SKILL_MD")
+  # Concise Week Close prompt
+  WEEKCLOSE_PROMPT="Execute Week Close in workspace $WS_DIR:
 
----
-## Workspace Context (from test harness)
-Workspace root: $WS_DIR
-DS-strategy directory: $DS_DIR
-WeekPlan: $(find "$DS_DIR/current" -name "WeekPlan*" -type f 2>/dev/null | head -1 || echo "not found")
-DayPlans: $(find "$DS_DIR/current" -name "Day*Plan*" -type f 2>/dev/null | wc -l) files
-MEMORY.md: $WS_DIR/memory/MEMORY.md
-Strategy: $DS_DIR/docs/Strategy.md
-Dissatisfactions: $DS_DIR/docs/Dissatisfactions.md
+1. Collect stats from all DayPlans in $DS_DIR/current/ — count completion rate
+2. Add '## Итоги W{N}' to WeekPlan — completion rate, carry-over, insights
+3. Rotate lessons in MEMORY.md — archive unapplied lessons
+4. Create '## Контент-план' section with 2-3 publications
+5. Commit + push
 
-Execute Week Close following the SKILL.md instructions above.
-Use TodoWrite to track all 15 steps."
-  else
-    WEEKCLOSE_PROMPT="Week Close SKILL.md not found at $SKILL_MD"
-  fi
+Files: WeekPlan=$(find "$DS_DIR/current" -name "WeekPlan*" -type f 2>/dev/null | head -1)
+MEMORY.md: $WS_DIR/memory/MEMORY.md"
 
   echo "=== Week Close: running AI process ==="
-  echo "  prompt: $(wc -l < "$SKILL_MD" 2>/dev/null || echo 0) lines from week-close/SKILL.md"
-  AI_CLI_TIMEOUT=900
+  AI_CLI_TIMEOUT=300
   export AI_CLI="${AI_CLI:-opencode}"
   export AI_CLI_MODEL="${AI_CLI_MODEL:-deepseek/deepseek-chat}"
   RUN_RC=0
-  RUN_OUT=$(ai_cli_run "$WEEKCLOSE_PROMPT" --allowed-tools "Read,Write,Edit,Glob,Grep,Bash" --budget 1.00 2>/dev/null) || RUN_RC=$?
-  if [ "$RUN_RC" -ne 0 ]; then echo "ERROR: Week Close AI failed (rc=$RUN_RC)" >&2; exit 2; fi
+  RUN_OUT=$(ai_cli_run "$WEEKCLOSE_PROMPT" --allowed-tools "Read,Write,Edit,Bash" --budget 0.25 2>/dev/null) || RUN_RC=$?
+  if [ "$RUN_RC" -ne 0 ]; then echo "ERROR: Week Close AI failed" >&2; exit 2; fi
   echo "=== Week Close: AI process done ==="
 fi
 

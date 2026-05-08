@@ -26,35 +26,23 @@ if $RUN_MODE; then
   [ ! -f "$WRAPPER" ] && { echo "ERROR: ai-cli-wrapper not found" >&2; exit 1; }
   source "$WRAPPER"
 
-  # Use full SKILL.md (81 lines) + workspace context
-  SKILL_MD="$ROOT_DIR/.claude/skills/wp-new/SKILL.md"
-  if [ -f "$SKILL_MD" ]; then
-    WPNEW_PROMPT="$(cat "$SKILL_MD")
-
----
-## Workspace Context (from test harness)
-Create a new work product named 'WP-5 CI gates' with budget 4h.
-Workspace root: $WS_DIR
-DS-strategy directory: $DS_DIR
-Files to update:
-  WP-REGISTRY: $DS_DIR/docs/WP-REGISTRY.md
-  MEMORY.md: $WS_DIR/memory/MEMORY.md
-  WeekPlan: $(find "$DS_DIR/current" -name "WeekPlan*" -type f 2>/dev/null | head -1 || echo "not found")
-  DayPlan: $(find "$DS_DIR/current" -name "Day*Plan*" -type f 2>/dev/null | head -1 || echo "not found")
-
-Follow the SKILL.md atomic write instructions above."
-  else
-    WPNEW_PROMPT="wp-new SKILL.md not found"
-  fi
+  # Concise wp-new prompt
+  WPNEW_PROMPT="Create a new work product 'WP-5 CI gates' (budget 4h) in workspace $WS_DIR.
+Atomic write to 5 locations:
+1. WP-REGISTRY: $DS_DIR/docs/WP-REGISTRY.md — add row | 5 | WP-5 CI gates | pending |
+2. MEMORY.md: $WS_DIR/memory/MEMORY.md — add WP-5 to table
+3. WeekPlan: $(find "$DS_DIR/current" -name "WeekPlan*" -type f 2>/dev/null | head -1) — add row with budget 4h
+4. DayPlan: $(find "$DS_DIR/current" -name "Day*Plan*" -type f 2>/dev/null | head -1) — add to plan
+5. WP Context: create $DS_DIR/inbox/WP-5-ci-gates.md with '## Осталось' section
+Use noun-artifact naming. Next sequential integer number."
 
   echo "=== wp-new: running AI process ==="
-  echo "  prompt: $(wc -l < "$SKILL_MD" 2>/dev/null || echo 0) lines from wp-new/SKILL.md"
-  AI_CLI_TIMEOUT=600
+  AI_CLI_TIMEOUT=300
   export AI_CLI="${AI_CLI:-opencode}"
   export AI_CLI_MODEL="${AI_CLI_MODEL:-deepseek/deepseek-chat}"
   RUN_RC=0
-  RUN_OUT=$(ai_cli_run "$WPNEW_PROMPT" --allowed-tools "Read,Write,Edit,Glob,Grep,Bash" --budget 1.00 2>/dev/null) || RUN_RC=$?
-  if [ "$RUN_RC" -ne 0 ]; then echo "ERROR: wp-new AI failed (rc=$RUN_RC)" >&2; exit 2; fi
+  RUN_OUT=$(ai_cli_run "$WPNEW_PROMPT" --allowed-tools "Read,Write,Edit,Bash" --budget 0.25 2>/dev/null) || RUN_RC=$?
+  if [ "$RUN_RC" -ne 0 ]; then echo "ERROR: wp-new AI failed" >&2; exit 2; fi
   echo "=== wp-new: AI process done ==="
 fi
 

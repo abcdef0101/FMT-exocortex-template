@@ -4,7 +4,7 @@
 # Output: путь к workspace на stdout
 set -euo pipefail
 
-TARGET="${1:-$(mktemp -d -t dayclose-seed-XXXXXX)}"
+TARGET="${1:-$(mktemp -d "${ROOT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}/.audit/test-seeds/day-close-XXXXXX")}"
 TODAY="${2:-$(date +%Y-%m-%d)}"
 YESTERDAY=$(date -d "$TODAY -1 day" +%Y-%m-%d 2>/dev/null || date -v-1d +%Y-%m-%d)
 
