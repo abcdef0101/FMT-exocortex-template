@@ -1,0 +1,49 @@
+# LLM-as-Judge rubrics for Synchronizer code-scan
+metrics:
+  - name: drift_detection_claude
+    threshold: 0.8
+    criteria: |
+      Drift в CLAUDE.md обнаружен.
+      template/CLAUDE.md: "(ADDED LINE — drift detected)" — строка отсутствует в upstream.
+
+  - name: drift_detection_ontology
+    threshold: 0.8
+    criteria: |
+      Drift в ONTOLOGY.md обнаружен.
+      template/ONTOLOGY.md: "(DELETED LINE: Верификация ≠ Валидация)" — строка отсутствует в template, присутствует в upstream.
+
+  - name: no_false_positive
+    threshold: 0.9
+    criteria: |
+      Нет ложных срабатываний.
+      template/CHANGELOG.md идентичен upstream/CHANGELOG.md — drift НЕ обнаружен.
+
+  - name: path_references
+    threshold: 0.7
+    criteria: |
+      Каждый drift item имеет path.
+      Формат: "template/CLAUDE.md:3 — added line vs upstream".
+
+  - name: delta_description
+    threshold: 0.6
+    criteria: |
+      Каждый drift item имеет описание дельты.
+      "added 1 line", "removed 1 line", "modified content".
+
+  - name: file_count_match
+    threshold: 0.8
+    criteria: |
+      Проверены все файлы в template/.
+      CLAUDE.md, ONTOLOGY.md, CHANGELOG.md — 3 файла проверены.
+
+  - name: unchanged_detected
+    threshold: 0.6
+    criteria: |
+      Неизменённые файлы явно отмечены как "no drift".
+      CHANGELOG.md — no changes detected.
+
+  - name: report_format
+    threshold: 0.6
+    criteria: |
+      Отчёт имеет структурированный формат.
+      Секции: Changed files, Unchanged files, Summary.

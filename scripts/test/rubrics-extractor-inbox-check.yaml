@@ -1,0 +1,49 @@
+# LLM-as-Judge rubrics for Extractor inbox-check
+metrics:
+  - name: note_classification_count
+    threshold: 0.7
+    criteria: |
+      Все 7 заметок в fleeting-notes.md классифицированы.
+      Bold-заметки получили категорию. 🔄-заметки проверены на давность (>7 дней).
+
+  - name: domain_routing
+    threshold: 0.7
+    criteria: |
+      Доменные знания правильно смаршрутизированы.
+      DP.FM.010 → Pack (08-service-clauses/). captures.md содержимое обработано.
+
+  - name: task_detection
+    threshold: 0.7
+    criteria: |
+      Заметки-задачи правильно определены.
+      "Тесты ролей без E2E" → предложение в WeekPlan или DayPlan.
+
+  - name: nep_detection
+    threshold: 0.7
+    criteria: |
+      НЭП-заметки правильно определены.
+      "CI пайплайн 5 минут" → предложение в Dissatisfactions.md.
+
+  - name: draft_detection
+    threshold: 0.6
+    criteria: |
+      Идеи контента правильно определены.
+      "Идея поста" → предложение в контент-план или draft-list.
+
+  - name: noise_detection
+    threshold: 0.7
+    criteria: |
+      Шум правильно определён.
+      "random thought about weather" → strikethrough или категория Noise.
+
+  - name: implementation_routing
+    threshold: 0.6
+    criteria: |
+      Implementation knowledge правильно смаршрутизировано.
+      captures.md: ai-cli-wrapper → DS docs/ или PROCESSES.md.
+
+  - name: stale_detection
+    threshold: 0.6
+    criteria: |
+      Устаревшие заметки обнаружены.
+      "Интеграция с Grafana" висит >7 дней → рекомендовано решение.

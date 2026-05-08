@@ -1,0 +1,49 @@
+# LLM-as-Judge rubrics for Verifier pack-entity
+metrics:
+  - name: dependencies_detected
+    threshold: 0.8
+    criteria: |
+      Обнаружено отсутствие Dependencies section.
+      В файле явно указано '(MISSING SECTION: Dependencies)'. Это P0-нарушение.
+
+  - name: acceptance_criteria_detected
+    threshold: 0.7
+    criteria: |
+      Обнаружено недостаточное количество Acceptance Criteria.
+      В файле 1 реальный пункт + 2 маркера MISSING, фактически <3. Это P1-нарушение.
+
+  - name: no_false_positive_on_present_fields
+    threshold: 0.8
+    criteria: |
+      НЕ обнаружены ложные нарушения для присутствующих полей.
+      Status (draft), Created (2026-04-01), Promise — все присутствуют и валидны.
+
+  - name: path_line_reference
+    threshold: 0.6
+    criteria: |
+      Для каждого реального нарушения указан файл и характер нарушения.
+      Допускается описание вместо точного path:line для seed-данных.
+
+  - name: severity_assignment
+    threshold: 0.6
+    criteria: |
+      Нарушениям присвоены корректные severity.
+      Отсутствие целой секции → P0. Недостаточно критериев → P1.
+
+  - name: pass_fail_decision
+    threshold: 0.7
+    criteria: |
+      Итоговое решение pass/fail логично.
+      При P0 (missing Dependencies) → fail.
+
+  - name: format_reference
+    threshold: 0.6
+    criteria: |
+      Нарушения сверены с эталоном DP-standard.md.
+      Каждое нарушение сопоставлено с требованием стандарта.
+
+  - name: completeness
+    threshold: 0.7
+    criteria: |
+      Все нарушения в файле найдены.
+      Dependencies missing: найдено. Acceptance Criteria <3: найдено. Ложных срабатываний нет.
