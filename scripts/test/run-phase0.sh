@@ -1,15 +1,18 @@
 #!/usr/bin/env bash
 # run-phase0.sh — главный раннер тестов Фазы 0 (ADR-005)
-# Использование: bash scripts/test/run-phase0.sh [--verbose]
+# Использование: bash scripts/test/run-phase0.sh [--verbose] [--strict]
+#   --strict: ShellCheck failures блокируют проход
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 VERBOSE=false
+STRICT=false
 for arg in "$@"; do
   case "$arg" in
     --verbose|-v) VERBOSE=true ;;
+    --strict)     STRICT=true ;;
   esac
 done
 
@@ -23,6 +26,31 @@ FAILED_TESTS=()
 echo "========================================="
 echo " ADR-005 Phase 0 Integration Tests"
 echo "========================================="
+
+# === ShellCheck (advisory unless --strict) ===
+if command -v shellcheck &>/dev/null; then
+  echo ""
+  echo "--- ShellCheck (all .sh files) ---"
+  SC_FAIL=0
+  while IFS= read -r -d '' f; do
+    if ! shellcheck -S warning "$f" 2>/dev/null; then
+      SC_FAIL=$((SC_FAIL + 1))
+      echo "  ✗ $f"
+    fi
+  done < <(find "$ROOT_DIR" -name "*.sh" -type f -not -path "$ROOT_DIR/workspaces/*" -print0)
+  if [ "$SC_FAIL" -eq 0 ]; then
+    echo "  ✓ ShellCheck clean"
+  elif $STRICT; then
+    echo "  ✗ ShellCheck: $SC_FAIL file(s) with warnings"
+    echo "  FAIL (--strict mode)"
+    exit 1
+  else
+    echo "  - ShellCheck: $SC_FAIL file(s) with warnings (advisory)"
+  fi
+else
+  echo ""
+  echo "--- ShellCheck: not installed (skip) ---"
+fi
 
 for test in "$SCRIPT_DIR"/test-*.sh; do
   tname=$(basename "$test")
