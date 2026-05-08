@@ -5,6 +5,16 @@
 
 set -euo pipefail
 
+# Load AI secrets from file (CI: env already set. VM: ~/secrets/.env. Local: ~/.iwe-test-vm/secrets/.env)
+if [ -z "${AI_CLI_API_KEY:-}" ] && [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+  for env_file in "$HOME/.iwe-test-vm/secrets/.env" "$HOME/secrets/.env"; do
+    if [ -f "$env_file" ]; then
+      set -a && source "$env_file" && set +a
+      break
+    fi
+  done
+fi
+
 DS_DIR="${1:-}"
 WEEKPLAN="${2:-}"
 

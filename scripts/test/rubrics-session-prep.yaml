@@ -1,0 +1,56 @@
+# LLM-as-Judge rubrics for Session Prep (headless) testing
+metrics:
+  - name: last_week_read
+    threshold: 0.7
+    criteria: |
+      Прочитаны итоги прошлой недели.
+      Проверь: секция "Итоги W{N-1}" прочитана, выводы извлечены.
+      Не дублирует сбор коммитов (это делает Week Review).
+
+  - name: inbox_processed
+    threshold: 0.7
+    criteria: |
+      Inbox обработан.
+      Проверь: fleeting-notes.md, inbox/ файлы, QA bot report прочитаны.
+      WP context файлы проверены.
+
+  - name: dissatisfactions_checked
+    threshold: 0.6
+    criteria: |
+      Dissatisfactions проверены.
+      Проверь: какие НЭП можно закрыть, какие требуют обсуждения.
+      Отмечены статусы.
+
+  - name: strategy_alignment
+    threshold: 0.7
+    criteria: |
+      Стратегическая сверка выполнена.
+      Проверь: Strategy.md прочитан, MAPSTRATEGIC.md агрегирован.
+      Расхождения стратегии и РП выявлены.
+
+  - name: hub_and_spoke
+    threshold: 0.6
+    criteria: |
+      Hub-and-Spoke проверен.
+      Проверь: WORKPLAN.md во всех репо прочитаны.
+      Расхождения между репо выявлены.
+
+  - name: session_agenda
+    threshold: 0.5
+    criteria: |
+      Session Agenda проверена.
+      Проверь: нерегулярные блоки (ретро, арх ревью) запланированы.
+
+  - name: content_plan
+    threshold: 0.5
+    criteria: |
+      Контент-план создан.
+      Проверь: 3-5 публикаций на неделю.
+
+  - name: draft_weekplan
+    threshold: 0.8
+    criteria: |
+      Черновик WeekPlan создан.
+      Проверь: status: draft, таблица РП, carry-over, бюджет.
+      Предыдущий WeekPlan → archive/week-plans/.
+      Inbox очищен, WP контексты архивированы.

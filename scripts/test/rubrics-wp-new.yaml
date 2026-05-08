@@ -1,0 +1,54 @@
+# LLM-as-Judge rubrics for wp-new testing
+metrics:
+  - name: registry_written
+    threshold: 0.9
+    criteria: |
+      WP-REGISTRY.md обновлён.
+      Проверь: новая строка с номером, названием, статусом (⏳), датой активации.
+
+  - name: memory_written
+    threshold: 0.9
+    criteria: |
+      MEMORY.md обновлён.
+      Проверь: новый РП в таблице "РП текущей недели" в MEMORY.md.
+
+  - name: weekplan_written
+    threshold: 0.8
+    criteria: |
+      WeekPlan обновлён.
+      Проверь: новый РП в таблице WeekPlan с бюджетом и статусом.
+
+  - name: dayplan_written
+    threshold: 0.6
+    criteria: |
+      DayPlan обновлён (если активен).
+      Проверь: если DayPlan активен — РП добавлен в план дня.
+      Если DayPlan не активен — явно указано.
+
+  - name: wp_context_created
+    threshold: 0.9
+    criteria: |
+      WP Context File создан.
+      Проверь: файл WP-{N}-{slug}.md с секцией "Осталось".
+      Содержит: что пробовали (пусто для нового), следующий шаг, контекст.
+
+  - name: sequential_numbering
+    threshold: 0.9
+    criteria: |
+      Номер РП — следующий целый.
+      Проверь: номер не содержит буквенных суффиксов (74a → неправильно).
+      Номер на 1 больше максимального существующего.
+
+  - name: naming_convention
+    threshold: 0.7
+    criteria: |
+      Название РП — существительное-артефакт.
+      Проверь: не содержит глаголов-действий в начале.
+      Пример: "Дизайн системы" (правильно), "Разработать систему" (неправильно).
+
+  - name: five_place_atomicity
+    threshold: 0.8
+    criteria: |
+      Все 5 мест обновлены атомарно.
+      Проверь: REGISTRY, MEMORY, WeekPlan, DayPlan (если активен), WP Context.
+      Отсутствующие места явно отмечены с причиной.

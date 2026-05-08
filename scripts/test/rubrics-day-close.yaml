@@ -1,0 +1,54 @@
+# LLM-as-Judge rubrics for Day Close testing
+metrics:
+  - name: dayplan_results_section
+    threshold: 0.7
+    criteria: |
+      DayPlan должен содержать секцию "Итоги дня" с таблицей РП.
+      Проверь: таблица содержит столбцы (РП, статус, бюджет, результат).
+      Каждый РП из плана дня имеет отметку о выполнении.
+
+  - name: multiplier_calculation
+    threshold: 0.7
+    criteria: |
+      Должен быть рассчитан IWE Multiplier.
+      Проверь: multiplier = budget_closed / wakatime_hours.
+      Значение находится в разумном диапазоне (0.2 — 3.0).
+
+  - name: praise_section
+    threshold: 0.5
+    criteria: |
+      Должна быть секция praise (что получилось хорошо).
+      Проверь: содержит ≥1 конкретный пункт (не общие фразы).
+
+  - name: tomorrow_start_with
+    threshold: 0.8
+    criteria: |
+      Секция "Завтра начать с" должна содержать конкретные действия.
+      Проверь: ≥1 РП с указанием следующего шага.
+      Не содержит общих фраз без привязки к РП.
+
+  - name: commit_confirmation
+    threshold: 0.8
+    criteria: |
+      Должно быть подтверждение commit + push.
+      Проверь: явное упоминание что изменения закоммичены и запушены.
+
+  - name: memory_sync
+    threshold: 0.7
+    criteria: |
+      MEMORY.md должен быть синхронизирован.
+      Проверь: статусы РП в MEMORY.md соответствуют статусам в итогах.
+      Done РП перенесены из активных.
+
+  - name: governance_batch
+    threshold: 0.6
+    criteria: |
+      Обновлены governance-файлы.
+      Проверь: WeekPlan содержит обновлённые статусы РП.
+      WP-REGISTRY.md обновлён.
+
+  - name: learnings_capture
+    threshold: 0.5
+    criteria: |
+      Зафиксированы learnings дня.
+      Проверь: секция "Что узнали" содержит ≥1 наблюдение или решение.

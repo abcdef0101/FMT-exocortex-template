@@ -1,0 +1,52 @@
+# LLM-as-Judge rubrics for Note Review testing
+metrics:
+  - name: nep_classification
+    threshold: 0.6
+    criteria: |
+      Заметки-НЭП правильно классифицированы.
+      Проверь: заметки о неудовлетворённостях отнесены к категории НЭП.
+      Предложено добавление в Dissatisfactions.md.
+
+  - name: task_classification
+    threshold: 0.7
+    criteria: |
+      Заметки-задачи правильно классифицированы.
+      Проверь: actionable задачи отнесены к категории Задача.
+      Предложено добавление в WeekPlan или DayPlan.
+
+  - name: domain_knowledge_classification
+    threshold: 0.6
+    criteria: |
+      Доменные знания правильно классифицированы.
+      Проверь: знания о предметной области → inbox/captures.md (для Экстрактора).
+
+  - name: draft_classification
+    threshold: 0.5
+    criteria: |
+      Идеи контента правильно классифицированы.
+      Проверь: предложения постов/статей → рекомендация в контент-план.
+
+  - name: noise_detection
+    threshold: 0.7
+    criteria: |
+      Шум правильно определён.
+      Проверь: нерелевантные заметки помечены strikethrough.
+
+  - name: bold_marking
+    threshold: 0.8
+    criteria: |
+      Bold-заметки обработаны.
+      Проверь: все новые (bold) заметки получили категорию.
+      Обработанные помечены снятием bold.
+
+  - name: archive
+    threshold: 0.6
+    criteria: |
+      Архивация выполнена.
+      Проверь: обработанные заметки → archive/notes/Notes-Archive.md.
+
+  - name: commit
+    threshold: 0.8
+    criteria: |
+      Commit + Push в DS-strategy.
+      Проверь: явное упоминание коммита с обработанными заметками.

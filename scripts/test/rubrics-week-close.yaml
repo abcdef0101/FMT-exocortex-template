@@ -1,0 +1,51 @@
+# LLM-as-Judge rubrics for Week Close testing
+metrics:
+  - name: week_results_table
+    threshold: 0.7
+    criteria: |
+      WeekPlan должен содержать секцию "Итоги W{N}" с таблицей.
+      Проверь: таблица по репо/системам, completion rate, carry-over.
+
+  - name: statistics
+    threshold: 0.7
+    criteria: |
+      Должна быть статистика за неделю.
+      Проверь: completion rate (%), всего коммитов, активных дней, разбивка по репо.
+
+  - name: insights_weekly
+    threshold: 0.6
+    criteria: |
+      Секция инсайтов за неделю.
+      Проверь: содержит что получилось, улучшения, блокеры, carry-over.
+
+  - name: lessons_rotation
+    threshold: 0.6
+    criteria: |
+      Ротация уроков выполнена.
+      Проверь: не применённые за 2 недели уроки → lessons-archive.md.
+      Активных уроков ≤15 в MEMORY.md.
+
+  - name: memory_audit
+    threshold: 0.7
+    criteria: |
+      Memory audit выполнен.
+      Проверь: ≤11 файлов в memory/, ≤100/150 строк в справочниках/протоколах,
+      stale-записи помечены superseded_by.
+
+  - name: content_plan
+    threshold: 0.5
+    criteria: |
+      Контент-план на следующую неделю.
+      Проверь: 2-3 публикации с источником, сегментом, каналом.
+
+  - name: club_post
+    threshold: 0.5
+    criteria: |
+      Клубный пост создан.
+      Проверь: пост с frontmatter status: ready, ссылка в WeekPlan.
+
+  - name: rules_review
+    threshold: 0.6
+    criteria: |
+      iwe-rules-review выполнен.
+      Проверь: проверка DP.M.008, выявлены расхождения, предложены уточнения.

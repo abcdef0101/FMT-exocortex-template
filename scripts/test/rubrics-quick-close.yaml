@@ -1,0 +1,56 @@
+# LLM-as-Judge rubrics for Quick Close testing
+metrics:
+  - name: commit_and_push
+    threshold: 0.9
+    criteria: |
+      Все изменения закоммичены и запушены.
+      Проверь: явное подтверждение коммита (не "можно закоммитить", а "закоммичено").
+      Push выполнен.
+
+  - name: wp_context_updated
+    threshold: 0.8
+    criteria: |
+      WP Context File обновлён.
+      Проверь: секция "Осталось" содержит: что пробовали, что узнали, следующий шаг, контекст.
+      Поле "→ memory:" заполнено.
+
+  - name: ke_routing
+    threshold: 0.7
+    criteria: |
+      Knowledge Extraction выполнен.
+      Проверь: "Что узнали" из WP Context смаршрутизировано.
+      Правило → CLAUDE.md, домен → Pack, урок → memory/.
+
+  - name: memory_status_updated
+    threshold: 0.8
+    criteria: |
+      MEMORY.md обновлён.
+      Проверь: статус РП изменён (in_progress → done или оставлен).
+      Только одна строка изменена.
+
+  - name: decision_log
+    threshold: 0.5
+    criteria: |
+      Decision log проверен.
+      Проверь: если были пользовательские решения — записаны.
+      Нет решений агента в логе.
+
+  - name: no_day_close_drift
+    threshold: 0.8
+    criteria: |
+      Quick Close не пытается делать Day Close.
+      Проверь: нет DayPlan обновлений, multiplier, governance batch.
+      Только 4 шага Quick Close + Haiku R23.
+
+  - name: haiku_verification
+    threshold: 0.7
+    criteria: |
+      Haiku R23 верификация запущена или явно пропущена.
+      Проверь: если сессия >15 мин — верификация выполнена.
+      Если ≤15 мин без изменений — явно указано что пропущена.
+
+  - name: session_log_closed
+    threshold: 0.6
+    criteria: |
+      Сессия закрыта корректно.
+      Проверь: open-sessions.log обновлён, статус сессии "closed".
