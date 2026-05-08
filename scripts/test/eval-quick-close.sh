@@ -26,40 +26,26 @@ if $RUN_MODE; then
   [ ! -f "$WRAPPER" ] && { echo "ERROR: ai-cli-wrapper not found" >&2; exit 1; }
   source "$WRAPPER"
 
-  # Use protocol-close.md + --allowed-tools (opencode --agent build has file access)
-  PROTOCOL_CLOSE="$ROOT_DIR/persistent-memory/protocol-close.md"
-  if [ -f "$PROTOCOL_CLOSE" ]; then
-    QCLOSE_PROMPT="$(cat "$PROTOCOL_CLOSE")
+  QCLOSE_PROMPT="Execute Quick Close (4 steps) in workspace $WS_DIR:
 
----
-## Workspace Context (from test harness)
-Workspace root: $WS_DIR
-DS-strategy directory: $DS_DIR
-Active WP Context files: $(find "$DS_DIR/inbox" -name "WP-*.md" -type f 2>/dev/null)
-MEMORY.md: $WS_DIR/memory/MEMORY.md
-DayPlan: $(find "$DS_DIR/current" -name "Day*Plan*" -type f 2>/dev/null | head -1 || echo "not found")
-WeekPlan: $(find "$DS_DIR/current" -name "WeekPlan*" -type f 2>/dev/null | head -1 || echo "not found")
-Session log: $DS_DIR/inbox/open-sessions.log
+1. Commit + Push: \`cd $WS_DIR && git add -A && git commit -m 'quick-close' && git push\`
+2. Update WP Context in $DS_DIR/inbox/ — add '## Осталось' with: что пробовали, что узнали, следующий шаг, контекст, → memory: yes/no
+3. KE: route 'Что узнали' — правило→CLAUDE.md, домен→Pack, урок→memory/
+4. MEMORY.md: update WP status (in_progress→done)
 
-Execute Quick Close (4 steps from protocol-close.md above):
-1. Commit + Push all changes
-2. Update WP Context file: 'Осталось' with → memory: field
-3. KE: route 'Что узнали' to appropriate destination
-4. Update MEMORY.md WP status
-Read the actual files at the paths listed above — do NOT use embedded content."
-  else
-    QCLOSE_PROMPT="protocol-close.md not found"
-  fi
+Files to work with:
+- WP Context: $(find "$DS_DIR/inbox" -name "WP-*.md" -type f 2>/dev/null)
+- MEMORY.md: $WS_DIR/memory/MEMORY.md
+- Session log: $DS_DIR/inbox/open-sessions.log
+
+Read these files, modify them, then commit+push."
 
   echo "=== Quick Close: running AI process ==="
-  echo "  prompt: $(wc -l < "$PROTOCOL_CLOSE" 2>/dev/null || echo 0) lines from protocol-close.md"
-  AI_CLI_TIMEOUT=600
+  AI_CLI_TIMEOUT=300
   export AI_CLI="${AI_CLI:-opencode}"
   export AI_CLI_MODEL="${AI_CLI_MODEL:-deepseek/deepseek-chat}"
   RUN_RC=0
-  RUN_OUT=$(ai_cli_run "$QCLOSE_PROMPT" --allowed-tools "Read,Write,Edit,Glob,Grep,Bash" --budget 1.00 2>/dev/null) || RUN_RC=$?
-  if [ "$RUN_RC" -ne 0 ]; then echo "ERROR: Quick Close AI failed (rc=$RUN_RC)" >&2; exit 2; fi
-  echo "=== Quick Close: AI process done ==="
+  RUN_OUT=$(ai_cli_run "$QCLOSE_PROMPT" --allowed-tools "Read,Write,Edit,Bash" --budget 0.20 2>/dev/null) || RUN_RC=$?
   if [ "$RUN_RC" -ne 0 ]; then echo "ERROR: Quick Close AI failed (rc=$RUN_RC)" >&2; exit 2; fi
   echo "=== Quick Close: AI process done ==="
 fi

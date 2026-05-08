@@ -30,38 +30,30 @@ if $RUN_MODE; then
   [ ! -f "$WRAPPER" ] && { echo "ERROR: ai-cli-wrapper.sh not found" >&2; exit 1; }
   source "$WRAPPER"
 
-  # Use full SKILL.md (272 lines, 17 steps) + workspace path context
-  SKILL_MD="$ROOT_DIR/.claude/skills/day-close/SKILL.md"
-  if [ -f "$SKILL_MD" ]; then
-    DAYCLOSE_PROMPT="$(cat "$SKILL_MD")
+  # Concise Day Close prompt — AI reads files, modifies them, commits
+  DAYCLOSE_PROMPT="Execute Day Close in workspace $WS_DIR:
 
----
-## Workspace Context (from test harness)
-Workspace root: $WS_DIR
-DS-strategy directory: $DS_DIR
-Today's DayPlan: $(find "$DS_DIR/current" -name "Day*Plan*" -type f 2>/dev/null | head -1 || echo "not found")
-WeekPlan: $(find "$DS_DIR/current" -name "WeekPlan*" -type f 2>/dev/null | head -1 || echo "not found")
-MEMORY.md: $WS_DIR/memory/MEMORY.md
-WP-REGISTRY: $DS_DIR/docs/WP-REGISTRY.md
+1. Read DayPlan in $DS_DIR/current/ — add '## Итоги дня' with table: РП, статус, бюджет, результат
+2. Add multiplier = hours_done / hours_tracked (estimate 1.2)
+3. Add '## Praise' and '## Завтра начать с' sections
+4. Update MEMORY.md WP statuses
+5. Commit + push all changes
 
-Execute Day Close following the SKILL.md instructions above.
-Use TodoWrite to track all 17 steps."
-  else
-    DAYCLOSE_PROMPT="Day Close not available — SKILL.md missing at $SKILL_MD"
-  fi
+Files to read and modify:
+- DayPlan: $(find "$DS_DIR/current" -name "Day*Plan*" -type f 2>/dev/null | head -1)
+- WeekPlan: $(find "$DS_DIR/current" -name "WeekPlan*" -type f 2>/dev/null | head -1)
+- MEMORY.md: $WS_DIR/memory/MEMORY.md
+- WP-REGISTRY: $DS_DIR/docs/WP-REGISTRY.md
+
+Use TodoWrite to track progress."
 
   echo "=== Day Close: running AI process ==="
-  echo "  prompt: $(wc -l < "$SKILL_MD" 2>/dev/null || echo 0) lines from day-close/SKILL.md"
-  AI_CLI_TIMEOUT=600
+  AI_CLI_TIMEOUT=300
   export AI_CLI="${AI_CLI:-opencode}"
   export AI_CLI_MODEL="${AI_CLI_MODEL:-deepseek/deepseek-chat}"
-
   RUN_RC=0
-  RUN_OUT=$(ai_cli_run "$DAYCLOSE_PROMPT" --allowed-tools "Read,Write,Edit,Glob,Grep,Bash" --budget 1.00 2>/dev/null) || RUN_RC=$?
-  if [ "$RUN_RC" -ne 0 ]; then
-    echo "ERROR: Day Close AI process failed (rc=$RUN_RC)" >&2
-    exit 2
-  fi
+  RUN_OUT=$(ai_cli_run "$DAYCLOSE_PROMPT" --allowed-tools "Read,Write,Edit,Bash" --budget 0.25 2>/dev/null) || RUN_RC=$?
+  if [ "$RUN_RC" -ne 0 ]; then echo "ERROR: Day Close AI failed" >&2; exit 2; fi
   echo "=== Day Close: AI process done ==="
 fi
 
