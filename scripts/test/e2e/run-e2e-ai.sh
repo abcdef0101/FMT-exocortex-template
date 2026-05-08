@@ -90,6 +90,15 @@ case "$E2E_PHASE" in
   session-prep)
     run_e2e "Session Prep" "seed-session-prep.sh" "eval-session-prep.sh" "assert-session-prep.sh" "--judge"
     ;;
+  wp-gate)
+    run_e2e "WP Gate" "seed-wp-gate-e2e.sh" "eval-wp-gate.sh" "assert-wp-gate.sh" "--judge"
+    ;;
+  orz-cycle)
+    run_e2e "ORZ Cycle" "seed-orz-cycle.sh" "eval-orz-cycle.sh" "assert-orz-cycle.sh" "--judge"
+    ;;
+  note-review)
+    run_e2e "Note Review" "seed-note-review.sh" "eval-note-review.sh" "assert-note-review.sh" "--judge"
+    ;;
   all|*)
     run_e2e "Quick Close" "seed-quick-close.sh" "eval-quick-close.sh" "assert-quick-close.sh" "--run"
     run_e2e "wp-new" "seed-wp-new.sh" "eval-wp-new.sh" "assert-wp-new.sh" "--run"
@@ -98,6 +107,9 @@ case "$E2E_PHASE" in
     run_e2e "Day Open" "seed-day-open.sh" "eval-day-open.sh" "assert-day-open.sh" "--judge"
     run_e2e "Strategy Session" "seed-strategy-session.sh" "eval-strategy-session.sh" "assert-strategy-session.sh" "--judge"
     run_e2e "Session Prep" "seed-session-prep.sh" "eval-session-prep.sh" "assert-session-prep.sh" "--judge"
+    run_e2e "WP Gate" "seed-wp-gate-e2e.sh" "eval-wp-gate.sh" "assert-wp-gate.sh" "--judge"
+    run_e2e "ORZ Cycle" "seed-orz-cycle.sh" "eval-orz-cycle.sh" "assert-orz-cycle.sh" "--judge"
+    run_e2e "Note Review" "seed-note-review.sh" "eval-note-review.sh" "assert-note-review.sh" "--judge"
     ;;
 esac
 
