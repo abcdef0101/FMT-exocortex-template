@@ -18,6 +18,14 @@ fi
 DS_DIR="${1:-}"
 WEEKPLAN="${2:-}"
 
+# Auto-detect: seed may create files at workspace root or DS-strategy subdir
+if [ -n "$DS_DIR" ] && [ ! -d "$DS_DIR/docs" ] && [ -d "$DS_DIR/DS-strategy/docs" ]; then
+  DS_DIR="$DS_DIR/DS-strategy"
+elif [ -n "$DS_DIR" ] && [ ! -d "$DS_DIR/docs" ] && [ -d "$(dirname "$DS_DIR")/docs" ]; then
+  # DS_DIR points into current/, the real root is parent
+  DS_DIR="$(dirname "$DS_DIR")"
+fi
+
 [ -z "$DS_DIR" ] && { echo "ERROR: DS-strategy directory required" >&2; exit 1; }
 [ ! -d "$DS_DIR" ] && { echo "ERROR: directory not found: $DS_DIR" >&2; exit 1; }
 [ -z "$WEEKPLAN" ] && { echo "ERROR: WeekPlan path required" >&2; exit 1; }
@@ -58,7 +66,7 @@ $(cat "$DS_DIR/docs/Dissatisfactions.md" 2>/dev/null || echo "Dissatisfactions.m
 $(cat "$PREV_WP" 2>/dev/null | head -120 || echo "Предыдущий WeekPlan не найден")
 
 === MEMORY.md ===
-$(cat "$DS_DIR/../memory/MEMORY.md" 2>/dev/null || echo "MEMORY.md не найден")
+$(if [ -f "$DS_DIR/../memory/MEMORY.md" ]; then cat "$DS_DIR/../memory/MEMORY.md" 2>/dev/null; elif [ -f "$DS_DIR/memory/MEMORY.md" ]; then cat "$DS_DIR/memory/MEMORY.md" 2>/dev/null; else echo "MEMORY.md не найден"; fi)
 
 === fleeting-notes.md ===
 $(cat "$DS_DIR/inbox/fleeting-notes.md" 2>/dev/null || echo "fleeting-notes.md не найден")
