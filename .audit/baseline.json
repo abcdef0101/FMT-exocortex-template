@@ -1,0 +1,74 @@
+{
+  "measurement_date": "2026-05-07T10:00:00+03:00",
+  "test_results": {
+    "phase0_unit": {
+      "total": 14,
+      "passed": 12,
+      "failed": 2,
+      "failed_tests": [
+        "test-manifest-files.sh — root version (0.28.0) != CHANGELOG (0.28.1)",
+        "test-update-check.sh — crashes silently (grep pattern issue with set -e)"
+      ],
+      "pass_rate": 0.857
+    },
+    "e2e": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "pass_rate": 1.0
+    },
+    "ai_smoke": {
+      "status": "not run (requires LLM API keys, not in local scope)",
+      "count": 6
+    },
+    "vm": {
+      "status": "not run (requires QEMU/KVM, not available locally)",
+      "count": 10
+    },
+    "container": {
+      "status": "not run (requires Podman, not available locally)",
+      "count": 3
+    }
+  },
+  "code_quality": {
+    "shellcheck_local": "not installed",
+    "shellcheck_ci": "present (validate-template.yml)",
+    "shellcheck_severity": "warning"
+  },
+  "test_patterns": {
+    "strict_mode_files": {
+      "with_set_euo_pipefail": 18,
+      "without_set_euo_pipefail": 10,
+      "total_test_files": 28
+    },
+    "or_true_usage": {
+      "total_instances": 53,
+      "files_with_or_true": 14,
+      "risk": "may mask assertion failures"
+    },
+    "trap_cleanup": {
+      "files_with_trap": 12,
+      "files_without_trap": 16,
+      "risk": "temp file leaks"
+    }
+  },
+  "ci_metrics": {
+    "container_test_wall_time_seconds": 90,
+    "golden_test_wall_time_seconds": null,
+    "last_runs": "all success (2026-05-07)"
+  },
+  "coverage_metrics": {
+    "line_coverage": null,
+    "branch_coverage": null,
+    "mutation_score": null,
+    "note": "No code coverage or mutation tools exist for Bash"
+  },
+  "baseline_maturity_estimate": {
+    "overall": 2,
+    "unit_test_quality": 2,
+    "e2e_coverage": 3,
+    "ci_gates": 3,
+    "tooling": 1,
+    "scale": "1_basic / 2_repeatable / 3_documented / 4_measured / 5_optimizing"
+  }
+}

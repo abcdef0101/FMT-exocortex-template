@@ -1,0 +1,314 @@
+{
+  "audit_date": "2026-05-07",
+  "findings_count": 20,
+  "severity_counts": {
+    "P0": 4,
+    "P1": 10,
+    "P2": 6
+  },
+  "findings": [
+    {
+      "id": "P0-BUG-01",
+      "title": "test-update-check.sh crashes silently — grep pattern + set -e abort",
+      "severity": "P0",
+      "category": "bug",
+      "evidence": [
+        "scripts/test/test-update-check.sh:73 — output=$(...update.sh --check...) runs expensive real git operation",
+        "scripts/test/test-update-check.sh:76 — '\\\\|' in basic grep is GNU extension, may abort with set -e on grep error (exit 2)",
+        "run-phase0.sh output: test exits non-zero, output truncated after '--- --check output sections ---'"
+      ],
+      "why": "With 'set -euo pipefail', a grep exit 2 (syntax error on BSD grep for \\\\|) causes immediate script termination. The update.sh --check invocation on line 73 is also a real expensive operation (git fetch, checksums) that runs TWICE (line 45 and 73) — not hermetic, not fast.",
+      "source": "SWE@Google Ch.11 — tests must be hermetic; Google Testing Blog flaky-tests series",
+      "fix_sketch": "1. Replace \\\\| with grep -E or two separate grep calls. 2. Mock update.sh --check instead of running real git. 3. Verify all grep patterns work on both GNU and BSD grep. 4. Add explicit handling for grep exit 2.",
+      "effort": "M",
+      "affected_modules": ["scripts/test/test-update-check.sh", "scripts/test/run-phase0.sh"]
+    },
+    {
+      "id": "P0-BUG-02",
+      "title": "test-manifest-files.sh legitimately fails — root version (0.28.0) != CHANGELOG (0.28.1)",
+      "severity": "P0",
+      "category": "bug",
+      "evidence": [
+        "scripts/test/test-manifest-files.sh — version consistency check fails: root version (0.28.0) != CHANGELOG (0.28.1)",
+        "MANIFEST.yaml:3 — contains version 0.28.0",
+        "CHANGELOG.md — latest entry is 0.28.1"
+      ],
+      "why": "Real version skew. MANIFEST.yaml hasn't been bumped to match CHANGELOG.md. This is a legitimate test failure that signals a real project issue — either MANIFEST is stale or CHANGELOG was prematurely bumped.",
+      "source": "SWE@Google Ch.12, Principle 1 — tests should be reliable indicators; false failures erode trust",
+      "fix_sketch": "Bump MANIFEST.yaml version to 0.28.1, or revert CHANGELOG if 0.28.1 not yet released. Run test-manifest-files.sh to verify.",
+      "effort": "S",
+      "affected_modules": ["MANIFEST.yaml", "CHANGELOG.md"]
+    },
+    {
+      "id": "P0-GAP-01",
+      "title": "9 production scripts completely untested — no bash -n, no ShellCheck, no behavioral tests",
+      "severity": "P0",
+      "category": "white-spot",
+      "evidence": [
+        ".claude/hooks/protocol-artifact-validate.sh:141 lines — zero test coverage",
+        ".claude/hooks/wakatime-heartbeat.sh:42 lines — zero test coverage",
+        ".claude/hooks/close-gate-reminder.sh:30 lines — zero test coverage",
+        ".claude/hooks/wp-gate-reminder.sh:25 lines — zero test coverage",
+        ".claude/hooks/precompact-checkpoint.sh:17 lines — zero test coverage",
+        ".claude/hooks/protocol-stop-gate.sh:97 lines — zero test coverage",
+        ".claude/hooks/protocol-completion-reminder.sh:29 lines — zero test coverage",
+        ".claude/scripts/resolve-workspace.sh:97 lines — zero test coverage",
+        ".claude/scripts/load-extensions.sh:64 lines — zero test coverage"
+      ],
+      "why": "These 9 scripts total 542 lines of production code with ZERO test coverage. The 7 hooks are critical path — they gate AI session lifecycle (OPZ protocol, workspace resolution, artifact validation). A bug in any hook silently corrupts the AI's work context. This is the Beyoncé Rule violation: if you rely on it, you should have tested it.",
+      "source": "SWE@Google Ch.11 — Beyoncé Rule: any production behavior the team relies on must be guarded by an automated test",
+      "fix_sketch": "Phase 1: Add bash -n + ShellCheck for all 9 scripts (quick win). Phase 2: Add unit tests for hooks that gate session state (protocol-stop-gate.sh, protocol-artifact-validate.sh). Phase 3: Add integration tests for workspace resolution (resolve-workspace.sh).",
+      "effort": "L",
+      "affected_modules": [".claude/hooks/", ".claude/scripts/"]
+    },
+    {
+      "id": "P0-GAP-02",
+      "title": "No test coverage for ai-cli-wrapper.sh — central AI abstraction layer",
+      "severity": "P0",
+      "category": "white-spot",
+      "evidence": [
+        "scripts/ai-cli-wrapper.sh — provides Claude Code → OpenCode fallback. Central dependency for all AI operations.",
+        "Grep in scripts/test/ shows only passive references (path variable), no behavioral tests.",
+        "Previous audit finding C4 (broken --allowedTools flag) was found manually, not by test — proving the gap."
+      ],
+      "why": "ai-cli-wrapper.sh is the single abstraction over all LLM calls. A bug here (wrong flag format, broken fallback logic) affects every AI test (eval-day-open.sh, eval-strategy-session.sh) and all production AI interactions. The previous C4 bug (literal quote chars in --allowedTools) went undetected — showing the test gap is real and dangerous.",
+      "source": "SWE@Google Ch.11 — Beyoncé Rule; Khorikov — test the boundaries that real callers use",
+      "fix_sketch": "Add test-ai-cli-wrapper.sh with: bash -n, flag construction tests (no embedded quotes), fallback logic tests (mock claude unavailable), tools parsing tests.",
+      "effort": "M",
+      "affected_modules": ["scripts/ai-cli-wrapper.sh"]
+    },
+    {
+      "id": "P1-ANTI-01",
+      "title": "run-phase0.sh and run-e2e.sh lack set -euo pipefail — can silently skip failures",
+      "severity": "P1",
+      "category": "antipattern",
+      "evidence": [
+        "scripts/test/run-phase0.sh:1-4 — 'set -uo pipefail' (missing -e)",
+        "scripts/test/run-e2e.sh:1-4 — 'set -uo pipefail' (missing -e)"
+      ],
+      "why": "Without 'set -e' (errexit), a failing command inside the test loop doesn't halt the runner. If a test script has a silent failure in the middle, the runner continues without detecting it. Combined with the grep filter that truncates output, this can produce false-PASS results.",
+      "source": "SWE@Google Ch.12 — tests must be reliable; Google Bash Style Guide recommends set -euo pipefail for all scripts",
+      "fix_sketch": "Add 'set -e' to both runners. Verify all existing tests still pass with stricter mode. Consider adding 'set -e' to all test scripts that currently lack it.",
+      "effort": "S",
+      "affected_modules": ["scripts/test/run-phase0.sh", "scripts/test/run-e2e.sh"]
+    },
+    {
+      "id": "P1-ANTI-02",
+      "title": "10 test files missing set -euo pipefail — inconsistent strictness",
+      "severity": "P1",
+      "category": "antipattern",
+      "evidence": [
+        "scripts/test/test-setup-integration.sh:3 — 'set -uo pipefail' (missing -e)",
+        "scripts/test/test-template-sync-mock.sh — no set -e",
+        "scripts/test/test-update-apply-mock.sh — no set -e",
+        "scripts/test/test-update-apply.sh — no set -e",
+        "scripts/test/e2e/e2e-author-sync.sh — no set -euo pipefail",
+        "scripts/test/e2e/e2e-conflict.sh — no set -euo pipefail",
+        "scripts/test/e2e/e2e-fresh-install.sh — no set -euo pipefail",
+        "scripts/test/e2e/e2e-migration.sh — no set -euo pipefail",
+        "scripts/test/e2e/e2e-update-flow.sh — no set -euo pipefail"
+      ],
+      "why": "Inconsistent strictness: 18 files use set -euo pipefail, 10 don't. E2E tests are especially dangerous without -e because they run multi-step integration workflows where a mid-step failure silently continues, producing false confidence.",
+      "source": "Google Shell Style Guide; SWE@Google Ch.11 — hermetic tests must detect failures reliably",
+      "fix_sketch": "Add 'set -euo pipefail' to all test files. Run full suite after change to catch newly exposed failures. Fix any tests that relied on lax mode.",
+      "effort": "M",
+      "affected_modules": ["scripts/test/test-setup-integration.sh", "scripts/test/e2e/"]
+    },
+    {
+      "id": "P1-ANTI-03",
+      "title": "seed-day-open.sh has 11 || true — potential error masking in AI seed pipeline",
+      "severity": "P1",
+      "category": "antipattern",
+      "evidence": [
+        "scripts/test/seed-day-open.sh:431 — cd /tmp/... || true",
+        "scripts/test/seed-day-open.sh:433 — git add ... || true",
+        "scripts/test/seed-day-open.sh:434 — git push ... || true",
+        "scripts/test/seed-day-open.sh:439-443 — gh issue create ... || true",
+        "scripts/test/seed-day-open.sh:447 — cd ... || true",
+        "scripts/test/seed-day-open.sh:477-481 — git init/config/add/commit ... || true"
+      ],
+      "why": "11 instances of '|| true' in a 483-line seed script. Several are on critical git operations (push, commit, init) — if any fail, the AI smoke test runs on incomplete or wrong seed data, producing false PASS/FAIL on the LLM judge evaluation. The '|| true' pattern on git push means a network failure during seed setup won't be detected.",
+      "source": "Auto-retry as Flake Mitigation antipattern (Google Testing Blog); SWE@Google Ch.11 — tests must report failures accurately",
+      "fix_sketch": "Replace '|| true' with explicit error handling: capture rc, log, decide whether to abort or skip. For git operations that MUST succeed (push, commit), remove || true entirely. For optional operations (gh issue create), check preconditions before attempting.",
+      "effort": "M",
+      "affected_modules": ["scripts/test/seed-day-open.sh", "scripts/test/seed-strategy-session.sh"]
+    },
+    {
+      "id": "P1-GAP-01",
+      "title": "No trap cleanup in 16 of 28 test files — temp file leaks can cause flakiness",
+      "severity": "P1",
+      "category": "quality",
+      "evidence": [
+        "16 test files use mktemp without trap cleanup",
+        "scripts/test/test-update-apply.sh — creates temp dirs, no trap",
+        "scripts/test/test-update-apply-mock.sh — creates temp dirs, no trap",
+        "scripts/test/e2e/e2e-fresh-install.sh — no trap",
+        "scripts/test/e2e/e2e-update-flow.sh — no trap"
+      ],
+      "why": "Without trap EXIT, temp directories created by mktemp persist after test completion. Over time, /tmp fills with stale test directories. On systems with limited /tmp space, this causes flaky failures when mktemp can't create new directories.",
+      "source": "Shared Mutable State antipattern (Luo et al. 2014; Romano et al. ICSE 2021)",
+      "fix_sketch": "Add 'trap \"rm -rf \\\"\\$TMPDIR\\\"\" EXIT' after every mktemp call. For tests with multiple temp dirs, consolidate into a single cleanup trap.",
+      "effort": "S",
+      "affected_modules": ["scripts/test/test-update-apply*.sh", "scripts/test/e2e/"]
+    },
+    {
+      "id": "P1-BUG-01",
+      "title": "test-phases.sh: grep -q && _ok without || _fail — M1 from previous audit still unfixed",
+      "severity": "P1",
+      "category": "bug",
+      "evidence": [
+        "scripts/vm/test-phases.sh:56 — echo '$output' | grep -q 'Template source files' && _ok 'validate: template section' \\",
+        "scripts/vm/test-phases.sh:58 — echo '$output' | grep -q 'Workspace runtime' && _ok 'validate: workspace section' \\"
+      ],
+      "why": "The 'grep -q && _ok' pattern without '|| _fail' means if the expected text is missing, the test silently produces no assertion at all — neither pass nor fail. The counter isn't incremented. This was identified in the 2026-05-06 audit (M1) but remains unfixed.",
+      "source": "Assertion Roulette antipattern (Meszaros); SWE@Google Ch.12 Principle 9 — clear failure messages",
+      "fix_sketch": "Add '|| _fail \"validate: <section> missing\"' to both lines. Verify all assertions are accounted for in the final count.",
+      "effort": "S",
+      "affected_modules": ["scripts/vm/test-phases.sh"],
+      "parent_finding_id": "M1"
+    },
+    {
+      "id": "P1-BUG-02",
+      "title": "test-update-check.sh runs real update.sh --check — expensive, slow, not hermetic",
+      "severity": "P1",
+      "category": "antipattern",
+      "evidence": [
+        "scripts/test/test-update-check.sh:45 — output=$(...update.sh --check...) runs real git fetch + checksum verification",
+        "scripts/test/test-update-check.sh:73 — same real invocation repeated",
+        "update.sh --check performs: git fetch upstream, checksum generation (touches checksums.yaml), extension compatibility checks"
+      ],
+      "why": "The test runs the REAL update.sh --check twice, which performs git operations, regenerates checksums.yaml (a side effect!), and checks extension compatibility. This is: a) slow (multiple seconds), b) not hermetic (modifies checksums.yaml on disk), c) flaky (depends on network for git fetch). A unit test for --check should mock the upstream or test individual functions.",
+      "source": "SWE@Google Ch.11 — hermeticy; Sleeps as Synchronization antipattern (Google Testing Blog)",
+      "fix_sketch": "1. Extract --check logic into testable functions. 2. Mock git operations in test. 3. Test output sections against canned output, not live run. 4. Don't modify real checksums.yaml during test.",
+      "effort": "M",
+      "affected_modules": ["scripts/test/test-update-check.sh", "update.sh"]
+    },
+    {
+      "id": "P1-GAP-02",
+      "title": "test-manifest-files.sh: YAML validity skipped — no ruby, and python3 YAML validation not attempted",
+      "severity": "P1",
+      "category": "white-spot",
+      "evidence": [
+        "scripts/test/test-manifest-files.sh — output shows '- skipped YAML validation (no ruby)'",
+        "python3 is available on the system but not used for YAML validation in this test"
+      ],
+      "why": "test-manifest-files.sh checks YAML validity but only tries ruby, not python3. Python3 is available (test-checksums.sh:137 uses it for YAML validation). This means an invalid MANIFEST.yaml would pass this check silently if ruby is missing.",
+      "source": "SWE@Google Ch.12 Principle 9 — clear failure messages; structural testing should validate what it claims",
+      "fix_sketch": "Add python3 YAML validation fallback (same pattern as test-checksums.sh:137-146). Report 'skipped' only if neither ruby nor python3 is available.",
+      "effort": "S",
+      "affected_modules": ["scripts/test/test-manifest-files.sh"]
+    },
+    {
+      "id": "P1-GAP-03",
+      "title": "No ShellCheck in local test suite — only bash -n syntax check",
+      "severity": "P1",
+      "category": "white-spot",
+      "evidence": [
+        "ShellCheck exists in CI (validate-template.yml) but is not installed or invoked locally",
+        "All test-*.sh files use bash -n for syntax checking, never shellcheck",
+        "ShellCheck would catch: unquoted variable expansions, SC2086, SC2155, unused variables"
+      ],
+      "why": "bash -n only checks syntax (parse errors). ShellCheck catches semantic issues: unquoted expansions (potential word splitting bugs), unused variable assignments, incorrect test operators. Running only bash -n leaves a whole class of bash bugs undetected in local testing.",
+      "source": "Testing Trophy (Dodds) — static analysis is the base layer; ShellCheck is the ESLint of bash",
+      "fix_sketch": "1. Add shellcheck invocation to run-phase0.sh (skip if not installed, warn). 2. Add shellcheck severity=warning scan for all .sh files in pre-commit hook (already in CI). 3. Fix existing ShellCheck warnings.",
+      "effort": "M",
+      "affected_modules": ["scripts/test/run-phase0.sh"]
+    },
+    {
+      "id": "P2-QUAL-01",
+      "title": "run-phase0.sh grep filter truncates assertion output — may hide failures",
+      "severity": "P2",
+      "category": "quality",
+      "evidence": [
+        "scripts/test/run-phase0.sh:37 — cat '$TEST_LOG' | grep -E '✓|✗|All tests|passed|failed|FAIL|SKIP|PASS' || cat '$TEST_LOG'",
+        "Filter hides: intermediate output, debug messages, errors that don't contain grep patterns"
+      ],
+      "why": "The grep filter on line 37 aggressively truncates test output, only showing lines with pass/fail markers. In debug mode (--verbose), the full log is shown. But in normal mode, failures that produce error messages without '✗' prefix are hidden — the user only sees the final '✗ FAIL: testname' without context.",
+      "source": "SWE@Google Ch.12 Principle 9 — clear failure messages must survive the CI→developer pipeline",
+      "fix_sketch": "1. Always show the FULL output on test failure (already done on line 45, but only when the grep filter is reached). 2. Consider always showing output for failed tests.",
+      "effort": "S",
+      "affected_modules": ["scripts/test/run-phase0.sh"]
+    },
+    {
+      "id": "P2-QUAL-02",
+      "title": "e2e/_lib.sh — shared E2E library has no tests",
+      "severity": "P2",
+      "category": "white-spot",
+      "evidence": [
+        "scripts/test/e2e/_lib.sh — shared library sourced by all 5 E2E tests",
+        "No test file validates _lib.sh functions independently"
+      ],
+      "why": "All 5 E2E tests depend on _lib.sh for shared logic. A bug in _lib.sh would affect all E2E tests, producing correlated failures that are hard to diagnose. Testing test infrastructure is important — it's production code for your test suite.",
+      "source": "SWE@Google Ch.12 Principle 3 — test your test infrastructure; Kapelonis antipatterns catalog",
+      "fix_sketch": "Add test-e2e-lib.sh that validates _lib.sh functions in isolation: path resolution, temp dir creation, assertion helpers.",
+      "effort": "S",
+      "affected_modules": ["scripts/test/e2e/_lib.sh"]
+    },
+    {
+      "id": "P2-QUAL-03",
+      "title": "test-update-check.sh:76 uses GNU grep \\| extension — not POSIX portable",
+      "severity": "P2",
+      "category": "quality",
+      "evidence": [
+        "scripts/test/test-update-check.sh:76 — 'symlink.*broken\\\\|symlink.*missing'",
+        "\\\\| in basic grep is a GNU extension. POSIX grep does not support it.",
+        "On BSD/macOS grep, this causes grep to exit 2 (syntax error), which with set -e aborts the script."
+      ],
+      "why": "The test uses a GNU-specific grep feature without -E flag. While it works on Linux, it introduces a platform dependency that could fail on macOS/BSD. Combined with set -e, a grep exit 2 would silently abort the test.",
+      "source": "SWE@Google Ch.11 — tests should be portable across developer machines; POSIX compatibility",
+      "fix_sketch": "Replace with 'grep -E \"symlink.*broken|symlink.*missing\"' for POSIX extended regex, or use two separate grep calls.",
+      "effort": "S",
+      "affected_modules": ["scripts/test/test-update-check.sh"]
+    },
+    {
+      "id": "P2-QUAL-04",
+      "title": "test-update-check.sh:66-72 mutates real workspaces/ — not hermetic but acceptable (CI=throwaway, local=gitignored)",
+      "severity": "P2",
+      "category": "quality",
+      "evidence": [
+        "scripts/test/test-update-check.sh:66 — MOCK_WS_DIR='$ROOT_DIR/workspaces'",
+        "scripts/test/test-update-check.sh:67 — mkdir -p '$MOCK_WS_DIR/default-project'",
+        "scripts/test/test-update-check.sh:68 — ln -sfn default-project '$MOCK_WS_DIR/CURRENT_WORKSPACE'",
+        "workspaces/ is gitignored — user data, not version-controlled",
+        "In CI: runs inside throwaway container/VM — safe",
+        "Risk: if test interrupted locally, cleanup (lines 83-86) doesn't run — orphaned dir+symlink"
+      ],
+      "why": "The test mutates the production workspaces/ directory rather than a temp dir. In CI this is harmless (throwaway environment). Locally, workspaces/ is gitignored user data, so impact is limited to leaving stale dir+symlink on interrupt. Minor hermeticy violation, not destructive. Demoted from P1 per stakeholder review.",
+      "source": "SWE@Google Ch.11 — hermeticy is ideal but context-appropriate",
+      "fix_sketch": "Optionally add trap EXIT for guaranteed cleanup on interrupt: 'trap \"rm -rf \\\"\\$MOCK_WS_DIR/default-project\\\" \\\"\\$MOCK_WS_DIR/CURRENT_WORKSPACE\\\"\" EXIT' before the if-block.",
+      "effort": "S",
+      "affected_modules": ["scripts/test/test-update-check.sh"]
+    },
+    {
+      "id": "P2-QUAL-05",
+      "title": "migrations/_template.sh excluded from bash -n — could harbor syntax errors",
+      "severity": "P2",
+      "category": "white-spot",
+      "evidence": [
+        "scripts/test/test-migrations.sh — template.sh is explicitly filtered out of the bash -n loop",
+        "migrations/_template.sh is the scaffold for new migrations — bugs here propagate to all future migrations"
+      ],
+      "why": "_template.sh is excluded from bash -n because it's a template (not a real migration). But it's still a bash script — if it has syntax errors, every migration created from it will inherit those errors. Testing the template prevents cascading bugs.",
+      "source": "SWE@Google Ch.12 Principle 1 — strive for unchanging tests; prevent cascading failures",
+      "fix_sketch": "Add bash -n check for _template.sh. Add a test that verifies the template contains required markers (MIGRATION_NAME, LOG_FILE, etc.). Apply bash -n after placeholder substitution.",
+      "effort": "S",
+      "affected_modules": ["scripts/test/test-migrations.sh", "migrations/_template.sh"]
+    },
+    {
+      "id": "P2-QUAL-06",
+      "title": "No test coverage gaps mapped in MEMORY.md or navigation.md",
+      "severity": "P2",
+      "category": "quality",
+      "evidence": [
+        "No test manifest or coverage map exists",
+        "The relationship between production scripts and their tests is discoverable only by grep",
+        "New contributors don't know which scripts are tested and which aren't"
+      ],
+      "why": "Without a coverage map, test gaps are invisible. The team can't answer 'which scripts are tested?' without grep. This makes it hard to prioritize test additions and evaluate coverage completeness.",
+      "source": "SWE@Google Ch.11 — documentation of coverage is as important as coverage itself",
+      "fix_sketch": "Add a TEST-COVERAGE.md or update MEMORY.md with a production-script → test-script map. Auto-generate from a script that greps for file references.",
+      "effort": "S",
+      "affected_modules": ["MEMORY.md", "scripts/test/"]
+    }
+  ]
+}

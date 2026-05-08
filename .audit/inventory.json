@@ -1,0 +1,71 @@
+{
+  "audit_date": "2026-05-07",
+  "repo": "FMT-exocortex-template",
+  "repo_type": "Base/Formats",
+  "stack": {
+    "primary_language": "Bash",
+    "config_formats": ["YAML", "JSON", "Markdown"],
+    "total_sh_files": 93,
+    "python_file_count": 1,
+    "build_system": "none",
+    "package_managers": ["none (ShellCheck via apt-get in CI)"]
+  },
+  "test_inventory": {
+    "unit_tests": {
+      "count": 14,
+      "directory": "scripts/test/test-*.sh",
+      "framework": "custom (_pass/_fail functions)",
+      "runner": "scripts/test/run-phase0.sh",
+      "pattern": "test-*.sh executed sequentially, exit code = pass/fail count"
+    },
+    "e2e_tests": {
+      "count": 5,
+      "directory": "scripts/test/e2e/e2e-*.sh",
+      "framework": "custom (_pass/_fail with E2E-X labels)",
+      "runner": "scripts/test/e2e/run-e2e.sh",
+      "pattern": "e2e-*.sh with _lib.sh shared library"
+    },
+    "ai_smoke_tests": {
+      "count": 6,
+      "directory": "scripts/test/seed-*.sh, eval-*.sh, assert-*.sh",
+      "framework": "LLM-as-Judge (DeepSeek) + bash assertions",
+      "pattern": "seed→claude→assert→eval pipeline"
+    },
+    "vm_tests": {
+      "count": 10,
+      "directory": "scripts/vm/*.sh",
+      "framework": "QEMU/KVM golden image testing"
+    },
+    "container_tests": {
+      "count": 3,
+      "directory": "scripts/container/*.sh",
+      "framework": "Podman container testing"
+    },
+    "total_assertions": 395
+  },
+  "ci_inventory": {
+    "platform": "GitHub Actions",
+    "workflows": {
+      "validate-template.yml": "ShellCheck + author content check + hardcoded paths check",
+      "test-golden.yml": "QEMU/KVM golden image tests (self-hosted runner)",
+      "test-container.yml": "Podman container tests (self-hosted runner)",
+      "cloud-scheduler.yml": "Daily backup/health cron",
+      "notify-update.yml": "Update notifications via Telegram"
+    },
+    "gh_cli_authenticated": true,
+    "gh_token_scopes": ["gist", "project", "read:org", "repo", "workflow"]
+  },
+  "missing_tools": {
+    "coverage": "null (no code coverage tool for bash)",
+    "mutation": "null (no mutation testing tool)",
+    "linting": "ShellCheck (present in CI, not installed locally)",
+    "static_analysis": "bash -n"
+  },
+  "previous_audit": {
+    "exists": true,
+    "path": "audit/reports/audit-2026-05-06-testing-system.md",
+    "remediation_plan": "audit/remediation-plan-2026-05-06.md",
+    "findings": 40,
+    "critical_findings_resolved": "3 of 4 (C3, C4, C1 fixed)"
+  }
+}
