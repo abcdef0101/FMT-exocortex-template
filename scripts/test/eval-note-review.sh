@@ -1,13 +1,34 @@
 #!/usr/bin/env bash
 # eval-note-review.sh — LLM-as-Judge for Note Review E2E
-# Usage: bash scripts/test/eval-note-review.sh <workspace_dir>
-# Returns: 0 if ≥5/8 metrics passed, 1 otherwise
+# Usage: bash scripts/test/eval-note-review.sh <workspace_dir> [--run]
 set -euo pipefail
 
 if [ -z "${AI_CLI_API_KEY:-}" ] && [ -z "${ANTHROPIC_API_KEY:-}" ]; then
   for env_file in "$HOME/.iwe-test-vm/secrets/.env" "$HOME/secrets/.env"; do
     [ -f "$env_file" ] && set -a && source "$env_file" && set +a && break
   done
+fi
+
+RUN_MODE=false
+for arg in "$@"; do [ "$arg" = "--run" ] && RUN_MODE=true; done
+
+WS_DIR="${1:-}"
+[ -z "$WS_DIR" ] && { echo "ERROR: workspace dir required" >&2; exit 1; }
+
+if $RUN_MODE; then
+  SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+  WRAPPER="$(cd "$SCRIPT_DIR/../.." && pwd)/scripts/ai-cli-wrapper.sh"
+  [ -f "$WRAPPER" ] || { echo "ERROR: ai-cli-wrapper not found" >&2; exit 1; }
+  source "$WRAPPER"
+  NOTE_PROMPT="Execute Note Review in workspace $WS_DIR.
+Read fleeting-notes.md. Classify each note into: НЭП, Задача, Domain Knowledge,
+Implementation, Draft, Personal Data, Noise.
+Write proposals to Dissatisfactions, WeekPlan, captures.md, draft-list.
+Archive processed notes. This is automated test — auto-approve."
+  AI_CLI_TIMEOUT=300
+  export AI_CLI="${AI_CLI:-opencode}"
+  export AI_CLI_MODEL="${AI_CLI_MODEL:-deepseek/deepseek-chat}"
+  ai_cli_run "$NOTE_PROMPT" --allowed-tools "Read,Write,Edit,Bash" --budget 0.30 2>/dev/null || { echo "ERROR: Note Review AI failed" >&2; exit 2; }
 fi
 
 WS_DIR="${1:-}"

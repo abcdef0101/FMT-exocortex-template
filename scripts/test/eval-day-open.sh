@@ -1,21 +1,48 @@
 #!/usr/bin/env bash
 # eval-day-open.sh — LLM-as-Judge for Day Open E2E DayPlan
-# Usage: bash scripts/test/eval-day-open.sh <workspace_dir> <DayPlan_path>
-# Returns: 0 if ≥6/8 metrics passed, 1 otherwise
+# Usage: bash scripts/test/eval-day-open.sh <workspace_dir> <DayPlan_path> [--run]
+#   --run: first execute Day Open via AI CLI, then judge the result
+# Returns: 0 if ≥6/8 metrics passed, 1 otherwise, 2 if AI call failed
 set -euo pipefail
 
-# Load AI secrets from file (CI: env already set. VM: ~/secrets/.env. Local: ~/.iwe-test-vm/secrets/.env)
+# Load AI secrets from file
 if [ -z "${AI_CLI_API_KEY:-}" ] && [ -z "${ANTHROPIC_API_KEY:-}" ]; then
   for env_file in "$HOME/.iwe-test-vm/secrets/.env" "$HOME/secrets/.env"; do
-    if [ -f "$env_file" ]; then
-      set -a && source "$env_file" && set +a
-      break
-    fi
+    [ -f "$env_file" ] && set -a && source "$env_file" && set +a && break
   done
 fi
 
+RUN_MODE=false
+for arg in "$@"; do [ "$arg" = "--run" ] && RUN_MODE=true; done
+
 WS_DIR="${1:-}"
 DAYPLAN="${2:-}"
+
+# === Run Day Open process ===
+if $RUN_MODE; then
+  SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+  ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+  WRAPPER="$ROOT_DIR/scripts/ai-cli-wrapper.sh"
+  [ ! -f "$WRAPPER" ] && { echo "ERROR: ai-cli-wrapper not found" >&2; exit 1; }
+  source "$WRAPPER"
+  DS_DIR="$WS_DIR/DS-strategy"
+  [ ! -d "$DS_DIR" ] && DS_DIR="$WS_DIR"
+
+  DAYOPEN_PROMPT="Execute Day Open in workspace $WS_DIR.
+Read WeekPlan, MEMORY.md, last 2 days DayPlans, fleeting-notes.
+Build today's DayPlan with: план на сегодня (table), календарь, carry-over,
+саморазвитие (slot 1), «Требует внимания», compact dashboard.
+This is an automated test — auto-approve, skip verification."
+
+  echo "=== Day Open: running AI process ==="
+  AI_CLI_TIMEOUT=600
+  export AI_CLI="${AI_CLI:-opencode}"
+  export AI_CLI_MODEL="${AI_CLI_MODEL:-deepseek/deepseek-chat}"
+  RUN_RC=0
+  RUN_OUT=$(ai_cli_run "$DAYOPEN_PROMPT" --allowed-tools "Read,Write,Edit,Bash" --budget 0.50 2>/dev/null) || RUN_RC=$?
+  if [ "$RUN_RC" -ne 0 ]; then echo "ERROR: Day Open AI failed" >&2; exit 2; fi
+  echo "=== Day Open: AI process done ==="
+fi
 
 [ -z "$WS_DIR" ] && { echo "ERROR: workspace directory required" >&2; exit 1; }
 [ ! -d "$WS_DIR" ] && { echo "ERROR: directory not found: $WS_DIR" >&2; exit 1; }

@@ -1,22 +1,46 @@
 #!/usr/bin/env bash
 # eval-strategy-session.sh — LLM-as-Judge for strategy session WeekPlan
-# Usage: bash scripts/test/eval-strategy-session.sh <DS-strategy_dir> <WeekPlan_path>
-# Returns: 0 if ≥5/8 metrics passed, 1 otherwise
+# Usage: bash scripts/test/eval-strategy-session.sh <DS-strategy_dir> <WeekPlan_path> [--run]
+#   --run: first execute Strategy Session via AI CLI, then judge
+# Returns: 0 if ≥5/8 metrics passed, 1 otherwise, 2 if AI call failed
 
 set -euo pipefail
 
-# Load AI secrets from file (CI: env already set. VM: ~/secrets/.env. Local: ~/.iwe-test-vm/secrets/.env)
+# Load AI secrets from file
 if [ -z "${AI_CLI_API_KEY:-}" ] && [ -z "${ANTHROPIC_API_KEY:-}" ]; then
   for env_file in "$HOME/.iwe-test-vm/secrets/.env" "$HOME/secrets/.env"; do
-    if [ -f "$env_file" ]; then
-      set -a && source "$env_file" && set +a
-      break
-    fi
+    [ -f "$env_file" ] && set -a && source "$env_file" && set +a && break
   done
 fi
 
+RUN_MODE=false
+for arg in "$@"; do [ "$arg" = "--run" ] && RUN_MODE=true; done
+
 DS_DIR="${1:-}"
 WEEKPLAN="${2:-}"
+
+# === Run Strategy Session process ===
+if $RUN_MODE; then
+  SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+  ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+  WRAPPER="$ROOT_DIR/scripts/ai-cli-wrapper.sh"
+  [ ! -f "$WRAPPER" ] && { echo "ERROR: ai-cli-wrapper not found" >&2; exit 1; }
+  source "$WRAPPER"
+
+  STRAT_PROMPT="Execute Strategy Session in workspace $DS_DIR.
+Read Strategy.md, Dissatisfactions.md, previous WeekPlan, MEMORY.md, fleeting-notes.
+Build new WeekPlan: carry-over, priorities, budget, content plan.
+This is an automated test — auto-approve all confirmations, skip verification."
+
+  echo "=== Strategy Session: running AI process ==="
+  AI_CLI_TIMEOUT=600
+  export AI_CLI="${AI_CLI:-opencode}"
+  export AI_CLI_MODEL="${AI_CLI_MODEL:-deepseek/deepseek-chat}"
+  RUN_RC=0
+  RUN_OUT=$(ai_cli_run "$STRAT_PROMPT" --allowed-tools "Read,Write,Edit,Bash" --budget 0.50 2>/dev/null) || RUN_RC=$?
+  if [ "$RUN_RC" -ne 0 ]; then echo "ERROR: Strategy Session AI failed" >&2; exit 2; fi
+  echo "=== Strategy Session: AI process done ==="
+fi
 
 # Auto-detect: seed may create files at workspace root or DS-strategy subdir
 if [ -n "$DS_DIR" ] && [ ! -d "$DS_DIR/docs" ] && [ -d "$DS_DIR/DS-strategy/docs" ]; then

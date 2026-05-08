@@ -1,11 +1,34 @@
 #!/usr/bin/env bash
 # eval-orz-cycle.sh — LLM-as-Judge for ORZ Full Cycle E2E
+# Usage: bash scripts/test/eval-orz-cycle.sh <workspace_dir> [--run]
 set -euo pipefail
 
 if [ -z "${AI_CLI_API_KEY:-}" ] && [ -z "${ANTHROPIC_API_KEY:-}" ]; then
   for env_file in "$HOME/.iwe-test-vm/secrets/.env" "$HOME/secrets/.env"; do
     [ -f "$env_file" ] && set -a && source "$env_file" && set +a && break
   done
+fi
+
+RUN_MODE=false
+for arg in "$@"; do [ "$arg" = "--run" ] && RUN_MODE=true; done
+
+WS_DIR="${1:-}"
+[ -z "$WS_DIR" ] && { echo "ERROR: workspace dir required" >&2; exit 1; }
+
+if $RUN_MODE; then
+  SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+  WRAPPER="$(cd "$SCRIPT_DIR/../.." && pwd)/scripts/ai-cli-wrapper.sh"
+  [ -f "$WRAPPER" ] || { echo "ERROR: ai-cli-wrapper not found" >&2; exit 1; }
+  source "$WRAPPER"
+  ORZ_PROMPT="Execute full ORZ cycle for WP-1 in workspace $WS_DIR.
+Open: check WP Gate — WP-1 is in MEMORY.md and WeekPlan → proceed.
+Work: read DayPlan, WeekPlan, MEMORY, WP Context. Do the work described.
+Close (Quick Close): commit+push, update WP Context Осталось, KE routing, update MEMORY status.
+This is automated test — auto-approve all confirmations, skip verification."
+  AI_CLI_TIMEOUT=600
+  export AI_CLI="${AI_CLI:-opencode}"
+  export AI_CLI_MODEL="${AI_CLI_MODEL:-deepseek/deepseek-chat}"
+  ai_cli_run "$ORZ_PROMPT" --allowed-tools "Read,Write,Edit,Bash" --budget 0.50 2>/dev/null || { echo "ERROR: ORZ Cycle AI failed" >&2; exit 2; }
 fi
 
 WS_DIR="${1:-}"

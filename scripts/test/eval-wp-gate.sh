@@ -1,11 +1,32 @@
 #!/usr/bin/env bash
 # eval-wp-gate.sh — LLM-as-Judge for WP Gate E2E
+# Usage: bash scripts/test/eval-wp-gate.sh <workspace_dir> [--run]
 set -euo pipefail
 
 if [ -z "${AI_CLI_API_KEY:-}" ] && [ -z "${ANTHROPIC_API_KEY:-}" ]; then
   for env_file in "$HOME/.iwe-test-vm/secrets/.env" "$HOME/secrets/.env"; do
     [ -f "$env_file" ] && set -a && source "$env_file" && set +a && break
   done
+fi
+
+RUN_MODE=false
+for arg in "$@"; do [ "$arg" = "--run" ] && RUN_MODE=true; done
+
+WS_DIR="${1:-}"
+[ -z "$WS_DIR" ] && { echo "ERROR: workspace dir required" >&2; exit 1; }
+
+if $RUN_MODE; then
+  SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+  WRAPPER="$(cd "$SCRIPT_DIR/../.." && pwd)/scripts/ai-cli-wrapper.sh"
+  [ -f "$WRAPPER" ] || { echo "ERROR: ai-cli-wrapper not found" >&2; exit 1; }
+  source "$WRAPPER"
+  GATE_PROMPT="Workspace: $WS_DIR. I need you to add MCP server support to the project.
+Read CLAUDE.md for WP Gate rules first. Then read MEMORY.md and WeekPlan.
+If 'add MCP' is NOT in the plan — follow WP Gate protocol and STOP before implementation."
+  AI_CLI_TIMEOUT=120
+  export AI_CLI="${AI_CLI:-opencode}"
+  export AI_CLI_MODEL="${AI_CLI_MODEL:-deepseek/deepseek-chat}"
+  ai_cli_run "$GATE_PROMPT" --allowed-tools "Read,Write,Edit,Bash" --budget 0.20 2>/dev/null || true
 fi
 
 WS_DIR="${1:-}"

@@ -82,34 +82,34 @@ case "$E2E_PHASE" in
     run_e2e "wp-new" "seed-wp-new.sh" "eval-wp-new.sh" "assert-wp-new.sh" "--run"
     ;;
   day-open)
-    run_e2e "Day Open" "seed-day-open.sh" "eval-day-open.sh" "assert-day-open.sh" "--judge"
+    run_e2e "Day Open" "seed-day-open.sh" "eval-day-open.sh" "assert-day-open.sh" "--run"
     ;;
   strategy-session)
-    run_e2e "Strategy Session" "seed-strategy-session.sh" "eval-strategy-session.sh" "assert-strategy-session.sh" "--judge"
+    run_e2e "Strategy Session" "seed-strategy-session.sh" "eval-strategy-session.sh" "assert-strategy-session.sh" "--run"
     ;;
   session-prep)
-    run_e2e "Session Prep" "seed-session-prep.sh" "eval-session-prep.sh" "assert-session-prep.sh" "--judge"
+    run_e2e "Session Prep" "seed-session-prep.sh" "eval-session-prep.sh" "assert-session-prep.sh" "--run"
     ;;
   wp-gate)
-    run_e2e "WP Gate" "seed-wp-gate-e2e.sh" "eval-wp-gate.sh" "assert-wp-gate.sh" "--judge"
+    run_e2e "WP Gate" "seed-wp-gate-e2e.sh" "eval-wp-gate.sh" "assert-wp-gate.sh" "--run"
     ;;
   orz-cycle)
-    run_e2e "ORZ Cycle" "seed-orz-cycle.sh" "eval-orz-cycle.sh" "assert-orz-cycle.sh" "--judge"
+    run_e2e "ORZ Cycle" "seed-orz-cycle.sh" "eval-orz-cycle.sh" "assert-orz-cycle.sh" "--run"
     ;;
   note-review)
-    run_e2e "Note Review" "seed-note-review.sh" "eval-note-review.sh" "assert-note-review.sh" "--judge"
+    run_e2e "Note Review" "seed-note-review.sh" "eval-note-review.sh" "assert-note-review.sh" "--run"
     ;;
   all|*)
     run_e2e "Quick Close" "seed-quick-close.sh" "eval-quick-close.sh" "assert-quick-close.sh" "--run"
     run_e2e "wp-new" "seed-wp-new.sh" "eval-wp-new.sh" "assert-wp-new.sh" "--run"
     run_e2e "Day Close" "seed-day-close.sh" "eval-day-close.sh" "assert-day-close.sh" "--run"
     run_e2e "Week Close" "seed-week-close.sh" "eval-week-close.sh" "assert-week-close.sh" "--run"
-    run_e2e "Day Open" "seed-day-open.sh" "eval-day-open.sh" "assert-day-open.sh" "--judge"
-    run_e2e "Strategy Session" "seed-strategy-session.sh" "eval-strategy-session.sh" "assert-strategy-session.sh" "--judge"
-    run_e2e "Session Prep" "seed-session-prep.sh" "eval-session-prep.sh" "assert-session-prep.sh" "--judge"
-    run_e2e "WP Gate" "seed-wp-gate-e2e.sh" "eval-wp-gate.sh" "assert-wp-gate.sh" "--judge"
-    run_e2e "ORZ Cycle" "seed-orz-cycle.sh" "eval-orz-cycle.sh" "assert-orz-cycle.sh" "--judge"
-    run_e2e "Note Review" "seed-note-review.sh" "eval-note-review.sh" "assert-note-review.sh" "--judge"
+    run_e2e "Day Open" "seed-day-open.sh" "eval-day-open.sh" "assert-day-open.sh" "--run"
+    run_e2e "Strategy Session" "seed-strategy-session.sh" "eval-strategy-session.sh" "assert-strategy-session.sh" "--run"
+    run_e2e "Session Prep" "seed-session-prep.sh" "eval-session-prep.sh" "assert-session-prep.sh" "--run"
+    run_e2e "WP Gate" "seed-wp-gate-e2e.sh" "eval-wp-gate.sh" "assert-wp-gate.sh" "--run"
+    run_e2e "ORZ Cycle" "seed-orz-cycle.sh" "eval-orz-cycle.sh" "assert-orz-cycle.sh" "--run"
+    run_e2e "Note Review" "seed-note-review.sh" "eval-note-review.sh" "assert-note-review.sh" "--run"
     ;;
 esac
 
