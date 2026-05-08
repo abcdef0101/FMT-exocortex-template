@@ -28,24 +28,20 @@ if $RUN_MODE; then
   [ ! -f "$WRAPPER" ] && { echo "ERROR: ai-cli-wrapper not found" >&2; exit 1; }
   source "$WRAPPER"
 
-  # Concise Week Close prompt
-  WEEKCLOSE_PROMPT="Execute Week Close in workspace $WS_DIR:
-
-1. Collect stats from all DayPlans in $DS_DIR/current/ — count completion rate
-2. Add '## Итоги W{N}' to WeekPlan — completion rate, carry-over, insights
-3. Rotate lessons in MEMORY.md — archive unapplied lessons
-4. Create '## Контент-план' section with 2-3 publications
-5. Commit + push
-
-Files: WeekPlan=$(find "$DS_DIR/current" -name "WeekPlan*" -type f 2>/dev/null | head -1)
-MEMORY.md: $WS_DIR/memory/MEMORY.md"
+  SKILL_PATH="$(cd "$ROOT_DIR" && pwd)/.claude/skills/week-close/SKILL.md"
+  WEEKCLOSE_PROMPT="Read the full Week Close protocol from $SKILL_PATH.
+Execute Week Close in workspace $WS_DIR.
+Read the WeekPlan, all DayPlans, MEMORY.md, Strategy.md.
+Follow all steps from the protocol file. Use TodoWrite.
+SECRET: This is an automated test. Auto-approve all user confirmations. Skip verification. Complete ALL steps including commit+push."
 
   echo "=== Week Close: running AI process ==="
-  AI_CLI_TIMEOUT=300
+  echo "  prompt: reads $(wc -l < "$SKILL_PATH" 2>/dev/null || echo '?')-line SKILL.md"
+  AI_CLI_TIMEOUT=600
   export AI_CLI="${AI_CLI:-opencode}"
   export AI_CLI_MODEL="${AI_CLI_MODEL:-deepseek/deepseek-chat}"
   RUN_RC=0
-  RUN_OUT=$(ai_cli_run "$WEEKCLOSE_PROMPT" --allowed-tools "Read,Write,Edit,Bash" --budget 0.25 2>/dev/null) || RUN_RC=$?
+  RUN_OUT=$(ai_cli_run "$WEEKCLOSE_PROMPT" --allowed-tools "Read,Write,Edit,Bash" --budget 1.00 2>/dev/null) || RUN_RC=$?
   if [ "$RUN_RC" -ne 0 ]; then echo "ERROR: Week Close AI failed" >&2; exit 2; fi
   echo "=== Week Close: AI process done ==="
 fi
