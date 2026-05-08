@@ -96,14 +96,14 @@ echo "$flags" | grep -q "variant minimal" \
   && _pass "opencode flags: --budget maps to --variant minimal" \
   || _fail "opencode flags: --budget → --variant minimal failed (got: $flags)"
 
-# Test tools export for opencode (must NOT use command substitution — export happens in same process)
-unset AI_CLI_TOOLS 2>/dev/null || true
-ai_cli_flags --allowed-tools "Read,Bash" >/dev/null
-[ "${AI_CLI_TOOLS:-}" = "Read,Bash" ] \
-  && _pass "opencode flags: --allowed-tools exported as AI_CLI_TOOLS" \
-  || _fail "opencode flags: --allowed-tools not exported (AI_CLI_TOOLS=${AI_CLI_TOOLS:-})"
+# Test tools export for opencode — v2 uses --agent build (not AI_CLI_TOOLS export)
+unset AI_CLI_AGENT 2>/dev/null || true
+flags=$(ai_cli_flags --allowed-tools "Read,Bash")
+echo "$flags" | grep -q "agent build" \
+  && _pass "opencode flags: --allowed-tools maps to --agent build" \
+  || _fail "opencode flags: --allowed-tools → agent failed (flags=$flags)"
 
-unset AI_CLI_TOOLS 2>/dev/null || true
+unset AI_CLI_AGENT 2>/dev/null || true
 
 echo "  --- CLI interface ---"
 
