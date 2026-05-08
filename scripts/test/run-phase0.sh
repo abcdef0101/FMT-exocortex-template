@@ -62,7 +62,7 @@ for test in "$SCRIPT_DIR"/test-*.sh; do
     if $VERBOSE; then
       cat "$TEST_LOG"
     else
-      cat "$TEST_LOG" | grep -E '✓|✗|All tests|passed|failed|FAIL|SKIP|PASS' || cat "$TEST_LOG"
+      cat "$TEST_LOG" | grep -E '✓|✗|All tests|passed|failed|FAIL|SKIP|PASS|WARN|•' || cat "$TEST_LOG"
     fi
     echo "✓ PASS: $tname"
     PASS=$((PASS + 1))

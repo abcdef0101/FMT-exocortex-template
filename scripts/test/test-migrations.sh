@@ -35,6 +35,21 @@ while IFS= read -r -d '' script; do
 done < <(find "$MIG_DIR" -name "*.sh" -not -name "_template.sh" -print0)
 [ "$syn_fail" -eq 0 ] && _pass "syntax: $syn_ok/$syn_ok ok" || true
 
+# P2-QUAL-05: template.sh was excluded — check it explicitly
+echo "  --- template syntax ---"
+if bash -n "$MIG_DIR/_template.sh" 2>/dev/null; then
+  _pass "_template.sh syntax ok"
+else
+  _fail "_template.sh syntax error"
+  bash -n "$MIG_DIR/_template.sh" 2>&1 | sed 's/^/    | /'
+fi
+grep -q 'MIGRATION_NAME' "$MIG_DIR/_template.sh" 2>/dev/null \
+  && _pass "_template.sh contains MIGRATION_NAME marker" \
+  || _fail "_template.sh: no MIGRATION_NAME marker"
+grep -q 'LOG_FILE' "$MIG_DIR/_template.sh" 2>/dev/null \
+  && _pass "_template.sh contains LOG_FILE marker" \
+  || _fail "_template.sh: no LOG_FILE marker"
+
 echo "  --- migration conventions ---"
 while IFS= read -r -d '' script; do
   name=$(basename "$script")
