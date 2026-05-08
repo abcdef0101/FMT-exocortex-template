@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # eval-day-close.sh — LLM-as-Judge for Day Close E2E
-# Usage: bash scripts/test/eval-day-close.sh <workspace_dir> <DayPlan_path>
-# Returns: 0 if ≥6/8 metrics passed, 1 otherwise
+# Usage: bash scripts/test/eval-day-close.sh <workspace_dir> [DayPlan_path] [--run]
+#   --run: first execute Day Close via AI CLI, then judge the result
+# Returns: 0 if ≥6/8 metrics passed, 1 otherwise, 2 if AI call failed
 set -euo pipefail
 
 if [ -z "${AI_CLI_API_KEY:-}" ] && [ -z "${ANTHROPIC_API_KEY:-}" ]; then
@@ -11,16 +12,59 @@ if [ -z "${AI_CLI_API_KEY:-}" ] && [ -z "${ANTHROPIC_API_KEY:-}" ]; then
 fi
 
 WS_DIR="${1:-}"
-DAYPLAN="${2:-}"
 [ -z "$WS_DIR" ] && { echo "ERROR: workspace dir required" >&2; exit 1; }
 [ ! -d "$WS_DIR" ] && { echo "ERROR: dir not found: $WS_DIR" >&2; exit 1; }
-[ -z "$DAYPLAN" ] && { echo "ERROR: DayPlan path required" >&2; exit 1; }
+
+RUN_MODE=false
+for arg in "$@"; do [ "$arg" = "--run" ] && RUN_MODE=true; done
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 RUBRICS="$SCRIPT_DIR/rubrics-day-close.yaml"
 [ ! -f "$RUBRICS" ] && { echo "ERROR: rubrics not found" >&2; exit 1; }
-
+ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+WRAPPER="$ROOT_DIR/scripts/ai-cli-wrapper.sh"
 DS_DIR="$WS_DIR/DS-strategy"
+
+# === Run Day Close process ===
+if $RUN_MODE; then
+  [ ! -f "$WRAPPER" ] && { echo "ERROR: ai-cli-wrapper.sh not found" >&2; exit 1; }
+  source "$WRAPPER"
+
+  DAYCLOSE_PROMPT_FILE="$ROOT_DIR/roles/strategist/prompts/day-close.md"
+  if [ -f "$DAYCLOSE_PROMPT_FILE" ]; then
+    DAYCLOSE_PROMPT=$(cat "$DAYCLOSE_PROMPT_FILE")
+  else
+    # Fallback: inline minimal prompt
+    DAYCLOSE_PROMPT="Выполни Day Close для сегодняшнего DayPlan в $DS_DIR/current/.
+Обнови DayPlan: добавь '## Итоги дня' с таблицей РП и результатами.
+Добавь multiplier (budget_closed / wakatime_hours).
+Добавь praise ('Что получилось хорошо') и 'Завтра начать с'.
+Обнови MEMORY.md статусы РП.
+Обнови WeekPlan статусы РП.
+Сделай commit + push."
+  fi
+
+  echo "=== Day Close: running AI process ==="
+  AI_CLI_TIMEOUT=300
+  export AI_CLI="${AI_CLI:-opencode}"
+  export AI_CLI_MODEL="${AI_CLI_MODEL:-deepseek/deepseek-chat}"
+
+  RUN_RC=0
+  RUN_OUT=$(ai_cli_run "$DAYCLOSE_PROMPT" --bare --budget 0.15 2>/dev/null) || RUN_RC=$?
+  if [ "$RUN_RC" -ne 0 ]; then
+    echo "ERROR: Day Close AI process failed (rc=$RUN_RC)" >&2
+    exit 2
+  fi
+  echo "=== Day Close: AI process done ==="
+fi
+
+# === Find DayPlan ===
+DAYPLAN="${2:-}"
+if [ -z "$DAYPLAN" ] || [ ! -f "$DAYPLAN" ]; then
+  DAYPLAN=$(find "$DS_DIR/current" -name "Day*Plan*" -type f 2>/dev/null | head -1)
+fi
+[ -z "$DAYPLAN" ] && { echo "ERROR: DayPlan not found" >&2; exit 1; }
+
 echo "=== LLM-as-Judge: Day Close ==="
 echo "  Plan: $(basename "$DAYPLAN")"
 
@@ -32,7 +76,7 @@ JUDGE_PROMPT=$(cat <<PROMPT
 $(cat "$RUBRICS")
 
 ## Оцениваемый DayPlan (с итогами)
-$(head -200 "$DAYPLAN" 2>/dev/null || echo "DayPlan not found")
+$(head -250 "$DAYPLAN" 2>/dev/null || echo "DayPlan not found")
 
 ## Контекст
 === WeekPlan ===
@@ -41,7 +85,7 @@ $(head -80 "$DS_DIR/current/WeekPlan"*".md" 2>/dev/null || echo "N/A")
 $(cat "$WS_DIR/memory/MEMORY.md" 2>/dev/null || echo "N/A")
 === WP-REGISTRY ===
 $(cat "$DS_DIR/docs/WP-REGISTRY.md" 2>/dev/null || echo "N/A")
-=== Previous DayPlan ===
+=== Previous DayPlan (yesterday) ===
 $(find "$DS_DIR/current" -name "Day*Plan*" ! -path "$DAYPLAN" 2>/dev/null | head -1 | xargs cat 2>/dev/null | head -60 || echo "N/A")
 
 ## Формат ответа — СТРОГО JSON-массив:
@@ -54,7 +98,6 @@ export AI_CLI="$AI_CLI_JUDGE"
 export AI_CLI_MODEL="${AI_CLI_MODEL_JUDGE:-deepseek/deepseek-chat}"
 AI_CLI_TIMEOUT=120
 
-WRAPPER="$(cd "$SCRIPT_DIR/../.." && pwd)/scripts/ai-cli-wrapper.sh"
 if [ -f "$WRAPPER" ]; then
   source "$WRAPPER"
   JUDGE_RC=0
