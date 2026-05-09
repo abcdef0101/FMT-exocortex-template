@@ -9,14 +9,21 @@
 ## Quick Start
 
 ```bash
-# All unit tests (47, ~3 sec, deterministic)
+# All unit tests (47, ~3 sec, deterministic, no secrets needed)
 bash scripts/test/run-phase0.sh
 
-# All E2E tests with AI (14, ~5 min, requires secrets)
-source ~/.iwe-test-vm/secrets/.env
+# All E2E tests with AI (14 workflows, ~5 min, REQUIRES secrets)
+source ~/.iwe-test-vm/secrets/.env                    # ← MUST run first
 bash scripts/test/e2e/run-e2e-ai.sh all
 
-# All container tests (full CI suite)
+# All E2E tests WITHOUT AI (seed + assert only, ~10 sec, no secrets)
+bash scripts/test/e2e/run-e2e-ai.sh all    # works but --run phases will fail
+# Better: run individual structural phases
+for phase in quick-close wp-new day-close week-close; do
+  bash scripts/test/e2e/run-e2e-ai.sh "$phase"
+done
+
+# All container tests (full CI suite, requires Podman)
 bash scripts/container/test-from-container.sh --phase all
 ```
 
@@ -111,6 +118,41 @@ seed-<name>.sh          → creates workspace with test data (bash only)
 eval-<name>.sh          → runs AI process (--run) + LLM judge (--judge)
 rubrics-<name>.yaml     → 8 scoring criteria with thresholds (0.5-0.8)
 assert-<name>.sh        → structural invariant checks (deterministic)
+```
+
+### Important: running `all` — what to expect
+
+**Prerequisites:**
+```bash
+# REQUIRED before running 'all':
+source ~/.iwe-test-vm/secrets/.env    # AI_CLI_API_KEY + AI_CLI_MODEL
+# REQUIRED in PATH:
+command -v opencode || command -v claude
+```
+
+**Runtime:** ~5 minutes for all 14 workflows. Each `--run` test: 30-120 sec.
+
+**Cost:** ~$0.06 total (DeepSeek chat, token-based). Budget caps are set per-test ($0.20-0.50) but actual spend is far lower.
+
+**What happens if secrets are NOT sourced:**
+- Tests 1-10 (--run mode): **FAIL** — AI CLI cannot authenticate. Error: `ERROR: * AI failed`
+- `assert-*` scripts still run: they check seed data (which hasn't been modified by AI)
+- `run-e2e-ai.sh` will report `N passed, M failed` with M = number of --run tests
+
+**What happens if `opencode` is not in PATH:**
+- Fallback to `claude` (if installed and `ANTHROPIC_API_KEY` is set)
+- If neither available: all --run tests fail
+- Seed + assert still run (they don't need AI)
+
+**Running without AI (cheap + fast, ~10 sec, no secrets):**
+```bash
+# Runs seed + assert for all 14 tests — no AI, no secrets
+for phase in quick-close wp-new day-close week-close day-open \
+  strategy-session session-prep wp-gate orz-cycle note-review \
+  archgate intgate role-exec skill-invoke; do
+  bash scripts/test/e2e/run-e2e-ai.sh "$phase"
+done
+# Each phase: seed created ✓, --run SKIPPED (no secrets), assert checked ✓
 ```
 
 ### 4. Canary Tests — `scripts/test/canary-*.sh`
