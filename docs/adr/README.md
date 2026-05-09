@@ -11,3 +11,4 @@
 | 007 | Golden Image Build Pipeline for IWE Testing | Implemented | 2026-05-04 |
 | 008 | AI Provider Abstraction — Multi-Provider CLI Support | Implemented | 2026-05-06 |
 | 010 | OpenCode Work-Product Session Switching | Accepted | 2026-05-09 |
+| 011 | Automatic Session Handoff After Work Product Creation | Proposed | 2026-05-09 |
