@@ -36,6 +36,7 @@ jobs:
           curl -sfL "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" -o /tmp/trivy.tar.gz
           tar xzf /tmp/trivy.tar.gz -C /tmp
           /tmp/trivy fs --quiet --severity HIGH,CRITICAL --exit-code 1 . 2>&1 || echo "⚠ Trivy: HIGH/CRITICAL issues found (non-blocking)"
+          rm -f /tmp/trivy /tmp/trivy.tar.gz
 
       - name: Detect branch
         id: branch

@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT_DIR="${ROOT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
-TARGET="${1:-$(mktemp -d "${ROOT_DIR}/.audit/test-seeds/sync-scan-XXXXXX")}"
+TARGET="${1:-$(mktemp -d /tmp/iwe-seed-sync-scan-XXXXXX)}"
 mkdir -p "$TARGET/template" "$TARGET/upstream" "$TARGET/DS-strategy/docs"
 
 # Modified template (simulating drift from upstream)

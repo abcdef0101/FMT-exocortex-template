@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT_DIR="${ROOT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
-TARGET="${1:-$(mktemp -d "${ROOT_DIR}/.audit/test-seeds/skill-invoke-e2e-XXXXXX")}"
+TARGET="${1:-$(mktemp -d /tmp/iwe-seed-skill-invoke-e2e-XXXXXX)}"
 mkdir -p "$TARGET/Pack/08-service-clauses" "$TARGET/DS-strategy/docs"
 
 # Pack file with intentional violations

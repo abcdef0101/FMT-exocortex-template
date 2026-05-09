@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT_DIR="${ROOT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
-TARGET="${1:-$(mktemp -d "${ROOT_DIR}/.audit/test-seeds/archgate-e2e-XXXXXX")}"
+TARGET="${1:-$(mktemp -d /tmp/iwe-seed-archgate-e2e-XXXXXX)}"
 mkdir -p "$TARGET/docs/adr"
 
 # Architectural decision to evaluate

@@ -111,6 +111,15 @@ case "$E2E_PHASE" in
   skill-invoke)
     run_e2e "Skill Invocation" "seed-skill-invocation-e2e.sh" "eval-skill-invocation-e2e.sh" "assert-skill-invocation.sh" "--run"
     ;;
+  extractor)
+    run_e2e "Extractor Inbox Check" "seed-extractor-inbox-check.sh" "eval-extractor-inbox-check.sh" "assert-extractor-inbox-check.sh" "--run"
+    ;;
+  synchronizer)
+    run_e2e "Synchronizer Code Scan" "seed-synchronizer-code-scan.sh" "eval-synchronizer-code-scan.sh" "assert-synchronizer-code-scan.sh" "--run"
+    ;;
+  verifier)
+    run_e2e "Verifier Pack Entity" "seed-verifier-pack-entity.sh" "eval-verifier-pack-entity.sh" "assert-verifier-pack-entity.sh" "--run"
+    ;;
   all|*)
     run_e2e "Quick Close" "seed-quick-close.sh" "eval-quick-close.sh" "assert-quick-close.sh" "--run"
     run_e2e "wp-new" "seed-wp-new.sh" "eval-wp-new.sh" "assert-wp-new.sh" "--run"
@@ -126,6 +135,9 @@ case "$E2E_PHASE" in
     run_e2e "IntegrationGate" "seed-integration-gate-e2e.sh" "eval-integration-gate-e2e.sh" "assert-integration-gate.sh" "--run"
     run_e2e "Role Execution" "seed-role-execution-e2e.sh" "eval-role-execution-e2e.sh" "assert-role-execution.sh" "--run"
     run_e2e "Skill Invocation" "seed-skill-invocation-e2e.sh" "eval-skill-invocation-e2e.sh" "assert-skill-invocation.sh" "--run"
+    run_e2e "Extractor Inbox Check" "seed-extractor-inbox-check.sh" "eval-extractor-inbox-check.sh" "assert-extractor-inbox-check.sh" "--run"
+    run_e2e "Synchronizer Code Scan" "seed-synchronizer-code-scan.sh" "eval-synchronizer-code-scan.sh" "assert-synchronizer-code-scan.sh" "--run"
+    run_e2e "Verifier Pack Entity" "seed-verifier-pack-entity.sh" "eval-verifier-pack-entity.sh" "assert-verifier-pack-entity.sh" "--run"
     ;;
 esac
 

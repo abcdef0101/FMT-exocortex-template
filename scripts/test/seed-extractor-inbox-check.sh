@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT_DIR="${ROOT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
-TARGET="${1:-$(mktemp -d "${ROOT_DIR}/.audit/test-seeds/extractor-inbox-XXXXXX")}"
+TARGET="${1:-$(mktemp -d /tmp/iwe-seed-extractor-inbox-XXXXXX)}"
 mkdir -p "$TARGET/DS-strategy/inbox" "$TARGET/memory"
 
 # fleeting-notes.md — 7 notes of different types for classification

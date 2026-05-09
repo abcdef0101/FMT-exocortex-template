@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT_DIR="${ROOT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
-TARGET="${1:-$(mktemp -d "${ROOT_DIR}/.audit/test-seeds/verifier-pack-XXXXXX")}"
+TARGET="${1:-$(mktemp -d /tmp/iwe-seed-verifier-pack-XXXXXX)}"
 mkdir -p "$TARGET/Pack/08-service-clauses" "$TARGET/DS-strategy/docs"
 
 # Pack entity with intentional violations for verifier to detect

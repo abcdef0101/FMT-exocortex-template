@@ -16,6 +16,30 @@ async function safeToast(client, directory, message, variant = "info") {
 }
 
 export const WpSessionPlugin = async ({ client, directory }) => {
+  if (!client.tui.selectSession) {
+    client.tui.selectSession = async ({ directory, sessionID }) => {
+      await client.tui._client.post({
+        url: "/tui/select-session",
+        query: { directory },
+        body: { sessionID },
+        headers: { "Content-Type": "application/json" },
+      });
+    };
+  }
+
+  async function switchSession(dir, sessionID) {
+    try {
+      await client.tui.selectSession({ directory: dir, sessionID });
+    } catch {
+      await client.tui._client.post({
+        url: "/tui/select-session",
+        query: { directory: dir },
+        body: { sessionID },
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+  }
+
   return {
     tool: {
       wp_session_switch: tool({
@@ -70,7 +94,7 @@ export const WpSessionPlugin = async ({ client, directory }) => {
 
           if (decision.action === "select") {
             const sessionID = decision.candidate.session.id;
-            await client.tui.selectSession({ directory: context.directory, sessionID });
+            await switchSession(context.directory, sessionID);
             const output = `Switched to ${wpId} using existing session \"${decision.candidate.session.title}\".`;
             await safeToast(client, context.directory, output, "success");
             return {
@@ -91,7 +115,7 @@ export const WpSessionPlugin = async ({ client, directory }) => {
           });
           const created = createResult.data;
 
-          await client.tui.selectSession({ directory: context.directory, sessionID: created.id });
+          await switchSession(context.directory, created.id);
           const output = `Created and switched to ${wpId} with session \"${title}\".`;
           await safeToast(client, context.directory, output, "success");
           return {

@@ -108,6 +108,7 @@ ai_cli_run() {
       # Validate model is in provider/model format
       local model="${AI_CLI_MODEL:-anthropic/claude-sonnet-4-20250514}"
       if [[ "$model" != */* ]]; then
+        # shellcheck disable=SC2086 — $model safe in [[ ]] (bash builtin, no word splitting)
         echo "WARN: AI_CLI_MODEL missing provider prefix. Use 'provider/model' format (e.g. 'anthropic/claude-sonnet-4'). Got: '$model'" >&2
       fi
       # opencode uses 'run' subcommand + -m provider/model
@@ -131,6 +132,8 @@ _opencode_setup_config() {
   local model_name="${model_id:-custom-model}"
 
   mkdir -p ~/.config/opencode 2>/dev/null || true
+
+  [ -f ~/.config/opencode/opencode.json ] && cp ~/.config/opencode/opencode.json ~/.config/opencode/opencode.json.bak
 
   cat > ~/.config/opencode/opencode.json <<OPECFG
 {

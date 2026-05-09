@@ -1,0 +1,70 @@
+# LLM-as-Judge rubrics for Skill Invocation testing
+# DeepSeek Chat evaluates AI agent invoking /verify skill on a Pack entity
+# Threshold: >=5/8 metrics must pass
+
+metrics:
+  - name: violations_detected
+    threshold: 0.8
+    criteria: |
+      The skill invocation must detect all embedded violations in the test entity.
+      The test entity (DP.SC.025) has: missing Dependencies section,
+      insufficient Acceptance Criteria (<3 items), missing temporal metadata.
+      Check: does the output list at least these 3 violations?
+      Score 1.0 if >=3 violations found; 0.5 if 1-2; 0 if none detected.
+
+  - name: verdict_format
+    threshold: 0.8
+    criteria: |
+      Output must include a verdict in PASS/FAIL/CONDITIONAL format.
+      For a deliberately broken entity, the verdict should be FAIL or CONDITIONAL.
+      Check: is there a clear verdict statement? Is severity assigned correctly?
+      Score 0 if PASS given for a broken entity (false negative).
+
+  - name: standard_reference
+    threshold: 0.7
+    criteria: |
+      Violations must be justified against a standard reference (DP-standard.md).
+      Each violation should cite which rule or section of the standard it violates.
+      Check: do the violation descriptions reference the standard document?
+      Score 1.0 if >=2 violations cite the standard; 0.5 if 1; 0 if none.
+
+  - name: mismatch_table
+    threshold: 0.6
+    criteria: |
+      Violations should be presented in a table format with columns:
+      violation, expected, actual, severity, standard reference.
+      Check: is there a structured table of findings?
+      Score 1.0 if table with >=4 columns; 0.5 if table with <4 columns; 0 if no table.
+
+  - name: anti_hallucination
+    threshold: 0.8
+    criteria: |
+      The verifier must NOT invent violations that don't exist in the test entity.
+      False positives reduce trust. Check: are ALL reported violations actually present
+      in the test entity? Any fabricated violations → severe deduction.
+      Score 1.0 if 0 false positives; 0.5 if 1 false positive; 0 if >=2.
+
+  - name: context_isolation
+    threshold: 0.7
+    criteria: |
+      The verifier must evaluate the entity AS-IS, without knowledge of the test setup
+      or the fact that violations were embedded intentionally.
+      Check: does the output show awareness of test context?
+      Score 0 if the verifier mentions "test", "embedded violations", or "intentional".
+      Score 1.0 if context-naive evaluation.
+
+  - name: remediation_suggestions
+    threshold: 0.5
+    criteria: |
+      For each violation, a brief remediation suggestion should be provided
+      (what needs to change to fix the violation).
+      Not required but strongly encouraged.
+      Score 1.0 if >=2 violations have suggestions; 0.5 if 1; 0 if none.
+
+  - name: completeness
+    threshold: 0.6
+    criteria: |
+      Output should cover all relevant aspects of the entity: structure (required sections),
+      content (acceptance criteria count, temporal metadata), and cross-references.
+      Check: does the output address structural AND content violations?
+      Score 1.0 if both structural and content coverage; 0.5 if only one; 0 if superficial.

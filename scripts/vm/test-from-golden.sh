@@ -56,7 +56,7 @@ done
 # === Version detection ===
 if [ -z "$REPO_VERSION" ]; then
   if [ -f "$ROOT_DIR/MANIFEST.yaml" ]; then
-    REPO_VERSION=$(grep -m1 '^version:' "$ROOT_DIR/MANIFEST.yaml" | awk '{print $2}')
+    REPO_VERSION=$(grep -m1 '^version:' "$ROOT_DIR/MANIFEST.yaml" | awk '{print $2}' | sed 's/^"//;s/"$//')
   fi
   [ -z "$REPO_VERSION" ] && { echo "ERROR: cannot detect version. Use --version." >&2; exit 1; }
 fi
@@ -115,8 +115,11 @@ fi
 
 if [ ! -f "$SSH_KEY" ]; then
   echo "  SSH key not found, generating..."
-  ssh-keygen -t ed25519 -f "$SSH_KEY" -N "" -C "iwe-test" -q
-  echo "  ✓ Generated: $SSH_KEY"
+  if ssh-keygen -t ed25519 -f "$SSH_KEY" -N "" -C "iwe-test" -q; then
+    echo "  ✓ Generated: $SSH_KEY"
+  else
+    echo "  ✗ ssh-keygen FAILED"; exit 1
+  fi
 fi
 
 echo "  SSH key: $(ssh-keygen -l -f "$SSH_KEY" 2>/dev/null | awk '{print $1, $3}')"
@@ -278,6 +281,7 @@ REPO_BRANCH="${IWE_BRANCH:-0.25.1}"
 ssh $SSH_OPTS iwe@localhost "rm -rf ~/IWE/FMT-exocortex-template" 2>/dev/null || true
 
 GIT_LOG="/tmp/iwe-git-clone-$$.log"
+trap 'rm -f "$GIT_LOG" 2>/dev/null' EXIT
 REPO_URL_ESC=$(printf '%q' "$REPO_URL")
 REPO_BRANCH_ESC=$(printf '%q' "$REPO_BRANCH")
 ssh $SSH_OPTS iwe@localhost "git clone --branch $REPO_BRANCH_ESC $REPO_URL_ESC ~/IWE/FMT-exocortex-template" >"$GIT_LOG" 2>&1

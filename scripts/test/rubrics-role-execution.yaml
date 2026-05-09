@@ -1,0 +1,64 @@
+# LLM-as-Judge rubrics for Role Execution testing
+# DeepSeek Chat evaluates strategist role producing a DayPlan
+# Threshold: >=5/8 metrics must pass
+
+metrics:
+  - name: dayplan_created
+    threshold: 0.8
+    criteria: |
+      A DayPlan file must exist in the current/ directory after role execution.
+      Check: find DayPlan.md in workspace/DS-strategy/current/.
+      Score 0 if no DayPlan exists; 0.5 if placeholder only; 1.0 if substantive content.
+
+  - name: carry_over_handling
+    threshold: 0.7
+    criteria: |
+      All RP from WeekPlan in_progress and any carry-over from previous day
+      must appear in today's plan or have an explicit deferral reason.
+      Read MEMORY.md and WeekPlan. Verify carry-over items are addressed.
+      Score 1.0 if all covered; 0.5 if partial; 0 if carry-over ignored.
+
+  - name: self_dev_slot
+    threshold: 0.7
+    criteria: |
+      Self-development (⚫) must be the first slot in the plan table.
+      It should have a time budget of 1-2h.
+      Score 0 if absent; 0.5 if present but not first; 1.0 if correct position and budget.
+
+  - name: table_structure
+    threshold: 0.8
+    criteria: |
+      The plan table must have: priority markers (🔴🟡🟢⚫), WP-N identifiers,
+      time estimates (~Xh), status column.
+      Check: grep the DayPlan for table rows with all required columns.
+      Score 1.0 if >=2 rows with complete columns; 0.5 if incomplete; 0 if no table.
+
+  - name: calendar_section
+    threshold: 0.6
+    criteria: |
+      DayPlan must have a «Календарь» section with time blocks and scheduled activities.
+      Check: section header present, time entries (HH:MM format).
+      Score 1.0 if >=3 time blocks; 0.5 if 1-2; 0 if empty or missing.
+
+  - name: budget_plausibility
+    threshold: 0.6
+    criteria: |
+      Sum of RP hour estimates should be 4-12h (reasonable work day).
+      Budget Spread should be mentioned for RP with budget >=2h.
+      Score 1.0 if budget is stated and arithmetically reasonable.
+
+  - name: priority_markers
+    threshold: 0.8
+    criteria: |
+      Each RP in the plan table must have an explicit priority marker.
+      Critical (🔴) items before medium (🟡) before low (🟢).
+      Carry-over items must appear before new items.
+      Score 0 if no priority markers; 0.5 if present but order wrong; 1.0 if correct.
+
+  - name: external_context
+    threshold: 0.5
+    criteria: |
+      DayPlan should reference external signals when available:
+      GitHub issues (seed-issues.md), IWE update notifications,
+      calendar events, Scout findings.
+      Score 1.0 if >=2 external sources referenced; 0.5 if 1; 0 if no context awareness.

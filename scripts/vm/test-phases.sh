@@ -2,6 +2,7 @@
 # test-phases.sh — библиотека фаз тестирования IWE внутри VM
 # Source'ится из run-full-test.sh
 # Каждая фаза — функция, возвращающая количество PASS/FAIL через глобальные переменные
+set -euo pipefail
 
 export PATH="$HOME/.local/bin:$HOME/.opencode/bin:$HOME/.opencode/node_modules/.bin:$PATH"
 
@@ -9,7 +10,7 @@ if ! git config --global user.email >/dev/null 2>&1; then
   git config --global user.email "iwe-test@localhost" 2>/dev/null || echo "WARN: git config failed" >&2
 fi
 if ! git config --global user.name >/dev/null 2>&1; then
-  git config --global user.name "IWE Test" 2>/dev/null || true
+  git config --global user.name "IWE Test" 2>/dev/null || echo "WARN: git config user.name failed" >&2
 fi
 
 IWE_DIR="${IWE_DIR:-$HOME/IWE/FMT-exocortex-template}"
@@ -68,7 +69,7 @@ phase1_setup() {
   source scripts/lib/manifest-lib.sh 2>/dev/null
   WS="$HOME/IWE/workspaces/iwe2"
   mkdir -p "$WS"
-  WORKSPACE_FULL_PATH="$WS" export WORKSPACE_FULL_PATH
+  export WORKSPACE_FULL_PATH="$WS"
   output=$(apply_manifest seed/manifest.yaml false 2>&1) && rc=0 || rc=$?
   count=$(echo "$output" | grep -cE "copy-once:|copy-if-newer:|symlink|merge-mcp:|structure-only:|copy-and-substitute:" || echo "0")
   if [ "$count" -ge 7 ]; then
@@ -91,6 +92,7 @@ phase1_setup() {
 
   # 1.4: Workspace structure
   echo "--- [1.4] workspace structure ---"
+  local _ws_pre_fails=$PHASE_FAIL
   for f in CLAUDE.md params.yaml memory/MEMORY.md memory/day-rhythm-config.yaml \
            .claude/settings.local.json .mcp.json extensions/mcps; do
     if [ -e "$WS/$f" ] || [ -L "$WS/$f" ]; then
@@ -99,7 +101,7 @@ phase1_setup() {
       _fail "workspace: missing $f"
     fi
   done
-  [ "$PHASE_FAIL" -eq 0 ] && _ok "workspace: all 7 files present" || true
+  [ "$PHASE_FAIL" -eq "$_ws_pre_fails" ] && _ok "workspace: all 7 files present" || true
 
   # 1.5: Symlink integrity
   echo "--- [1.5] symlink integrity ---"
@@ -162,7 +164,7 @@ phase2_update() {
 
   # 2.2: Update check with upstream changes (mocked if possible)
   echo "--- [2.2] update.sh --check (upstream mock) ---"
-  MOCK_UPSTREAM=$(mktemp -d -t iwe-upstream-XXXXXX)
+  MOCK_UPSTREAM=$(mktemp -d /tmp/iwe-upstream-XXXXXX)
   git clone "$IWE_DIR" "$MOCK_UPSTREAM" --quiet 2>/dev/null
   echo "# mock-upstream-change" >> "$MOCK_UPSTREAM/CHANGELOG.md"
   git -C "$MOCK_UPSTREAM" add -A && git -C "$MOCK_UPSTREAM" commit -m "mock change" --quiet
@@ -475,8 +477,9 @@ phase5a_strategy_session() {
   SEEDER="scripts/test/seed-strategy-session.sh"
   ASSERTER="scripts/test/assert-strategy-session.sh"
   if [ -f "$SEEDER" ]; then
-    if bash -n "$SEEDER" 2>/dev/null; then
-      TMPDIR=$(mktemp -d -t iwe-seed-test-XXXXXX)
+    BASH_N_ERR=$(bash -n "$SEEDER" 2>&1) && BASH_N_OK=true || BASH_N_OK=false
+    if $BASH_N_OK; then
+      TMPDIR=$(mktemp -d /tmp/iwe-seed-test-XXXXXX)
       SEEDER_LOG="/tmp/iwe-seeder-$$.log"
       if bash "$SEEDER" "$TMPDIR/DS-strategy" >"$SEEDER_LOG" 2>&1; then
         _ok "seeder: runs successfully"
@@ -498,12 +501,14 @@ phase5a_strategy_session() {
       rm -rf "$TMPDIR"
     else
       _fail "seeder: syntax error"
+      [ -n "$BASH_N_ERR" ] && echo "   >>> bash -n output:" && echo "$BASH_N_ERR" | sed 's/^/   | /'
     fi
   else
     _fail "seeder: script not found"
   fi
   if [ -f "$ASSERTER" ]; then
-    bash -n "$ASSERTER" 2>/dev/null && _ok "asserter: syntax valid" || _fail "asserter: syntax error"
+    BASH_N_ERR=$(bash -n "$ASSERTER" 2>&1) && BASH_N_OK=true || BASH_N_OK=false
+    $BASH_N_OK && _ok "asserter: syntax valid" || { _fail "asserter: syntax error"; [ -n "$BASH_N_ERR" ] && echo "   >>> bash -n output:" && echo "$BASH_N_ERR" | sed 's/^/   | /'; }
   fi
 
   PHASE_DURATION=$(( $(date +%s) - PHASE_START ))
@@ -582,6 +587,10 @@ DMANIFEST
   fi
   # Ensure GitHub CLI is available (required by setup.sh)
   if ! command -v gh >/dev/null 2>&1; then
+    if ! sudo -n true 2>/dev/null; then
+      _fail "setup: sudo requires password — cannot auto-install gh"
+      return 1
+    fi
     sudo apt-get update -qq && sudo apt-get install -y -qq gh 2>&1 | tail -1
     command -v gh >/dev/null 2>&1 || { _fail "setup: gh not installed"; return 1; }
   fi
@@ -880,7 +889,11 @@ DMANIFEST
     return 1
   fi
   if ! command -v gh >/dev/null 2>&1; then
-    sudo apt-get update -qq && sudo apt-get install -y -qq gh 2>&1 | tail -1
+    if ! sudo -n true 2>/dev/null; then
+      _info "setup: sudo requires password — skipping gh install"
+    else
+      sudo apt-get update -qq && sudo apt-get install -y -qq gh 2>&1 | tail -1
+    fi
     command -v gh >/dev/null 2>&1 || _info "setup: gh not installed (GitHub repo test skipped)"
   fi
 
@@ -1041,8 +1054,7 @@ phase5c_unit_tests() {
   PHASE_START=$(date +%s)
   echo "--- [5c] Unit Tests (run-phase0.sh) ---"
 
-  WS_DIR="$WORKSPACE_DIR"
-  FMT_DIR="$(cd "$WS_DIR/../FMT-exocortex-template" 2>/dev/null && pwd || echo "$HOME/IWE/FMT-exocortex-template")"
+  FMT_DIR="${IWE_DIR:-$HOME/IWE/FMT-exocortex-template}"
 
   if [ -f "$FMT_DIR/scripts/test/run-phase0.sh" ]; then
     bash "$FMT_DIR/scripts/test/run-phase0.sh" 2>&1 | tail -20
@@ -1062,19 +1074,46 @@ phase5c_unit_tests() {
 phase5d_e2e_tests() {
   reset_counters
   PHASE_START=$(date +%s)
-  echo "--- [5d] E2E Structural Tests (seed+assert) ---"
+  echo "--- [5d] E2E Structural Tests (seed+assert, no AI) ---"
 
   FMT_DIR="$(cd "$HOME/IWE/FMT-exocortex-template" 2>/dev/null && pwd || echo "$HOME/IWE/FMT-exocortex-template")"
 
-  if [ -f "$FMT_DIR/scripts/test/e2e/run-e2e-ai.sh" ]; then
-    # Run without --run (seed+assert only, no AI)
-    for e2e in quick-close wp-new day-close week-close day-open strategy-session \
-      session-prep wp-gate orz-cycle note-review archgate intgate role-exec skill-invoke; do
-      bash "$FMT_DIR/scripts/test/e2e/run-e2e-ai.sh" "$e2e" 2>&1 | head -10 || true
+  if [ -d "$FMT_DIR/scripts/test" ]; then
+    cd "$FMT_DIR"
+    # Seed→assert pairs (no AI — structural only)
+    for pair in \
+      "seed-quick-close.sh:assert-quick-close.sh" \
+      "seed-wp-new.sh:assert-wp-new.sh" \
+      "seed-day-close.sh:assert-day-close.sh" \
+      "seed-week-close.sh:assert-week-close.sh" \
+      "seed-day-open.sh:assert-day-open.sh" \
+      "seed-strategy-session.sh:assert-strategy-session.sh" \
+      "seed-session-prep.sh:assert-session-prep.sh" \
+      "seed-wp-gate-e2e.sh:assert-wp-gate.sh" \
+      "seed-orz-cycle.sh:assert-orz-cycle.sh" \
+      "seed-note-review.sh:assert-note-review.sh" \
+      "seed-archgate-e2e.sh:assert-archgate.sh" \
+      "seed-integration-gate-e2e.sh:assert-integration-gate.sh" \
+      "seed-role-execution-e2e.sh:assert-role-execution.sh" \
+      "seed-skill-invocation-e2e.sh:assert-skill-invocation.sh" \
+      "seed-extractor-inbox-check.sh:assert-extractor-inbox-check.sh" \
+      "seed-synchronizer-code-scan.sh:assert-synchronizer-code-scan.sh" \
+      "seed-verifier-pack-entity.sh:assert-verifier-pack-entity.sh"; do
+      seed="${pair%%:*}"
+      assert="${pair##*:}"
+      WS=$(bash "scripts/test/$seed" 2>/dev/null | tail -1) && rc=0 || rc=$?
+      if [ "$rc" -ne 0 ] || [ -z "$WS" ] || [ ! -d "$WS" ]; then
+        _fail "seed: $seed FAILED (ws='$WS')"
+        continue
+      fi
+      if [ -f "scripts/test/$assert" ]; then
+        bash "scripts/test/$assert" "$WS" >/dev/null 2>&1 && _ok "assert: $assert" || _fail "assert: $assert FAILED"
+      else
+        _skip "assert: $assert not found"
+      fi
     done
-    _ok "e2e tests: structural checks completed"
   else
-    _skip "e2e: run-e2e-ai.sh not found"
+    _skip "e2e: scripts/test/ not found"
   fi
 
   PHASE_DURATION=$(( $(date +%s) - PHASE_START ))

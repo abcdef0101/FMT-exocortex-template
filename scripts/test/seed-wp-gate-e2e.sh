@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT_DIR="${ROOT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
-TARGET="${1:-$(mktemp -d "${ROOT_DIR}/.audit/test-seeds/wp-gate-e2e-XXXXXX")}"
+TARGET="${1:-$(mktemp -d /tmp/iwe-seed-wp-gate-e2e-XXXXXX)}"
 mkdir -p "$TARGET/memory" "$TARGET/DS-strategy/current" "$TARGET/DS-strategy/inbox"
 
 # MEMORY.md — WPs present, "add MCP server" NOT in plan

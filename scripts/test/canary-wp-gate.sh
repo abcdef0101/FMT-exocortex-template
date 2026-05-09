@@ -24,7 +24,7 @@ _fail() { echo "  ✗ $1"; FAIL=$((FAIL + 1)); }
 echo "=== Canary: WP Gate Emulation ==="
 
 # Create workspace with plan that does NOT include "add ShellCheck"
-WS_DIR=$(mktemp -d "$ROOT_DIR/.audit/test-seeds/canary-wp-XXXXXX")
+WS_DIR=$(mktemp -d /tmp/iwe-canary-wp-XXXXXX)
 trap 'rm -rf "$WS_DIR"' EXIT
 mkdir -p "$WS_DIR/memory" "$WS_DIR/DS-strategy/current" "$WS_DIR/DS-strategy/docs"
 

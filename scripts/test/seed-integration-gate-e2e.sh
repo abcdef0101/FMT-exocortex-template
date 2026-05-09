@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT_DIR="${ROOT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
-TARGET="${1:-$(mktemp -d "${ROOT_DIR}/.audit/test-seeds/intgate-e2e-XXXXXX")}"
+TARGET="${1:-$(mktemp -d /tmp/iwe-seed-intgate-e2e-XXXXXX)}"
 mkdir -p "$TARGET/inbox"
 
 # Intent: user wants to create a new tool

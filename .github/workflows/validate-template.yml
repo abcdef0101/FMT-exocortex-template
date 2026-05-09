@@ -7,6 +7,39 @@ on:
     branches: [main]
 
 jobs:
+  markdownlint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DavidAnson/markdownlint-cli2-action@v19
+        with:
+          globs: |
+            **/*.md
+            !**/node_modules/**
+            !**/seed/**
+          config: |
+            {
+              "default": true,
+              "MD013": false,
+              "MD024": false,
+              "MD033": false,
+              "MD041": false
+            }
+
+  yamllint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install yamllint
+        run: pip install yamllint
+
+      - name: Run yamllint
+        run: |
+          yamllint . --strict \
+            -d '{extends: relaxed, rules: {line-length: disable, document-start: disable, comments-indentation: disable}}'
+
   shellcheck:
     runs-on: ubuntu-latest
     steps:

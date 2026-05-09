@@ -50,7 +50,7 @@ done
 
 if [ -z "$REPO_VERSION" ]; then
   if [ -f "$ROOT_DIR/MANIFEST.yaml" ]; then
-    REPO_VERSION=$(grep -m1 '^version:' "$ROOT_DIR/MANIFEST.yaml" | awk '{print $2}')
+    REPO_VERSION=$(grep -m1 '^version:' "$ROOT_DIR/MANIFEST.yaml" | awk '{print $2}' | sed 's/^"//;s/"$//')
   fi
   [ -z "$REPO_VERSION" ] && { echo "ERROR: cannot detect version. Use --version." >&2; exit 1; }
 fi
@@ -266,7 +266,8 @@ TOTAL_FAIL=$(grep -c '\[FAIL\]' "$REPORT" 2>/dev/null | tr -d '\n' || echo "0")
 
 # Collect phase metrics from container
 METRICS_FILE="$RESULTS_DIR/metrics-${TIMESTAMP}.txt"
-podman cp "$CONTAINER_NAME:/tmp/iwe-phase-metrics.txt" "$METRICS_FILE" 2>/dev/null || true
+podman cp "$CONTAINER_NAME:/tmp/iwe-phase-metrics.txt" "$METRICS_FILE" 2>/dev/null || \
+  echo "WARN: metrics file copy failed" >&2
 
 # =========================================================================
 # Step 5: Report

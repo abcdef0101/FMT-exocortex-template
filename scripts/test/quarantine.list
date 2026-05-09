@@ -1,0 +1,7 @@
+# Quarantined test workflows
+# Format: <workflow>  <date>  <reason>  <owner>
+# Tests listed here are skipped in `run-e2e-ai.sh all` mode.
+# Individual phase runs (e.g., run-e2e-ai.sh <name>) still execute.
+# Remove entry when fix is verified. Archive if unresolved for >2 weeks.
+#
+# No quarantined workflows as of 2026-05-09.

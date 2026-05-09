@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT_DIR="${ROOT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
-TARGET="${1:-$(mktemp -d "${ROOT_DIR}/.audit/test-seeds/orz-cycle-XXXXXX")}"
+TARGET="${1:-$(mktemp -d /tmp/iwe-seed-orz-cycle-XXXXXX)}"
 mkdir -p "$TARGET/memory" "$TARGET/DS-strategy/current" "$TARGET/DS-strategy/inbox" "$TARGET/DS-strategy/docs"
 
 # MEMORY.md with active WP

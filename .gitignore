@@ -13,4 +13,3 @@ workspaces/
 tg2md/
 scripts/vm/results/
 scripts/container/results/
-.audit/test-seeds/
