@@ -113,20 +113,38 @@ export async function findWorkProduct(rootDir, wpId) {
   return null;
 }
 
+const SIDE_SESSION_RE = /^\s*WP-(\d+)\s*\[([^\]]+)\]\s*:/i;
+
+export function isSideSession(title) {
+  return SIDE_SESSION_RE.test(title ?? "");
+}
+
+export function parseSessionTag(title) {
+  const match = (title ?? "").match(SIDE_SESSION_RE);
+  if (!match) return { isSide: false, tag: null };
+  return { isSide: true, tag: match[2].trim().toLowerCase() };
+}
+
 function titleScore(title, wpId) {
   const normalized = normalizeWhitespace(title).toLowerCase();
   const normalizedWp = wpId.toLowerCase();
   const wpNumber = extractWpNumber(wpId);
   const rp = wpNumber ? `рп${wpNumber}` : null;
+  const { isSide } = parseSessionTag(title);
 
-  if (normalized.startsWith(`${normalizedWp}:`)) return 500;
-  if (normalized === normalizedWp) return 480;
-  if (normalized.startsWith(`${normalizedWp} `)) return 470;
-  if (new RegExp(`^${normalizedWp}\\b`).test(normalized)) return 430;
-  if (rp && new RegExp(`^${rp}\\b`).test(normalized)) return 320;
-  if (normalized.includes(normalizedWp)) return 200;
-  if (rp && normalized.includes(rp)) return 120;
-  return 0;
+  const baseScore = (() => {
+    if (normalized.startsWith(`${normalizedWp}:`)) return 500;
+    if (normalized === normalizedWp) return 480;
+    if (normalized.startsWith(`${normalizedWp} `)) return 470;
+    if (new RegExp(`^${normalizedWp}\\b`).test(normalized)) return 430;
+    if (rp && new RegExp(`^${rp}\\b`).test(normalized)) return 320;
+    if (normalized.includes(normalizedWp)) return 200;
+    if (rp && normalized.includes(rp)) return 120;
+    return 0;
+  })();
+
+  if (baseScore === 0) return 0;
+  return isSide ? Math.max(baseScore - 1000, 100) : baseScore;
 }
 
 export function rankSessionCandidates(sessions, wpId) {
@@ -147,7 +165,13 @@ export function chooseSessionCandidate(candidates) {
     return { action: "create" };
   }
 
-  const [best, second] = candidates;
+  const mainCandidates = candidates.filter(
+    (c) => !isSideSession(c.session.title ?? "")
+  );
+
+  const pool = mainCandidates.length > 0 ? mainCandidates : candidates;
+  const [best, second] = pool;
+
   if (best.score < 320) {
     return { action: "create" };
   }
@@ -155,7 +179,7 @@ export function chooseSessionCandidate(candidates) {
   if (second && second.score === best.score) {
     return {
       action: "ambiguous",
-      candidates: candidates.filter((candidate) => candidate.score === best.score),
+      candidates: pool.filter((candidate) => candidate.score === best.score),
     };
   }
 
