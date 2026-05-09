@@ -42,6 +42,43 @@ bash scripts/test/run-phase0.sh --verbose  # full output
 bash scripts/test/test-memory-limits.sh  # single test
 ```
 
+### Unit Tests — What to expect
+
+**Runtime:** ~3 seconds for all 47 tests. No AI, no secrets, no network.
+
+**Output format:**
+```
+=========================================
+ ADR-005 Phase 0 Integration Tests
+=========================================
+--- test-checksums.sh ---
+  ✓ checksums.yaml is valid YAML (python3)
+  All tests passed
+✓ PASS: test-checksums.sh
+...
+=========================================
+ Result: 47 passed, 0 failed, 0 skipped
+=========================================
+```
+
+**Flags:**
+| Flag | Effect |
+|------|--------|
+| *(none)* | Pass/fail lines only (✓/✗). Full output shown only on failure |
+| `--verbose` | Full output for ALL tests (including passed) |
+| `--strict` | ShellCheck warnings become failures (blocking gate) |
+
+**ShellCheck step:** Before tests, `run-phase0.sh` runs `shellcheck -S warning` on all `.sh` files. If `shellcheck` is not installed → skipped with notice. If found but warnings exist → advisory (non-blocking unless `--strict`).
+
+**On failure:** Full test output shown with `>>> Full output of <test>: ... <<<`.
+Exit code = number of failed tests (non-zero → CI gate blocks).
+
+**Running a single test:**
+```bash
+bash scripts/test/test-memory-limits.sh         # without --strict (advisory mode)
+bash scripts/test/test-memory-limits.sh --strict  # with --strict (violations = failures)
+```
+
 | Phase | Count | What they test | Examples |
 |-------|:-----:|----------------|----------|
 | **Phase 1** — Structural & Config | 9 | Memory limits, metadata, skill manifests, roles, params, ADR, WP Context, day-rhythm, navigation | `test-memory-limits.sh`, `test-navigation-links.sh` |
@@ -187,7 +224,8 @@ bash scripts/test/run-e2e.sh
 
 ### 6. Container Tests — `scripts/container/test-from-container.sh`
 
-**10 phases**, Podman container. Reproducible CI environment.
+**10 phases**, Podman container. Reproducible CI environment on any Linux host.
+Uses `test-phases.sh` for phase implementation (shared with VM tests).
 
 ```bash
 # Build once
@@ -212,6 +250,38 @@ bash scripts/container/test-from-container.sh --phase all   # full CI suite (1-4
 | **5e** | **Systemd Timers** | `systemd-analyze verify` on services/timers |
 | **5f** | **Role Behavioral** | bash -n for all 6 role scripts |
 
+### 7. VM Tests — `scripts/vm/test-from-golden.sh`
+
+**QEMU/KVM golden image** testing on Linux host with KVM support.
+Uses the same `test-phases.sh` as container tests — identical phases, different isolation mechanism.
+
+```bash
+# Build golden QCOW2 image (once, takes 10-15 min)
+bash scripts/vm/build-golden.sh
+
+# Run tests from golden image
+bash scripts/vm/test-from-golden.sh                    # all phases
+bash scripts/vm/test-from-golden.sh --phase 5c          # unit tests only
+bash scripts/vm/test-from-golden.sh --phase 5b          # strategy session E2E
+bash scripts/vm/test-from-golden.sh --debug --phase 5b  # debug mode (preserve workspace)
+```
+
+**VM vs Container — when to use which:**
+
+| Aspect | Container (Podman) | VM (QEMU/KVM) |
+|--------|:---:|:---:|
+| **Speed** | Fast (seconds to start) | Slow (30s boot + SSH) |
+| **Isolation** | Process-level | Full OS isolation |
+| **launchd tests** | ❌ macOS only | ❌ macOS only (both Linux) |
+| **systemd tests** | ✅ With `--privileged` | ✅ Full systemd support |
+| **AI smoke tests** | ✅ (secrets uploaded) | ✅ (secrets via scp) |
+| **Network access** | ✅ | ✅ |
+| **CI** | ✅ `test-container.yml` | ✅ `test-golden.yml` |
+| **Local dev** | ✅ Lightweight | ⚠️ Heavy (requires KVM + disk space) |
+| **Use case** | CI pipeline, quick local test | Production-like env, full isolation |
+
+**Shared phases:** Both container and VM tests execute `scripts/vm/test-phases.sh` inside the isolated environment. Adding a new phase to `test-phases.sh` automatically benefits both.
+
 ---
 
 ## Directory Map
@@ -234,7 +304,7 @@ scripts/
 │       ├── _lib.sh                 # E2E shared library
 │       └── SMOKE-TEST.md           # Manual smoke test instructions
 ├── vm/
-│   ├── test-phases.sh              # Container/VM test phases (1-5f)
+│   ├── test-phases.sh              # Shared phases (used by container + VM)
 │   ├── test-from-golden.sh         # QEMU/KVM golden image runner
 │   └── build-golden.sh             # Golden image builder
 ├── container/
