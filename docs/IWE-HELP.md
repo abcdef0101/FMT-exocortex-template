@@ -248,4 +248,23 @@ source scripts/ai-cli-wrapper.sh
 ai_cli_run "say exactly: provider check OK" --bare --budget 0.10
 ```
 
-Подробнее: [ADR-008](../docs/adr/ADR-008-ai-provider-abstraction.md)
+### Быстрое продолжение РП в OpenCode
+
+Если у тебя уже есть OpenCode-сессии по рабочим продуктам, используй:
+
+```text
+/wp WP-5
+```
+
+Правила поведения:
+- если найдена одна сильная сессия `WP-5: ...`, OpenCode переключит текущий TUI на неё
+- если сессии нет, будет создана новая `WP-5: <title>`
+- если найдено несколько одинаково сильных кандидатов, автоматического переключения не будет
+
+Каноническое имя для новых сессий:
+
+```text
+WP-N: <title>
+```
+
+Подробнее: [ADR-008](../docs/adr/ADR-008-ai-provider-abstraction.md), [ADR-010](../docs/adr/ADR-010-wp-session-switching.md)

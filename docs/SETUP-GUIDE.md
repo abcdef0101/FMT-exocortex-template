@@ -201,8 +201,9 @@ export AI_CLI_API_KEY="sk-..."
 - Замени `ANTHROPIC_API_KEY` на `AI_CLI_API_KEY` в `.env` и GitHub Secrets
 - Создай `AGENTS.md` (OpenCode читает его как `CLAUDE.md` для Claude)
 - Запусти `opencode agent create strategist-test --tools "Read,Write,Edit,Glob,Grep,Bash"` для headless-сценариев
+- Для продолжения работы по конкретному РП используй `/wp WP-5` вместо ручного поиска через `/sessions`
 
-Подробнее: [ADR-008](../docs/adr/ADR-008-ai-provider-abstraction.md)
+Подробнее: [ADR-008](../docs/adr/ADR-008-ai-provider-abstraction.md), [ADR-010](../docs/adr/ADR-010-wp-session-switching.md)
 
 ### 0.5c Оптимизация стоимости: выбор модели
 
