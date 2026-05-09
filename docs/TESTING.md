@@ -29,6 +29,51 @@ bash scripts/container/test-from-container.sh --phase all
 
 ---
 
+## Test Types Overview
+
+IWE uses **10 test types** organized in a pipeline from deterministic (cheap, fast, blocking) to non-deterministic (AI-based, advisory, signal).
+
+```
+bash -n ──► ShellCheck ──► Unit ──► Assert ──► Container/VM
+  │            │           │        │            │
+  │            │           │        │            └── Integration CI gate
+  │            │           │        └── After AI process (structural)
+  │            │           └── 47 tests, ~3 sec, blocking gate
+  │            └── CI gate (semantic bugs)
+  └── CI gate (syntax errors)
+```
+
+| # | Type | Count | Deterministic? | Cost | Purpose |
+|---|------|:-----:|:-------------:|:----:|---------|
+| 1 | **bash -n** | CI gate | ✅ | 0 | Syntax parse — blocks broken scripts |
+| 2 | **ShellCheck** | CI gate | ✅ | 0 | Semantic analysis — blocks bash bugs |
+| 3 | **Unit** | 47 | ✅ | 0 | Structure, config, protocol rules |
+| 4 | **Assert** | 15 | ✅ | 0 | Result invariants after AI process |
+| 5 | **E2E Structural** | 5 | ✅ | 0 | Setup, update, migration workflows |
+| 6 | **AI Smoke** | 14 | ❌ | ~$0.06 | LLM-judge quality evaluation |
+| 7 | **E2E AI** | 14 | ❌ | ~$0.06 | Full seed→run→assert→judge cycle |
+| 8 | **Canary** | 2 | ❌ | ~$0.02 | Weekly replay — detects model drift |
+| 9 | **Container** | 10 phases | Mixed | 0* | Podman isolation, CI gate |
+| 10 | **VM (Golden)** | 10 phases | Mixed | 0* | QEMU/KVM full isolation |
+
+### What each type covers
+
+| What is tested | Test type |
+|----------------|-----------|
+| Bash script syntax (`if` without `fi`) | bash -n (CI) |
+| Bash semantic bugs (unquoted vars) | ShellCheck (CI) |
+| Memory limits, metadata, skill manifests | Unit (Phase 1) |
+| Protocol rules, gate logic | Unit (Phase 2) |
+| Role scripts, timers, install scripts | Unit (R1-R2) |
+| Config schemas (YAML, JSON, XML) | Unit (Phase 4) |
+| Result of AI process (DayPlan, WeekPlan) | Assert |
+| Quality of AI-generated content | AI Smoke (LLM-judge) |
+| Full workflow (seed→AI→result→check) | E2E AI |
+| Model/prompt degradation over time | Canary |
+| Isolation, reproducibility | Container / VM |
+
+---
+
 ## Test Categories
 
 ### 1. Unit Tests — `scripts/test/test-*.sh`
