@@ -99,6 +99,18 @@ case "$E2E_PHASE" in
   note-review)
     run_e2e "Note Review" "seed-note-review.sh" "eval-note-review.sh" "assert-note-review.sh" "--run"
     ;;
+  archgate)
+    run_e2e "ArchGate" "seed-archgate-e2e.sh" "eval-archgate-e2e.sh" "assert-archgate.sh" "--run"
+    ;;
+  intgate)
+    run_e2e "IntegrationGate" "seed-integration-gate-e2e.sh" "eval-integration-gate-e2e.sh" "assert-integration-gate.sh" "--run"
+    ;;
+  role-exec)
+    run_e2e "Role Execution" "seed-role-execution-e2e.sh" "eval-role-execution-e2e.sh" "assert-role-execution.sh" "--run"
+    ;;
+  skill-invoke)
+    run_e2e "Skill Invocation" "seed-skill-invocation-e2e.sh" "eval-skill-invocation-e2e.sh" "assert-skill-invocation.sh" "--run"
+    ;;
   all|*)
     run_e2e "Quick Close" "seed-quick-close.sh" "eval-quick-close.sh" "assert-quick-close.sh" "--run"
     run_e2e "wp-new" "seed-wp-new.sh" "eval-wp-new.sh" "assert-wp-new.sh" "--run"
@@ -110,6 +122,10 @@ case "$E2E_PHASE" in
     run_e2e "WP Gate" "seed-wp-gate-e2e.sh" "eval-wp-gate.sh" "assert-wp-gate.sh" "--run"
     run_e2e "ORZ Cycle" "seed-orz-cycle.sh" "eval-orz-cycle.sh" "assert-orz-cycle.sh" "--run"
     run_e2e "Note Review" "seed-note-review.sh" "eval-note-review.sh" "assert-note-review.sh" "--run"
+    run_e2e "ArchGate" "seed-archgate-e2e.sh" "eval-archgate-e2e.sh" "assert-archgate.sh" "--run"
+    run_e2e "IntegrationGate" "seed-integration-gate-e2e.sh" "eval-integration-gate-e2e.sh" "assert-integration-gate.sh" "--run"
+    run_e2e "Role Execution" "seed-role-execution-e2e.sh" "eval-role-execution-e2e.sh" "assert-role-execution.sh" "--run"
+    run_e2e "Skill Invocation" "seed-skill-invocation-e2e.sh" "eval-skill-invocation-e2e.sh" "assert-skill-invocation.sh" "--run"
     ;;
 esac
 

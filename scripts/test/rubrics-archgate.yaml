@@ -1,0 +1,50 @@
+# LLM-as-Judge rubrics for ArchGate testing
+metrics:
+  - name: seven_characteristics
+    threshold: 0.9
+    criteria: |
+      Все 7 характеристик ЭМОГССБ присутствуют в таблице/оценке.
+      Эволюционируемость, Масштабируемость, Обучаемость, Генеративность,
+      Скорость, Современность, Безопасность — все 7 строк.
+
+  - name: correct_scale
+    threshold: 0.9
+    criteria: |
+      Используется шкала ✅/⚠️/❌ (profile, без числовых баллов).
+      Нет оценок вида 7/10 или 56/70 (v2 aggregate score).
+
+  - name: veto_rule_1
+    threshold: 0.7
+    criteria: |
+      Применено veto правило 1: ❌ в критической характеристике → STOP.
+      Если есть ❌ в любой из 7 — решение блокировано.
+
+  - name: veto_rule_2
+    threshold: 0.7
+    criteria: |
+      Применено veto правило 2: ≥2 ❌ суммарно → STOP.
+      Если 2+ характеристики получили ❌ — блокировано.
+
+  - name: modernity_checks
+    threshold: 0.7
+    criteria: |
+      Проверены 3 modernity checks.
+      SOTA.002 (Context Engineering), SOTA.001 (DDD Strategic), SOTA.011 (Coupling Model).
+
+  - name: gate_not_ranker
+    threshold: 0.6
+    criteria: |
+      ArchGate используется как gate (допуск), не ranker.
+      Решение: pass/fail, не «вариант A лучше варианта B».
+
+  - name: per_characteristic_reasoning
+    threshold: 0.6
+    criteria: |
+      Каждая характеристика имеет обоснование.
+      Не просто ✅/❌, а 1-2 предложения почему.
+
+  - name: decision_clarity
+    threshold: 0.8
+    criteria: |
+      Итоговое решение ясно: pass (допустимо) или fail (недопустимо).
+      При fail указано какое правило нарушено.

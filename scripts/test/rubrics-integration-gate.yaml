@@ -1,0 +1,48 @@
+# LLM-as-Judge rubrics for IntegrationGate
+metrics:
+  - name: gate_triggered
+    threshold: 0.9
+    criteria: |
+      IntegrationGate сработал при запросе нового инструмента.
+      AI распознал что это новый инструмент и применил gate.
+
+  - name: step1_promise
+    threshold: 0.8
+    criteria: |
+      Шаг 1 выполнен: запрошен Service Clause.
+      AI спрашивает «какое обещание?» или предлагает создать DP.SC.
+
+  - name: step2_scenarios
+    threshold: 0.7
+    criteria: |
+      Шаг 2 выполнен: запрошены минимум 3 сценария.
+      AI требует 3 сценария с разными потребителями.
+
+  - name: step3_role
+    threshold: 0.7
+    criteria: |
+      Шаг 3 выполнен: идентифицирована роль.
+      AI ссылается на DP.ROLE.001 или предлагает создать новую роль.
+
+  - name: no_jump_to_implementation
+    threshold: 0.9
+    criteria: |
+      AI НЕ прыгнул сразу в реализацию.
+      Не начал писать код, не предложил архитектуру до шагов (1)-(3).
+
+  - name: p10_mentioned
+    threshold: 0.6
+    criteria: |
+      Нарушение 4-step порядка упомянуто как P10 (DP.FM.010).
+      При попытке пропустить шаг — AI указывает на penalty.
+
+  - name: exceptions_recognized
+    threshold: 0.6
+    criteria: |
+      AI знает исключения из IntegrationGate.
+      fix без promise change, bugfix, refactor, experimental — 4 случая.
+
+  - name: header_format
+    threshold: 0.5
+    criteria: |
+      Если реализация начата — заголовок содержит # see DP.SC.NNN, DP.ROLE.NNN.
