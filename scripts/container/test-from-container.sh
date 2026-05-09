@@ -244,12 +244,19 @@ case "$RUN_PHASE" in
   4)       run_phase 4 "CI + Migrations" "phase4_ci" ;;
   5a)      run_phase "5a" "Strategy Session (structural)" "phase5a_strategy_session" ;;
   5|5b|e2e) run_phase "5b" "Strategy Session (headless E2E)" "phase5b_strategy_session" ;;
+  5c|unit)  run_phase "5c" "Unit Tests" "phase5c_unit_tests" ;;
+  5d|e2e-structural) run_phase "5d" "E2E Structural" "phase5d_e2e_tests" ;;
+  5e|systemd) run_phase "5e" "Systemd Timers" "phase5e_systemd_timers" ;;
+  5f|roles)  run_phase "5f" "Role Behavioral" "phase5f_role_tests" ;;
   all)
     run_phase 1 "Clean Install" "phase1_setup"
     run_phase 2 "Update" "phase2_update"
     run_phase 3 "AI Smoke" "phase3_ai_smoke"
     run_phase 4 "CI + Migrations" "phase4_ci"
     run_phase "5a" "Strategy Session (structural)" "phase5a_strategy_session"
+    run_phase "5c" "Unit Tests" "phase5c_unit_tests"
+    run_phase "5d" "E2E Structural" "phase5d_e2e_tests"
+    run_phase "5f" "Role Behavioral" "phase5f_role_tests"
     ;;
   *) echo "ERROR: invalid phase: $RUN_PHASE"; exit 1 ;;
 esac

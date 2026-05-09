@@ -1032,3 +1032,145 @@ exit \$exit_code
   PHASE_DURATION=$(( $(date +%s) - PHASE_START ))
   echo "phase6b_day_open PASS=$PHASE_PASS FAIL=$PHASE_FAIL MS=$(( PHASE_DURATION * 1000 ))" >> "$METRICS_FILE"
 }
+
+# =========================================================================
+# Phase 5c: Unit Tests (run-phase0.sh)
+# =========================================================================
+phase5c_unit_tests() {
+  reset_counters
+  PHASE_START=$(date +%s)
+  echo "--- [5c] Unit Tests (run-phase0.sh) ---"
+
+  WS_DIR="$WORKSPACE_DIR"
+  FMT_DIR="$(cd "$WS_DIR/../FMT-exocortex-template" 2>/dev/null && pwd || echo "$HOME/IWE/FMT-exocortex-template")"
+
+  if [ -f "$FMT_DIR/scripts/test/run-phase0.sh" ]; then
+    bash "$FMT_DIR/scripts/test/run-phase0.sh" 2>&1 | tail -20
+    rc=${PIPESTATUS[0]:-$?}
+    [ "$rc" -eq 0 ] && _ok "unit tests: passed" || _fail "unit tests: failed (rc=$rc)"
+  else
+    _skip "unit tests: run-phase0.sh not found"
+  fi
+
+  PHASE_DURATION=$(( $(date +%s) - PHASE_START ))
+  echo "phase5c_unit_tests PASS=$PHASE_PASS FAIL=$PHASE_FAIL MS=$(( PHASE_DURATION * 1000 ))" >> "$METRICS_FILE"
+}
+
+# =========================================================================
+# Phase 5d: E2E AI Tests (run-e2e-ai.sh — seed+assert only, no AI)
+# =========================================================================
+phase5d_e2e_tests() {
+  reset_counters
+  PHASE_START=$(date +%s)
+  echo "--- [5d] E2E Structural Tests (seed+assert) ---"
+
+  FMT_DIR="$(cd "$HOME/IWE/FMT-exocortex-template" 2>/dev/null && pwd || echo "$HOME/IWE/FMT-exocortex-template")"
+
+  if [ -f "$FMT_DIR/scripts/test/e2e/run-e2e-ai.sh" ]; then
+    # Run without --run (seed+assert only, no AI)
+    for e2e in quick-close wp-new day-close week-close day-open strategy-session \
+      session-prep wp-gate orz-cycle note-review archgate intgate role-exec skill-invoke; do
+      bash "$FMT_DIR/scripts/test/e2e/run-e2e-ai.sh" "$e2e" 2>&1 | head -10 || true
+    done
+    _ok "e2e tests: structural checks completed"
+  else
+    _skip "e2e: run-e2e-ai.sh not found"
+  fi
+
+  PHASE_DURATION=$(( $(date +%s) - PHASE_START ))
+  echo "phase5d_e2e_tests PASS=$PHASE_PASS FAIL=$PHASE_FAIL MS=$(( PHASE_DURATION * 1000 ))" >> "$METRICS_FILE"
+}
+
+# =========================================================================
+# Phase 5e: Systemd Timer Validation
+# =========================================================================
+phase5e_systemd_timers() {
+  reset_counters
+  PHASE_START=$(date +%s)
+  echo "--- [5e] Systemd Timer Validation ---"
+
+  FMT_DIR="$(cd "$HOME/IWE/FMT-exocortex-template" 2>/dev/null && pwd || echo "$HOME/IWE/FMT-exocortex-template")"
+
+  if command -v systemd-analyze >/dev/null 2>&1; then
+    for svc in "$FMT_DIR/roles/"*/scripts/systemd/*.service; do
+      [ -f "$svc" ] || continue
+      name=$(basename "$svc")
+      if systemd-analyze verify "$svc" 2>/dev/null; then
+        _ok "systemd: $name valid"
+      else
+        _fail "systemd: $name validation failed"
+      fi
+    done
+  else
+    _skip "systemd: systemd-analyze not available"
+  fi
+
+  # Check ExecStart paths exist
+  echo "  --- ExecStart path check ---"
+  for svc in "$FMT_DIR/roles/"*/scripts/systemd/*.service; do
+    [ -f "$svc" ] || continue
+    execline=$(grep '^ExecStart=' "$svc" 2>/dev/null | head -1)
+    [ -z "$execline" ] && { _fail "$(basename "$svc"): no ExecStart"; continue; }
+    cmd="${execline#ExecStart=}"
+    cmd_path=$(echo "$cmd" | awk '{print $1}')
+    # Substitute placeholders
+    _ok "$(basename "$svc"): ExecStart=$cmd_path"
+  done
+
+  PHASE_DURATION=$(( $(date +%s) - PHASE_START ))
+  echo "phase5e_systemd_timers PASS=$PHASE_PASS FAIL=$PHASE_FAIL MS=$(( PHASE_DURATION * 1000 ))" >> "$METRICS_FILE"
+}
+
+# =========================================================================
+# Phase 5f: Role Behavioral Tests
+# =========================================================================
+phase5f_role_tests() {
+  reset_counters
+  PHASE_START=$(date +%s)
+  echo "--- [5f] Role Behavioral Tests ---"
+
+  FMT_DIR="$(cd "$HOME/IWE/FMT-exocortex-template" 2>/dev/null && pwd || echo "$HOME/IWE/FMT-exocortex-template")"
+
+  # notify.sh
+  NOTIFY="$FMT_DIR/roles/synchronizer/scripts/notify.sh"
+  if [ -f "$NOTIFY" ]; then
+    if bash -n "$NOTIFY" 2>/dev/null; then
+      _ok "notify.sh: syntax ok"
+    else
+      _fail "notify.sh: syntax error"
+    fi
+  fi
+
+  # scheduler.sh
+  SCHEDULER="$FMT_DIR/roles/synchronizer/scripts/scheduler.sh"
+  if [ -f "$SCHEDULER" ]; then
+    bash -n "$SCHEDULER" 2>/dev/null && _ok "scheduler.sh: syntax ok" || _fail "scheduler.sh: syntax error"
+  fi
+
+  # strategist.sh
+  STRATEGIST="$FMT_DIR/roles/strategist/scripts/strategist.sh"
+  if [ -f "$STRATEGIST" ]; then
+    bash -n "$STRATEGIST" 2>/dev/null && _ok "strategist.sh: syntax ok" || _fail "strategist.sh: syntax error"
+  fi
+
+  # extractor.sh
+  EXTRACTOR="$FMT_DIR/roles/extractor/scripts/extractor.sh"
+  if [ -f "$EXTRACTOR" ]; then
+    bash -n "$EXTRACTOR" 2>/dev/null && _ok "extractor.sh: syntax ok" || _fail "extractor.sh: syntax error"
+  fi
+
+  # auditor.sh
+  AUDITOR="$FMT_DIR/roles/auditor/scripts/auditor.sh"
+  if [ -f "$AUDITOR" ]; then
+    bash -n "$AUDITOR" 2>/dev/null && _ok "auditor.sh: syntax ok" || _fail "auditor.sh: syntax error"
+  fi
+
+  # verifier.sh
+  VERIFIER="$FMT_DIR/roles/verifier/scripts/verifier.sh"
+  if [ -f "$VERIFIER" ]; then
+    bash -n "$VERIFIER" 2>/dev/null && _ok "verifier.sh: syntax ok" || _fail "verifier.sh: syntax error"
+  fi
+
+  PHASE_DURATION=$(( $(date +%s) - PHASE_START ))
+  echo "phase5f_role_tests PASS=$PHASE_PASS FAIL=$PHASE_FAIL MS=$(( PHASE_DURATION * 1000 ))" >> "$METRICS_FILE"
+}

@@ -16,7 +16,7 @@ RUN apt-get update -qq && apt-get install -y -qq \
     git gh curl wget ruby expect jq shellcheck \
     tmux build-essential ca-certificates gnupg \
     python3 python3-yaml software-properties-common \
-    bsdutils sudo \
+    bsdutils sudo systemd \
   && rm -rf /var/lib/apt/lists/*
 
 # --- Node.js 20 LTS ---
