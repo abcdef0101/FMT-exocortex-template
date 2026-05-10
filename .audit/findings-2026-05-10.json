@@ -1,0 +1,340 @@
+{
+  "audit_date": "2026-05-10",
+  "previous_audit": "2026-05-07",
+  "findings_count": 18,
+  "severity_counts": {
+    "P0": 4,
+    "P1": 7,
+    "P2": 7
+  },
+  "findings": [
+    {
+      "id": "P0-BUG-01",
+      "title": "test-checksums.sh mutates production checksums.yaml — non-hermetic, causes order-dependent failure",
+      "severity": "P0",
+      "category": "bug",
+      "evidence": [
+        "scripts/test/test-checksums.sh:19 — bash \"$GEN_SCRIPT\" regenerates actual checksums.yaml on disk",
+        "scripts/test/test-checksums.sh:21 — second regeneration, then compares against first",
+        "scripts/generate-checksums.sh:10 — OUTPUT=\"$ROOT_DIR/checksums.yaml\" — writes to production file",
+        "Run-phase0 shows: ✗ FAIL (rc=1), 'key file missing: CLAUDE.md' — order-dependent"
+      ],
+      "why": "The test calls generate-checksums.sh which writes directly to $ROOT_DIR/checksums.yaml (the production file). This is a non-hermetic test that mutates production state. In the phase0 runner, checksums.yaml is regenerated with non-zero diff (70 insertions, 5 deletions from committed version). Subsequent test runs or other tests that depend on checksums.yaml contents see the mutated version, causing order-dependent failures when key files (CLAUDE.md) don't appear in expected format in the freshly-generated file.",
+      "source": "SWE@Google Ch.11 — hermetic tests; Shared Mutable State antipattern (Luo et al. 2014)",
+      "fix_sketch": "1. Regenerate checksums.yaml to a temp file instead of production location. 2. Run checksums.yaml regeneration in a temp directory, not $ROOT_DIR. 3. Add trap cleanup for temp files. 4. Verify all checks pass against temp file, not production file. 5. After fix, verify test passes in full suite (not just isolation).",
+      "effort": "M",
+      "affected_modules": ["scripts/test/test-checksums.sh", "scripts/generate-checksums.sh"],
+      "parent_finding_id": "P1-BUG-02 (previous audit: test-update-check.sh non-hermetic)"
+    },
+    {
+      "id": "P0-GAP-01",
+      "title": "26 production scripts untested — Beyoncé Rule violation expanded from 9 to 26",
+      "severity": "P0",
+      "category": "white-spot",
+      "evidence": [
+        ".claude/hooks/close-gate-reminder.sh — 30 lines, zero test coverage",
+        ".claude/hooks/precompact-checkpoint.sh — 17 lines, zero test coverage",
+        ".claude/hooks/protocol-artifact-validate.sh — 141 lines, zero test coverage",
+        ".claude/hooks/protocol-completion-reminder.sh — 29 lines, zero test coverage",
+        ".claude/hooks/protocol-stop-gate.sh — 97 lines, zero test coverage",
+        ".claude/hooks/wakatime-heartbeat.sh — 42 lines, zero test coverage",
+        ".claude/hooks/wp-gate-reminder.sh — 25 lines, zero test coverage",
+        ".claude/scripts/load-extensions.sh — 64 lines, partial test coverage (test-hooks.sh:184-205 only checks syntax/args)",
+        ".claude/scripts/resolve-workspace.sh — 97 lines, zero behavioral test coverage",
+        ".claude/skills/add-workspace-mcps/add-mcps.sh — zero test coverage",
+        ".claude/skills/iwe-workspace/workspace.sh — zero test coverage",
+        ".claude/skills/setup-wakatime/scripts/setup-wakatime.sh — zero test coverage",
+        ".claude/skills/wakatime/scripts/fetch-wakatime.sh — zero test coverage",
+        "scripts/vm/ — 10 scripts (benchmark-golden, build-golden, create-vm, destroy-vm, packages-firstboot, provision, run-full-test, test-from-golden, test-phases, verify-golden) — all untested",
+        "scripts/container/build-container.sh — zero test coverage",
+        "scripts/container/test-from-container.sh — zero test coverage",
+        "scripts/container/verify-container.sh — zero test coverage",
+        "scripts/lib/manifest-lib.sh — zero test coverage"
+      ],
+      "why": "Previous audit (P0-GAP-01) identified 9 untested scripts (542 lines). The gap has expanded to 26 scripts. New production code (VM pipeline, container tooling, skill scripts) was added without corresponding tests. The Beyoncé Rule states: any production behavior the team relies on must be guarded by an automated test. These scripts gate AI session lifecycle, workspace resolution, VM image builds, and container operations — all critical infrastructure.",
+      "source": "SWE@Google Ch.11 — Beyoncé Rule: 'If you liked it, you should have put a CI test on it'",
+      "fix_sketch": "Phase 1: test-hooks.sh already covers syntax/structure for 7 hooks + 2 claude scripts — verify this in baseline. Phase 2: Add behavioral tests for resolve-workspace.sh (workspace resolution logic). Phase 3: Add unit tests for manifest-lib.sh (parsing). Phase 4: VM/container scripts require QEMU/Podman — document testing requirements. Phase 5: Skill scripts: add test-skill-scripts.sh for bash -n + ShellCheck + arg handling.",
+      "effort": "L",
+      "affected_modules": [".claude/hooks/", ".claude/scripts/", ".claude/skills/", "scripts/vm/", "scripts/container/", "scripts/lib/"]
+    },
+    {
+      "id": "P0-CI-01",
+      "title": "CI validate-template.yml consistently failing — 5/5 runs, but failing jobs NOT blocking",
+      "severity": "P0",
+      "category": "bug",
+      "evidence": [
+        ".github/workflows/validate-template.yml — upgrade-test job fails (5/5 runs: 2026-05-09 to 2026-05-10)",
+        ".github/workflows/validate-template.yml — integration-contract job fails on both ubuntu and macos runners",
+        "Branch protection requires: markdownlint, yamllint, shellcheck, validate — BUT NOT upgrade-test or integration-contract",
+        "smoke-test-fresh-install fails in integration-contract — 28 checks not passing, actual test gap ignored"
+      ],
+      "why": "Three CI jobs fail consistently (upgrade-test, integration-contract on ubuntu, integration-contract on macos), but branch protection only requires 4 jobs (markdownlint, yamllint, shellcheck, validate) which pass. The failing jobs are silently ignored — PRs merge despite broken upgrade simulation and fresh-install smoke tests. This means CI has been failing for days without detection, masking potentially real bugs in the upgrade path and fresh install workflow. This is the 'Coverage as the Goal' antipattern applied to CI: the required checks pass, suggesting quality, while real structural issues go undetected.",
+      "source": "SWE@Google Ch.11 — tests must report failures accurately; CI gates must be comprehensive",
+      "fix_sketch": "1. Add upgrade-test and integration-contract to branch protection required contexts. 2. Investigate and fix the smoke-test-fresh-install failure in integration-contract. 3. Investigate upgrade-test failure. 4. Run the full validate-template.yml locally (or via act) before committing changes.",
+      "effort": "M",
+      "affected_modules": [".github/workflows/validate-template.yml"]
+    },
+    {
+      "id": "P0-ANTI-01",
+      "title": "E2E AI runner masks ALL error output with 2>/dev/null — silent false positives at scale",
+      "severity": "P0",
+      "category": "antipattern",
+      "evidence": [
+        "scripts/test/e2e/run-e2e-ai.sh:21 — WS=$(bash \"$TEST_DIR/$seed\" 2>/dev/null | tail -1) — seed stderr swallowed",
+        "scripts/test/e2e/run-e2e-ai.sh:27 — ln -sfn . \"$WS/DS-strategy\" 2>/dev/null || true — symlink failure masked",
+        "scripts/test/e2e/run-e2e-ai.sh:35 — bash \"$TEST_DIR/$eval\" \"$WS\" --run 2>/dev/null — run stderr swallowed",
+        "scripts/test/e2e/run-e2e-ai.sh:46 — bash \"$TEST_DIR/$eval\" \"$WS\" \"$ARTIFACT\" 2>/dev/null — judge stderr swallowed",
+        "scripts/test/e2e/run-e2e-ai.sh:59 — bash \"$TEST_DIR/$assert\" \"$WS\" 2>/dev/null — assert stderr swallowed"
+      ],
+      "why": "Every critical operation in the E2E AI runner runs through `2>/dev/null`, masking all stderr. If a seed script crashes with a bash error, the error is hidden — only the last stdout line is captured. If the eval/judge script encounters a Python/JSON parse error, it's hidden. If the assert script hits an unexpected file structure, the diagnostic is hidden. This runner gates 16 E2E AI workflows. Any failure in any of them produces a false PASS if the exit code happens to be 0. This is the Command Substitution Without Exit Check antipattern at the orchestrator level.",
+      "source": "Failure-mode antipattern: Command substitution without exit check (bash manual §Shell Builtin Commands); Auto-retry as Flake Mitigation antipattern (Google Testing Blog)",
+      "fix_sketch": "1. Capture stderr to temp files alongside stdout, display on failure. 2. Replace `2>/dev/null || true` on line 27 with explicit error check: create DS-strategy symlink, verify it points to current workspace. 3. Add `set -euo pipefail` to seed scripts if they don't have it (check each). 4. Log seed/eval/assert output to a structured directory for post-mortem analysis. 5. Add a non-zero exit code check with clear error message for each stage.",
+      "effort": "M",
+      "affected_modules": ["scripts/test/e2e/run-e2e-ai.sh"]
+    },
+    {
+      "id": "P1-ANTI-02",
+      "title": "156 || true instances — 9.75x regression since baseline, auto-retry as flake mitigation",
+      "severity": "P1",
+      "category": "antipattern",
+      "evidence": [
+        "scripts/test/test-extension-points.sh:18,36,56,73,78,129,134,159 — 8 instances, masks grep failures",
+        "scripts/test/test-ai-cli-wrapper.sh:38,68,100,106,111,112,160,169 — 8 instances, masks unset/detect failures",
+        "scripts/test/canary-wp-gate.sh:58-60 — git init/add/commit masked with || true",
+        "scripts/test/test-update-apply.sh:5 instances, test-manifest-parser.sh:5 instances",
+        "156 total across all 117 test files — previous baseline had 16"
+      ],
+      "why": "The || true pattern was reduced in the previous audit (16→2 in seed-day-open.sh). Since then, 154 new instances have been added across 117 test files. This is the 'Auto-retry as Flake Mitigation' antipattern applied to test assertions: when a command fails, the test continues rather than detecting the failure. In canary-wp-gate.sh:58-60, git init/add/commit are all masked — if git is not installed or the disk is full, the canary test passes with a broken workspace. The explosion suggests this pattern became a copy-paste convention rather than a deliberate choice.",
+      "source": "Auto-retry as Flake Mitigation antipattern (Google Testing Blog flake series, ICSE 2024 FTW workshop); SWE@Google Ch.11 — tests must report failures accurately",
+      "fix_sketch": "1. Audit all 156 || true instances — classify as: (a) legitimate fallback (command may legitimately not exist), (b) error masking (should report failure), (c) cleanup masking (should use trap instead). 2. Replace legit-fallback patterns with explicit pre-checks: `command -v git >/dev/null || { echo 'git not found'; exit 1; }`. 3. Replace cleanup-masking patterns with trap EXIT. 4. Remove error-masking || true from assertions and git operations. 5. Set target: reduce to <20 legitimate instances.",
+      "effort": "L",
+      "affected_modules": ["scripts/test/test-extension-points.sh", "scripts/test/test-ai-cli-wrapper.sh", "scripts/test/canary-wp-gate.sh", "scripts/test/test-update-apply.sh", "scripts/test/test-manifest-parser.sh"]
+    },
+    {
+      "id": "P1-GAP-01",
+      "title": "18 mktemp without trap in test scripts — Shared Mutable State, potential flakiness",
+      "severity": "P1",
+      "category": "quality",
+      "evidence": [
+        "scripts/test/seed-day-close.sh — mktemp used, no trap EXIT",
+        "scripts/test/seed-integration-gate-e2e.sh — mktemp used, no trap EXIT",
+        "scripts/test/seed-quick-close.sh — mktemp used, no trap EXIT",
+        "scripts/test/seed-synchronizer-code-scan.sh — mktemp used, no trap EXIT",
+        "scripts/test/seed-skill-invocation-e2e.sh — mktemp used, no trap EXIT",
+        "scripts/test/seed-wp-gate-e2e.sh — mktemp used, no trap EXIT",
+        "scripts/test/seed-verifier-pack-entity.sh — mktemp used, no trap EXIT",
+        "scripts/test/seed-extractor-inbox-check.sh — mktemp used, no trap EXIT",
+        "scripts/test/seed-archgate-e2e.sh — mktemp used, no trap EXIT",
+        "scripts/test/seed-orz-cycle.sh — mktemp used, no trap EXIT",
+        "scripts/test/seed-note-review.sh — mktemp used, no trap EXIT",
+        "scripts/test/seed-week-close.sh — mktemp used, no trap EXIT",
+        "scripts/test/seed-session-prep.sh — mktemp used, no trap EXIT",
+        "scripts/test/seed-wp-new.sh — mktemp used, no trap EXIT",
+        "scripts/test/seed-role-execution-e2e.sh — mktemp used, no trap EXIT",
+        "scripts/test/e2e/e2e-migration.sh — mktemp used, no trap EXIT",
+        "scripts/test/e2e/e2e-update-flow.sh — mktemp used, no trap EXIT",
+        "scripts/test/e2e/e2e-fresh-install.sh — mktemp used, no trap EXIT"
+      ],
+      "why": "Previous audit (P1-GAP-01) was flagged false-positive because all mktemp files at the time had trap. Since then, 18 new seed and E2E scripts were created with mktemp but without trap EXIT cleanup. On systems with limited /tmp space, accumulated temp directories cause flaky failures when mktemp can't allocate. This is especially problematic for CI workflows that run these scripts repeatedly.",
+      "source": "Shared Mutable State antipattern (Luo et al. 2014; Romano et al. ICSE 2021); SWE@Google Ch.11 — hermetic tests must clean up after themselves",
+      "fix_sketch": "Add 'trap \"rm -rf \\\"\\$TMPDIR\\\"\" EXIT' (or equivalent) after every mktemp call in all 18 files. For scripts with multiple temp dirs, consolidate into a single cleanup function with trap EXIT.",
+      "effort": "M",
+      "affected_modules": ["scripts/test/seed-*.sh (14 files)", "scripts/test/e2e/e2e-*.sh (3 files)"]
+    },
+    {
+      "id": "P1-BUG-01",
+      "title": "test-checksums.sh order-dependent failure — passes in isolation, fails in suite",
+      "severity": "P1",
+      "category": "bug",
+      "evidence": [
+        "scripts/test/test-checksums.sh:19 — regenerates checksums.yaml on disk, mutating shared state",
+        "scripts/test/test-checksums.sh:74 — grep -qxF \"$key\" against freshly generated files_entries, format may differ",
+        "run-phase0.sh output: ✗ FAIL (rc=1), 'key file missing: CLAUDE.md (in files section)'",
+        "Isolated run after git checkout: rc=0, All tests passed",
+        "Isolated run with ROOT_DIR set: rc=1 (same as runner), 'key file missing: CLAUDE.md'"
+      ],
+      "why": "When run in isolation on a clean git checkout, the test passes because $ROOT_DIR is set to the repo root by default and checksums.yaml matches what's on disk. When run through the phase0 runner with ROOT_DIR exported (or after a previous test modified checksums.yaml), the key file format check fails — the freshly generated checksums.yaml has CLAUDE.md in a different format than what the grep expects. This is a classic Order-Dependent Test caused by shared mutable state (checksums.yaml).",
+      "source": "Order-Dependent Tests antipattern (Luo et al. 2014; Romano et al. ICSE 2021); SWE@Google Ch.11 — hermeticity",
+      "fix_sketch": "1. Regenerate checksums.yaml to /tmp, not $ROOT_DIR (same fix as P0-BUG-01). 2. Ensure key file check works regardless of ROOT_DIR value. 3. Verify test passes in isolation AND in full suite. 4. Add explicit assertion that checksums.yaml on disk was NOT modified by the test.",
+      "effort": "M",
+      "affected_modules": ["scripts/test/test-checksums.sh"],
+      "parent_finding_id": "P0-BUG-01"
+    },
+    {
+      "id": "P1-GAP-02",
+      "title": "Canary scripts mask git operation failures — silent false positives in health checks",
+      "severity": "P1",
+      "category": "white-spot",
+      "evidence": [
+        "scripts/test/canary-wp-gate.sh:58 — git init --quiet 2>/dev/null || true",
+        "scripts/test/canary-wp-gate.sh:59 — git add -A >/dev/null 2>&1 || true",
+        "scripts/test/canary-wp-gate.sh:60 — git commit -m \"seed: WP Gate canary test\" --quiet 2>/dev/null || true",
+        "git init failure (disk full, permission denied) → workspace created with no .git dir → AI hooks silently skip"
+      ],
+      "why": "Health check canary tests exist to detect regressions. But the seed setup masks failures: if git is unavailable, disk is full, or permissions are wrong, the workspace is created without .git — the AI hooks (which depend on git for commit/push) will silently skip operations without detection. The canary reports HEALTHY when the test infrastructure itself is broken.",
+      "source": "Failure-mode antipattern: Command substitution without exit check; SWE@Google Ch.12 Principle 9 — clear failure messages must survive the pipeline",
+      "fix_sketch": "1. Check git availability before attempting: command -v git || exit 1. 2. Replace || true with proper error handling: capture exit code, _fail on non-zero. 3. Verify .git directory exists after git init. 4. Consider whether git operations are even necessary for the canary — if the hooks don't check for git, the canary shouldn't either.",
+      "effort": "S",
+      "affected_modules": ["scripts/test/canary-wp-gate.sh", "scripts/test/canary-*.sh (5 files)"]
+    },
+    {
+      "id": "P1-GAP-03",
+      "title": "ShellCheck present in CI but not in local dev loop — pre-commit gap",
+      "severity": "P1",
+      "category": "white-spot",
+      "evidence": [
+        "run-phase0.sh:28-50 — ShellCheck runs if command -v shellcheck succeeds, but is advisory (not blocking) without --strict",
+        "shellcheck not installed locally (leftover from P1-GAP-03 in previous audit)",
+        ".github/workflows/validate-template.yml — ShellCheck in CI, blocking via branch protection",
+        "Developer writes bash, runs tests locally, gets green — push to CI, ShellCheck fails — friction"
+      ],
+      "why": "ShellCheck exists in CI and is blocking (required by branch protection), but it's not installed locally by default. The run-phase0.sh runner makes ShellCheck advisory (non-blocking) without --strict. This means developers discover ShellCheck failures only after pushing to CI — the slowest possible feedback loop. A pre-commit hook with ShellCheck would catch issues immediately.",
+      "source": "Testing Trophy (Dodds) — static analysis is the base layer; SWE@Google Ch.11 — fast feedback loops",
+      "fix_sketch": "1. Add ShellCheck to pre-commit hook or install script. 2. Make run-phase0.sh --strict mode default (or enable by default when ShellCheck is installed). 3. Document ShellCheck installation in development setup guide. 4. Fix existing ShellCheck warnings (if any remain).",
+      "effort": "S",
+      "affected_modules": ["scripts/test/run-phase0.sh"],
+      "parent_finding_id": "P1-GAP-03 (previous audit)"
+    },
+    {
+      "id": "P1-BUG-02",
+      "title": "test-update-check.sh still runs real update.sh operations — M from previous audit deferred",
+      "severity": "P1",
+      "category": "antipattern",
+      "evidence": [
+        "scripts/test/test-update-check.sh:10 — UPDATER=\"$ROOT_DIR/update.sh\" — uses real update.sh",
+        "scripts/test/test-update-check.sh:14 — bash \"$UPDATER\" --version 2>&1 — runs real update.sh",
+        "Previous audit P1-BUG-02: 'runs real update.sh --check twice, modifies checksums.yaml' — deferred to Week 3-4"
+      ],
+      "why": "The test was partially refactored (no longer runs --check twice), but still references and executes real update.sh. The previous audit's finding was deferred. Running real update.sh in a test means: git operations, checksums regeneration, and extension compatibility checks — making the test slow, non-hermetic, and flaky.",
+      "source": "SWE@Google Ch.11 — hermeticy; Sleeps as Synchronization antipattern (Google Testing Blog)",
+      "fix_sketch": "Extract testable functions from update.sh. Mock git operations. Test output sections against canned data. This was deferred from previous audit — priority to resolve.",
+      "effort": "M",
+      "affected_modules": ["scripts/test/test-update-check.sh", "update.sh"],
+      "parent_finding_id": "P1-BUG-02 (previous audit)"
+    },
+    {
+      "id": "P2-QUAL-01",
+      "title": "Command substitution patterns lack exit checks — widespread across test layer",
+      "severity": "P2",
+      "category": "quality",
+      "evidence": [
+        "scripts/test/test-hooks.sh:48 — output=$(echo '{}' | bash \"$path\" 2>/dev/null) && rc=\\$? || rc=\\$? — pattern has rc capture but variable may be empty",
+        "scripts/test/test-setup-integration.sh:18 — output=$(bash \"$SETUP\" --version 2>&1) — no rc check after, not all callers verify",
+        "scripts/test/test-manifest-parser.sh:147 — output=$(apply_manifest ... 2>&1) — some callers don't check rc",
+        "scripts/test/test-migrations.sh:83 — output=$(bash \"$RUNNER\" ... 2>&1 || true) — exit code explicitly swallowed with || true"
+      ],
+      "why": "While many command substitutions correctly capture rc with the `&& rc=0 || rc=$?` pattern, several don't. The test-migrations.sh pattern (line 83) explicitly swallows the exit code with `|| true`. When apply_manifest or setup.sh crashes, the variable is silently empty and subsequent assertions operate on empty data — producing false PASS/FAIL depending on what's being checked.",
+      "source": "Failure-mode antipattern: Command substitution without exit check (bash manual §Shell Builtin Commands)",
+      "fix_sketch": "1. Standardize on `var=$(cmd) && rc=0 || rc=$?` pattern across all test files. 2. Replace `|| true` on command substitutions with explicit rc check. 3. Add a lint rule (grep) that flags bare `var=$(cmd)` without rc capture. 4. Consider extracting a _safe_run helper function.",
+      "effort": "M",
+      "affected_modules": ["scripts/test/test-hooks.sh", "scripts/test/test-setup-integration.sh", "scripts/test/test-manifest-parser.sh", "scripts/test/test-migrations.sh"]
+    },
+    {
+      "id": "P2-QUAL-02",
+      "title": "E2E AI runner has no trap cleanup — temp file leaks in automation",
+      "severity": "P2",
+      "category": "quality",
+      "evidence": [
+        "scripts/test/e2e/run-e2e-ai.sh:148 lines — no trap EXIT defined",
+        "Seeds create workspace dirs via mktemp (14 files), runner never cleans them up",
+        "E2E AI runner can be invoked with 'all' phase — creates 16+ temp directories, none cleaned up"
+      ],
+      "why": "The E2E AI runner orchestrates 16 seed scripts that create workspace directories via mktemp. The runner itself has no trap cleanup. Seed scripts also lack trap (see P1-GAP-01). Result: running `run-e2e-ai.sh all` leaves 16+ temp directories in /tmp. In CI or automated weekly runs, this accumulates indefinitely.",
+      "source": "Shared Mutable State antipattern (Luo et al. 2014); SWE@Google Ch.11 — hermetic tests must clean up",
+      "fix_sketch": "1. Add trap EXIT to run-e2e-ai.sh that cleans up all created workspace dirs. 2. Track created dirs in an array. 3. Alternatively, have each seed script clean up its own workspace (add trap to each).",
+      "effort": "S",
+      "affected_modules": ["scripts/test/e2e/run-e2e-ai.sh"]
+    },
+    {
+      "id": "P2-QUAL-03",
+      "title": "run-phase0.sh grep filter still truncates assertion output — hides failures in non-verbose mode",
+      "severity": "P2",
+      "category": "quality",
+      "evidence": [
+        "scripts/test/run-phase0.sh:66 — grep -E '✓|✗|All tests|passed|failed|FAIL|SKIP|PASS|WARN|•' || cat \"$TEST_LOG\"",
+        "Filter hides: intermediate output, debug messages, error context for multi-line failures",
+        "Previous audit P2-QUAL-01: same finding, noted partial fix (line 68 shows full output on failure)"
+      ],
+      "why": "Previous audit noted the grep filter may hide failures. The fix (line 68: show full output on failure) addresses post-hoc diagnosis but not real-time detection. In normal mode, failures that produce error messages without grep patterns are hidden — user only sees final result without context. This was a P2 quality item from the previous audit that wasn't addressed.",
+      "source": "SWE@Google Ch.12 Principle 9 — clear failure messages must survive the CI→developer pipeline",
+      "fix_sketch": "Always show the FULL output on test failure (already done on line 67-69 when $TEST_RC != 0 — line 68 is always reached after a failure). The grep filter is acceptable for passing tests. Consider removing filter entirely and always showing full output (test logs are small — max a few hundred lines each).",
+      "effort": "S",
+      "affected_modules": ["scripts/test/run-phase0.sh"],
+      "parent_finding_id": "P2-QUAL-01 (previous audit)"
+    },
+    {
+      "id": "P2-QUAL-04",
+      "title": "test-ai-cli-wrapper.sh: unset -f command 2>/dev/null || true — may affect subsequent tests",
+      "severity": "P2",
+      "category": "antipattern",
+      "evidence": [
+        "scripts/test/test-ai-cli-wrapper.sh:38 — unset -f command 2>/dev/null || true — removes command function",
+        "scripts/test/test-ai-cli-wrapper.sh:111-112 — unset -f detect_ai_cli 2>/dev/null || true; unset -f command 2>/dev/null || true",
+        "test-telegram-notify.sh also defines 'command' function (from ai-cli-wrapper sourcing) — unset here affects it"
+      ],
+      "why": "test-ai-cli-wrapper.sh overrides the `command` function for testing, then uses `unset -f command || true` to clean up. The `|| true` means if the function wasn't defined (e.g., test was skipped or interrupted), the cleanup is silently bypassed. More critically, if the function was defined and `unset` fails (unlikely but possible), the error is swallowed. This could leave a mock `command` function defined, affecting any subsequent test that sources the wrapper.",
+      "source": "Test DSL Hell antipattern — shared mutable function definitions between tests",
+      "fix_sketch": "1. Remove `|| true` from unset operations — if unset fails, it should be visible. 2. Consider running this test in a subshell to avoid function leakage: wrap the entire test in `( ... )`. 3. Check if 2>/dev/null is needed on unset — it probably isn't.",
+      "effort": "S",
+      "affected_modules": ["scripts/test/test-ai-cli-wrapper.sh"]
+    },
+    {
+      "id": "P2-QUAL-05",
+      "title": "test-hooks.sh covers structure/syntax but not behavior for 7 hooks — structural inspection antipattern",
+      "severity": "P2",
+      "category": "quality",
+      "evidence": [
+        "scripts/test/test-hooks.sh:20-35 — hook tests: bash -n (syntax), grep for set -e, grep for JSON output, args test",
+        "scripts/test/test-hooks.sh — no behavioral test: does protocol-stop-gate.sh actually block? does artifact-validate catch broken artifacts?",
+        "test-hooks.sh only tests that hooks 'exist, have syntax, output JSON' — not that they 'gate correctly'"
+      ],
+      "why": "test-hooks.sh was added to address P0-GAP-01 (9 untested scripts). It improves the situation significantly (bash -n, structure validation) but doesn't test hook behavior. Testing that hooks exist and output JSON is a start, but it's the 'Trivial Tests / Constructor Tests' antipattern: it lifts coverage without adding signal. A hook that outputs `{}` when it should output `{\"decision\":\"block\"}` passes all current tests.",
+      "source": "Trivial Tests antipattern (Kapelonis); Structural Inspection antipattern (Khorikov); SWE@Google Ch.11 — Beyoncé Rule requires behavioral tests",
+      "fix_sketch": "Phase 1 (quick): Add behavioral scenarios — feed protocol-stop-gate.sh a scenario that SHOULD block, assert it outputs block decision. Phase 2: Add artifact validation: feed a broken artifact, assert validation catches it. Phase 3: Add integration test: hook returns block → agent loop actually stops.",
+      "effort": "M",
+      "affected_modules": ["scripts/test/test-hooks.sh"],
+      "parent_finding_id": "P0-GAP-01"
+    },
+    {
+      "id": "P2-QUAL-06",
+      "title": "canary scripts have AI_CLI_API_KEY loading pattern duplicated in all 5 files — DAMP violation",
+      "severity": "P2",
+      "category": "antipattern",
+      "evidence": [
+        "scripts/test/canary-day-open.sh:8-12 — AI_CLI_API_KEY loading (5 lines)",
+        "scripts/test/canary-day-close.sh:8-12 — same pattern duplicated",
+        "scripts/test/canary-week-close.sh:8-12 — same pattern duplicated",
+        "scripts/test/canary-orz-cycle.sh:8-12 — same pattern duplicated",
+        "scripts/test/canary-wp-gate.sh:8-12 — same pattern duplicated"
+      ],
+      "why": "The exact same 5-line block for loading API keys is duplicated in all 5 canary scripts. This is a maintenance burden: changing the secret path requires editing 5 files. While the skill references DON'T repeat yourself (DAMP over DRY), this is not a testing assertion — it's infrastructure setup that should be shared. The duplication risks one canary having a different secret path than others.",
+      "source": "SWE@Google Ch.12 Principle 10 — DAMP over DRY applies to test assertions, not infrastructure setup",
+      "fix_sketch": "Extract the API key loading into a shared library (e.g., scripts/test/_lib-auth.sh) and source it. Or move to a single env file that all scripts can source.",
+      "effort": "S",
+      "affected_modules": ["scripts/test/canary-*.sh"]
+    },
+    {
+      "id": "P2-QUAL-07",
+      "title": "No coverage map documenting production-script → test-script relationships",
+      "severity": "P2",
+      "category": "quality",
+      "evidence": [
+        "TEST-COVERAGE.md exists but describes testing infrastructure, not a coverage map",
+        "No file documents which production scripts are covered by which tests",
+        "The relationship between 32 production scripts and 117 test files is discoverable only by grep"
+      ],
+      "why": "Previous audit P2-QUAL-06 identified this gap. TEST-COVERAGE.md was created but describes 'how to run tests' rather than 'what is covered'. Without a coverage map, the team can't answer 'which scripts are tested?' without grep. The gap makes it hard to prioritize test additions and evaluate coverage completeness.",
+      "source": "SWE@Google Ch.11 — documentation of coverage is as important as coverage itself",
+      "fix_sketch": "Update TEST-COVERAGE.md with a production-script → test-script matrix. Auto-generate from a script that greps for file references. Include: script path, test file, test type (syntax/behavioral/integration), last verified date.",
+      "effort": "S",
+      "affected_modules": ["TEST-COVERAGE.md"],
+      "parent_finding_id": "P2-QUAL-06 (previous audit)"
+    }
+  ],
+  "cross_reference": {
+    "previous_audit_fixed": ["P0-BUG-02", "P1-ANTI-01", "P1-ANTI-02", "P1-ANTI-03", "P0-GAP-02", "P1-GAP-02", "P1-BUG-01"],
+    "previous_audit_still_open": ["P0-GAP-01 (9→26 scripts)", "P1-BUG-02", "P1-GAP-03"],
+    "previous_audit_regressed": ["P1-ANTI-03 (|| true: 16→156)", "P1-GAP-01 (mktemp-trap: 0→18)"],
+    "new_findings_this_audit": ["P0-BUG-01", "P0-CI-01", "P0-ANTI-01", "P1-GAP-02", "P2-QUAL-01..07"]
+  }
+}

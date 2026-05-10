@@ -1,0 +1,110 @@
+{
+  "measurement_date": "2026-05-10T12:00:00+03:00",
+  "previous_baseline": "2026-05-07",
+  "test_results": {
+    "phase0_unit": {
+      "total": 51,
+      "passed": 50,
+      "failed": 1,
+      "failed_tests": [
+        "test-checksums.sh — rc=1 in run-phase0.sh runner, passes clean in isolation"
+      ],
+      "pass_rate": 0.98
+    },
+    "assert_tests": {
+      "total": 18,
+      "passed": null,
+      "failed": null,
+      "note": "not run — requires LLM API keys, run via LLM-as-Judge pipeline"
+    },
+    "canary_tests": {
+      "total": 5,
+      "passed": null,
+      "failed": null,
+      "note": "not run — requires LLM API keys"
+    },
+    "eval_tests": {
+      "total": 17,
+      "passed": null,
+      "failed": null,
+      "note": "not run — LLM-as-Judge evaluation scripts"
+    },
+    "seed_tests": {
+      "total": 17,
+      "passed": null,
+      "failed": null,
+      "note": "not run — AI smoke test seed data generators"
+    },
+    "e2e": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "pass_rate": 1.0
+    },
+    "e2e_ai": {
+      "total": 5,
+      "passed": null,
+      "failed": null,
+      "note": "not run — requires Claude/DeepSeek API keys, seed→run→assert→judge pipeline"
+    }
+  },
+  "code_quality": {
+    "shellcheck_ci": "present (validate-template.yml)",
+    "shellcheck_local": "not installed",
+    "bash_n_local": "present (run-phase0.sh)",
+    "markdownlint_ci": "present",
+    "yamllint_ci": "present",
+    "strict_mode_test_files": {
+      "with_set_euo_pipefail": 117,
+      "without_set_euo_pipefail": 0,
+      "adherence": "100%"
+    }
+  },
+  "antipattern_counts": {
+    "or_true_total": 156,
+    "or_true_explosion": "was 16 in 2026-05-07, now 156 — 9.75x increase across 117 files",
+    "mktemp_without_trap": 18,
+    "note": "Massive regression in || true usage since baseline"
+  },
+  "ci_metrics": {
+    "validate_template_last_5_status": "all failure",
+    "shellcheck_job": "passing (13s)",
+    "validate_job": "passing (3s)",
+    "upgrade_test_job": "failing (47s)",
+    "integration_contract_job": "failing (21s)",
+    "release_sync_job": "passing (4s)",
+    "container_test_wall_time_seconds": 90,
+    "golden_test_wall_time_seconds": null,
+    "golden_test_ci": "no recent failures",
+    "container_test_ci": "no recent failures"
+  },
+  "coverage_metrics": {
+    "line_coverage": null,
+    "branch_coverage": null,
+    "mutation_score": null,
+    "note": "No code coverage or mutation tools exist for Bash",
+    "untested_production_scripts": 26,
+    "total_production_scripts": 32,
+    "coverage_by_category": {
+      "hooks": "0/7 (0%)",
+      "claude_scripts": "0/2 (0%)",
+      "skill_scripts": "1/5 (20%)",
+      "vm_scripts": "0/10 (0%)",
+      "container_scripts": "0/3 (0%)",
+      "lib_scripts": "0/1 (0%)",
+      "core_scripts": "2/4 (50%)"
+    }
+  },
+  "assertion_count": {
+    "test_files": 831,
+    "note": "grep count of _pass, _fail, assert patterns across 51 test-*.sh files"
+  },
+  "baseline_maturity_estimate": {
+    "overall": 3,
+    "unit_test_quality": 3,
+    "e2e_coverage": 3,
+    "ci_gates": 3,
+    "tooling": 2,
+    "note": "CI gates weakened since previous baseline (validate-template.yml consistently failing). Production script coverage dropped (26/32 untested vs 9/22 before). Strict mode now at 100% (was 64%). || true exploded 9.75x."
+  }
+}

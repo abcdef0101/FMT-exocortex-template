@@ -1,0 +1,149 @@
+{
+  "audit_date": "2026-05-10",
+  "repo": "FMT-exocortex-template",
+  "repo_type": "Base/Formats",
+  "previous_audit": "2026-05-07",
+  "stack": {
+    "primary_language": "Bash",
+    "config_formats": ["YAML", "JSON", "Markdown"],
+    "total_sh_files": 200,
+    "build_system": "none",
+    "package_managers": ["none (ShellCheck via apt-get in CI)"],
+    "additional_tools": ["markdownlint", "yamllint"]
+  },
+  "test_inventory": {
+    "unit_tests": {
+      "count": 51,
+      "directory": "scripts/test/test-*.sh",
+      "framework": "custom (_pass/_fail functions)",
+      "runner": "scripts/test/run-phase0.sh",
+      "pass_rate": 0.98,
+      "passed": 50,
+      "failed": 1,
+      "failed_test": "test-checksums.sh (rc=1 — only in runner, passes in isolation)"
+    },
+    "assert_tests": {
+      "count": 18,
+      "directory": "scripts/test/assert-*.sh",
+      "framework": "LLM-as-Judge (DeepSeek) + bash assertions",
+      "pattern": "Blocking CI gates for IWE behavior validation",
+      "pass_rate": "not measured"
+    },
+    "canary_tests": {
+      "count": 5,
+      "directory": "scripts/test/canary-*.sh",
+      "framework": "Weekly IWE health check scripts",
+      "pattern": "Scheduled health probes",
+      "pass_rate": "not measured"
+    },
+    "eval_tests": {
+      "count": 17,
+      "directory": "scripts/test/eval-*.sh",
+      "framework": "LLM-as-Judge (DeepSeek) evaluation scripts",
+      "pass_rate": "not measured"
+    },
+    "seed_tests": {
+      "count": 17,
+      "directory": "scripts/test/seed-*.sh",
+      "framework": "AI smoke test seed scripts",
+      "pass_rate": "not measured"
+    },
+    "e2e_tests": {
+      "count": 5,
+      "directory": "scripts/test/e2e/e2e-*.sh",
+      "framework": "custom (_pass/_fail with E2E-X labels)",
+      "runner": "scripts/test/e2e/run-e2e.sh",
+      "ai_runner": "scripts/test/e2e/run-e2e-ai.sh",
+      "pass_rate": "not measured"
+    },
+    "runners_and_libs": {
+      "count": 4,
+      "files": ["run-phase0.sh", "run-e2e.sh", "run-e2e-ai.sh", "_lib.sh"]
+    },
+    "total_test_files": 117
+  },
+  "ci_inventory": {
+    "platform": "GitHub Actions",
+    "workflows": {
+      "validate-template.yml": "ShellCheck + markdownlint + yamllint + upgrade-test + integration-contract",
+      "test-golden.yml": "QEMU/KVM golden image tests (self-hosted runner)",
+      "test-container.yml": "Podman container tests (self-hosted runner)",
+      "cloud-scheduler.yml": "Daily backup/health cron",
+      "notify-update.yml": "Update notifications via Telegram"
+    },
+    "ci_status": "FAILING (last 5 runs of validate-template.yml all failed)",
+    "failing_jobs": ["upgrade-test", "integration-contract (both ubuntu and macos)"],
+    "passing_jobs": ["shellcheck", "validate", "release-sync"],
+    "ci_wall_time_seconds": {
+      "shellcheck": 13,
+      "validate": 3,
+      "upgrade_test": 47,
+      "integration_contract": 21,
+      "release_sync": 4
+    }
+  },
+  "strict_mode": {
+    "test_files_with_set_euo_pipefail": 117,
+    "test_files_without": 0,
+    "adherence": "100%"
+  },
+  "antipattern_counts": {
+    "or_true_total": 156,
+    "or_true_files": "widespread across 117 files",
+    "top_offenders": [
+      "test-extension-points.sh: 8",
+      "test-ai-cli-wrapper.sh: 8",
+      "canary-wp-gate.sh: 6",
+      "test-update-apply.sh: 5",
+      "test-manifest-parser.sh: 5"
+    ],
+    "mktemp_without_trap": 18
+  },
+  "production_scripts": {
+    "hooks": {
+      "count": 7,
+      "tested": 0,
+      "untested": 7
+    },
+    "claude_scripts": {
+      "count": 2,
+      "tested": 0,
+      "untested": 2
+    },
+    "skill_scripts": {
+      "count": 5,
+      "tested": 1,
+      "untested": 4
+    },
+    "vm_scripts": {
+      "count": 10,
+      "tested": 0,
+      "untested": 10
+    },
+    "container_scripts": {
+      "count": 3,
+      "tested": 0,
+      "untested": 3
+    },
+    "lib_scripts": {
+      "count": 1,
+      "tested": 0,
+      "untested": 1
+    },
+    "core_scripts": {
+      "count": 4,
+      "tested": 2,
+      "untested": 2
+    },
+    "total_production_scripts": 32,
+    "total_untested": 26
+  },
+  "missing_tools": {
+    "coverage": "null (no code coverage tool for bash)",
+    "mutation": "null (no mutation testing tool)",
+    "linting": "ShellCheck (present in CI, not installed locally)",
+    "static_analysis": "bash -n (in CI and run-phase0.sh)",
+    "markdownlint": "present in CI",
+    "yamllint": "present in CI"
+  }
+}
