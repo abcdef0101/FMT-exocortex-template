@@ -14,7 +14,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
-RESULTS_DIR="$ROOT_DIR/scripts/vm/results"
+RESULTS_DIR="$ROOT_DIR/.tests/results/vm"
 
 REPO_VERSION=""
 RUN_PHASE="all"

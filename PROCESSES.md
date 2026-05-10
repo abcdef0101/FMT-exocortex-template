@@ -508,12 +508,12 @@ export AI_CLI_API_KEY="sk-..."
 
 | Context | Path |
 |---------|------|
-| Container test report | `scripts/container/results/container-test-YYYYMMDD-HHMMSS.txt` |
-| Container phase log | `scripts/container/results/phase-N-YYYYMMDD-HHMMSS.log` |
-| Container phase stderr | `scripts/container/results/phase-N-stderr-YYYYMMDD-HHMMSS.log` |
-| Container metrics | `scripts/container/results/metrics-YYYYMMDD-HHMMSS.txt` |
-| VM test report | `scripts/vm/results/golden-test-YYYYMMDD-HHMMSS.txt` |
-| VM phase stderr | `scripts/vm/results/phase-N-stderr-YYYYMMDD-HHMMSS.log` |
+| Container test report | `.tests/results/container/container-test-YYYYMMDD-HHMMSS.txt` |
+| Container phase log | `.tests/results/container/phase-N-YYYYMMDD-HHMMSS.log` |
+| Container phase stderr | `.tests/results/container/phase-N-stderr-YYYYMMDD-HHMMSS.log` |
+| Container metrics | `.tests/results/container/metrics-YYYYMMDD-HHMMSS.txt` |
+| VM test report | `.tests/results/vm/golden-test-YYYYMMDD-HHMMSS.txt` |
+| VM phase stderr | `.tests/results/vm/phase-N-stderr-YYYYMMDD-HHMMSS.log` |
 | Golden image | `~/.cache/iwe-golden/iwe-golden-0.25.1.qcow2` |
 | Container image | `~/.cache/iwe-container/iwe-test-0.25.1.id` |
 

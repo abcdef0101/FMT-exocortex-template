@@ -12,7 +12,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
-RESULTS_DIR="$ROOT_DIR/scripts/container/results"
+RESULTS_DIR="$ROOT_DIR/.tests/results/container"
 
 REPO_VERSION=""
 RUN_PHASE="all"
@@ -268,6 +268,11 @@ TOTAL_FAIL=$(grep -c '\[FAIL\]' "$REPORT" 2>/dev/null | tr -d '\n' || echo "0")
 METRICS_FILE="$RESULTS_DIR/metrics-${TIMESTAMP}.txt"
 podman cp "$CONTAINER_NAME:/tmp/iwe-phase-metrics.txt" "$METRICS_FILE" 2>/dev/null || \
   echo "WARN: metrics file copy failed" >&2
+
+# Collect full unit test log if Phase 5c ran (failure details, not in truncated phase log)
+if podman exec "$CONTAINER_NAME" test -f /tmp/phase5c-full.log 2>/dev/null; then
+  podman cp "$CONTAINER_NAME:/tmp/phase5c-full.log" "$RESULTS_DIR/phase-5c-full-${TIMESTAMP}.log" 2>/dev/null || true
+fi
 
 # =========================================================================
 # Step 5: Report

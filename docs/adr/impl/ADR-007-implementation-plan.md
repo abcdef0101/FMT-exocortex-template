@@ -106,7 +106,7 @@ time bash scripts/vm/build-golden.sh --version 0.25.1
 bash scripts/vm/verify-golden.sh --image iwe-golden-0.25.1.qcow2
 ```
 
-Записать в `scripts/vm/results/golden-build-*.txt`:
+Записать в `.tests/results/vm/golden-build-*.txt`:
 - Время сборки (цель: <10 мин)
 - Размер золотого образа (цель: <3 GB)
 - Количество снапшотов
@@ -155,7 +155,7 @@ test-from-golden.sh [--version 0.25.1] [--phase N] [--keep] [--port N]
 - [ ] Добавить `--json-output` режим в test-phases.sh (stdout: JSON lines)
 - [ ] `phase3_ai_smoke` — передавать `OPENAI_API_KEY` из host secrets через SSH env
 - [ ] Добавить `phase0_smoke` — быстрая проверка (только `setup.sh --validate` + git branch)
-- [ ] Результаты писать в `scripts/vm/results/golden-test-{timestamp}.json`
+- [ ] Результаты писать в `.tests/results/vm/golden-test-{timestamp}.json`
 
 ### 2.3 Создать `scripts/vm/benchmark-golden.sh`
 
@@ -249,7 +249,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-report-${{ github.run_id }}
-          path: scripts/vm/results/golden-test-*.json
+          path: .tests/results/vm/golden-test-*.json
 ```
 
 ### 3.3 Авто-пересборка: триггеры

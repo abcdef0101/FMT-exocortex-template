@@ -17,7 +17,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 VM_NAME="iwe-test"
 SSH_KEY="$HOME/.ssh/id_ed25519_iwe_test"
-RESULTS_DIR="$ROOT_DIR/scripts/vm/results"
+RESULTS_DIR="$ROOT_DIR/.tests/results/vm"
 
 mkdir -p "$RESULTS_DIR"
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)

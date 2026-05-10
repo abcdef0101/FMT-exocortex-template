@@ -21,7 +21,7 @@ bash scripts/container/test-from-container.sh --phase 5 --verbose
 
 # 5. Debug mode — saves full workspace + transcripts
 bash scripts/container/test-from-container.sh --phase 5 --debug
-# Output: scripts/container/results/debug-YYYYMMDD-HHMMSS/
+# Output: .tests/results/container/debug-YYYYMMDD-HHMMSS/
 
 # 6. Rebuild image
 bash scripts/container/build-container.sh --version 0.25.1 --force
@@ -74,7 +74,7 @@ bash scripts/container/build-container.sh --version 0.25.1 --force
 bash scripts/container/test-from-container.sh --phase 5 --debug
 ```
 
-Preserves in `scripts/container/results/debug-YYYYMMDD-HHMMSS/`:
+Preserves in `.tests/results/container/debug-YYYYMMDD-HHMMSS/`:
 - `transcripts/` — separate logs for session-prep, strategy-session, and judge
 - `workspace/` — full IWE workspace snapshot after tests
 - `artifacts/` — final WeekPlan copy
@@ -85,7 +85,7 @@ Container stays alive for post-mortem: `podman exec -it <name> bash`
 ## Results
 
 ```
-scripts/container/results/
+.tests/results/container/
 ├── container-test-YYYYMMDD-HHMMSS.txt    # Full test report
 ├── phase-N-YYYYMMDD-HHMMSS.log            # Per-phase stdout
 ├── phase-N-stderr-YYYYMMDD-HHMMSS.log     # Per-phase stderr
