@@ -10,5 +10,8 @@
 | 006 | Интеграция DS-agent-workspace в ядро | Accepted | 2026-04-30 |
 | 007 | Golden Image Build Pipeline for IWE Testing | Implemented | 2026-05-04 |
 | 008 | AI Provider Abstraction — Multi-Provider CLI Support | Implemented | 2026-05-06 |
+| 009 | Testing Strategy — E2E, Canary, Multilayer | Accepted | 2026-05-07 |
 | 010 | OpenCode Work-Product Session Switching | Accepted | 2026-05-09 |
-| 011 | Automatic Session Handoff After Work Product Creation | Proposed | 2026-05-09 |
+| 011 | Automatic Session Handoff After Work Product Creation | Accepted | 2026-05-09 |
+| 012 | CI Gate Completeness | Proposed | 2026-05-09 |
+| 013 | Model Tier Abstraction — Provider-Agnostic Model Selection | Proposed | 2026-05-10 |
