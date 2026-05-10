@@ -1057,8 +1057,15 @@ phase5c_unit_tests() {
   FMT_DIR="${IWE_DIR:-$HOME/IWE/FMT-exocortex-template}"
 
   if [ -f "$FMT_DIR/scripts/test/run-phase0.sh" ]; then
-    bash "$FMT_DIR/scripts/test/run-phase0.sh" 2>&1 | tail -20
-    rc=${PIPESTATUS[0]:-$?}
+    bash "$FMT_DIR/scripts/test/run-phase0.sh" >/tmp/phase5c-full.log 2>&1 && rc=0 || rc=$?
+    if [ "$rc" -ne 0 ]; then
+      # Failure details — extract FAILED TESTS block (ends at empty line or separator)
+      sed -n '/FAILED TESTS:/,/^=\|^$/p' /tmp/phase5c-full.log 2>/dev/null || true
+      _info "Full log: /tmp/phase5c-full.log (extracted to host on failure)"
+    else
+      # Success — just show the result summary
+      grep '^ Result:' /tmp/phase5c-full.log 2>/dev/null || tail -1 /tmp/phase5c-full.log
+    fi
     [ "$rc" -eq 0 ] && _ok "unit tests: passed" || _fail "unit tests: failed (rc=$rc)"
   else
     _skip "unit tests: run-phase0.sh not found"
@@ -1081,12 +1088,9 @@ phase5d_e2e_tests() {
   if [ -d "$FMT_DIR/scripts/test" ]; then
     cd "$FMT_DIR"
     # Seed→assert pairs (no AI — structural only)
+    # Post-AI asserts excluded: quick-close, wp-new, day-close, week-close,
+    # day-open, verifier-pack-entity — require AI modifications (tested in 5b/run-e2e-ai.sh)
     for pair in \
-      "seed-quick-close.sh:assert-quick-close.sh" \
-      "seed-wp-new.sh:assert-wp-new.sh" \
-      "seed-day-close.sh:assert-day-close.sh" \
-      "seed-week-close.sh:assert-week-close.sh" \
-      "seed-day-open.sh:assert-day-open.sh" \
       "seed-strategy-session.sh:assert-strategy-session.sh" \
       "seed-session-prep.sh:assert-session-prep.sh" \
       "seed-wp-gate-e2e.sh:assert-wp-gate.sh" \
@@ -1097,8 +1101,7 @@ phase5d_e2e_tests() {
       "seed-role-execution-e2e.sh:assert-role-execution.sh" \
       "seed-skill-invocation-e2e.sh:assert-skill-invocation.sh" \
       "seed-extractor-inbox-check.sh:assert-extractor-inbox-check.sh" \
-      "seed-synchronizer-code-scan.sh:assert-synchronizer-code-scan.sh" \
-      "seed-verifier-pack-entity.sh:assert-verifier-pack-entity.sh"; do
+      "seed-synchronizer-code-scan.sh:assert-synchronizer-code-scan.sh"; do
       seed="${pair%%:*}"
       assert="${pair##*:}"
       WS=$(bash "scripts/test/$seed" 2>/dev/null | tail -1) && rc=0 || rc=$?

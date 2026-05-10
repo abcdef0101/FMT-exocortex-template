@@ -56,11 +56,13 @@ echo "$output" | grep -q "Post-update" \
 
 echo "  --- --check symlink validation ---"
 if echo "$output" | grep -q "symlink valid"; then
-  _pass "--check: symlink validation present"
+  _pass "--check: symlink valid"
 elif echo "$output" | grep -E -q "symlink.*(broken|missing)"; then
-  _pass "--check: symlink validation present (needs fix)"
+  _pass "--check: symlink check ran (needs fix)"
+elif [ -z "${WORKSPACE_FULL_PATH:-}" ]; then
+  _pass "--check: symlink validation skipped (no workspace)"
 else
-  _fail "--check: no symlink validation"
+  _fail "--check: symlink validation missing despite active workspace"
   echo "    update.sh --check output:"
   echo "$output" | sed 's/^/    /'
 fi
