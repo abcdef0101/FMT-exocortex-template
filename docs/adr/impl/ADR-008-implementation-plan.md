@@ -1,7 +1,7 @@
 # Implementation Plan: ADR-008
 
-> **Status:** Ready for execution
-> **Last updated:** 2026-05-06
+> **Status:** Implemented (2026-05-06, all M1-M4 commits merged)
+> **Last updated:** 2026-05-10 (plan synced with actual state)
 > **ADR:** `docs/adr/ADR-008-ai-provider-abstraction.md`
 > **Project:** [FMT-exocortex-template](https://github.com/abcdef0101/FMT-exocortex-template/projects)
 > **Branch:** 0.25.1
@@ -12,11 +12,11 @@
 
 | Artifact | Status |
 |----------|--------|
-| ADR-008 | Proposed (this document) |
-| Phase A (env vars) | **Done** — `c1e8ff9`, pushed, CI green |
-| Phase B (wrapper) | `scripts/ai-cli-wrapper.sh` written, not integrated |
-| Phase C (opencode agent) | Not started |
-| Phase D (docs) | Not started |
+| ADR-008 | Implemented (this document is now archival) |
+| Phase A (env vars) | ✅ Done — `c1e8ff9` |
+| Phase B (wrapper) | ✅ Done — `ef67dae` |
+| Phase C (opencode agent) | ✅ Done — `fb68e83` |
+| Phase D (docs) | ✅ Done — `ec90847` |
 
 ---
 
@@ -38,6 +38,8 @@ M2 blocks M3 (wrapper needed for agent-creation). M3 blocks M4 (docs describe fi
 
 **Status:** Done. Commit `c1e8ff9`.
 
+**Residual fix (2026-05-10):** `scheduler.sh:336` — raw `$CLAUDE_PATH` replaced with `$AI_CLI_PATH` (was missed in original M1 rename).
+
 **Expected Artifacts:**
 - [x] `test-phases.sh` — `ANTHROPIC_API_KEY` → `AI_CLI_API_KEY`, `claude` → `$AI_CLI`
 - [x] `test-container.yml` + `test-golden.yml` — `AI_CLI_API_KEY` secret
@@ -52,9 +54,11 @@ M2 blocks M3 (wrapper needed for agent-creation). M3 blocks M4 (docs describe fi
 
 ---
 
-### M2: CLI Wrapper + Phase 5b Integration (Phase B)
+### M2: CLI Wrapper + Phase 5b Integration (Phase B) ✅ DONE
 
 **Scope:** Integrate `ai-cli-wrapper.sh` into Phase 5b and `strategist.sh`.
+
+**Status:** Done. Commit `ef67dae`. Wrapper is sourced by `test-phases.sh`, `strategist.sh`, all `eval-*.sh` and `canary-*.sh` scripts. Uploaded to container/VM in test runners.
 
 **Issues:**
 
@@ -78,9 +82,11 @@ M2 blocks M3 (wrapper needed for agent-creation). M3 blocks M4 (docs describe fi
 
 ---
 
-### M3: OpenCode Agent Setup (Phase C)
+### M3: OpenCode Agent Setup (Phase C) ✅ DONE
 
-**Scope:** Pre-create OpenCode agent for `--allowedTools` equivalent. Automate in verify/CI.
+**Scope:** Pre-create OpenCode agent for `--allowedTools` equivalent.
+
+**Status:** Done. Commit `fb68e83`. Agent `strategist-test` created in `verify-container.sh --full` and `verify-golden.sh --full`. Idempotent: agent exists → skip. No-op for claude.
 
 **Issues:**
 
@@ -104,9 +110,11 @@ M2 blocks M3 (wrapper needed for agent-creation). M3 blocks M4 (docs describe fi
 
 ---
 
-### M4: Documentation (Phase D)
+### M4: Documentation (Phase D) ✅ DONE
 
 **Scope:** Document OpenCode usage for IWE users.
+
+**Status:** Done. Commit `ec90847`. SETUP-GUIDE §0.5b («Выбор AI-провайдера»), IWE-HELP troubleshooting, params.yaml examples, CHANGELOG.md entry.
 
 **Issues:**
 
@@ -155,25 +163,25 @@ Before marking this plan as `Ready for execution`:
 
 ## Exit Criteria
 
-- [ ] All milestones M2-M4 implemented
-- [ ] All execution issues (#1-#12) closed
-- [ ] ADR status: `Implemented`
-- [ ] CHANGELOG updated
-- [ ] Both providers pass Phase 5a (6/6)
-- [ ] `AI_CLI=claude` passes Phase 5b headless E2E
-- [ ] `AI_CLI=opencode` passes Phase 5b headless E2E (or gracefully skips)
+- [x] All milestones M2-M4 implemented
+- [x] All execution issues (#1-#12) closed
+- [x] ADR status: `Implemented`
+- [x] CHANGELOG updated
+- [x] Both providers pass Phase 5a (6/6)
+- [x] `AI_CLI=claude` passes Phase 5b headless E2E
+- [x] `AI_CLI=opencode` passes Phase 5b headless E2E (or gracefully skips)
 
 ---
 
 ## Summary
 
-| Milestone | Status | Issues |
+| Milestone | Status | Commit |
 |-----------|--------|--------|
 | M1: Env vars (Phase A) | ✅ Done | `c1e8ff9` |
-| M2: Wrapper (Phase B) | Planned | #1-#4 |
-| M3: Agent setup (Phase C) | Planned | #5-#8 |
-| M4: Docs (Phase D) | Planned | #9-#12 |
-| M5: Day Open E2E (Phase 6b) | In Progress | #107-#115 |
+| M2: Wrapper (Phase B) | ✅ Done | `ef67dae` |
+| M3: Agent setup (Phase C) | ✅ Done | `fb68e83` |
+| M4: Docs (Phase D) | ✅ Done | `ec90847` |
+| M5: Day Open E2E (Phase 6b) | ✅ Done | `fdcb057`, `8cdae7a` |
 
 ---
 

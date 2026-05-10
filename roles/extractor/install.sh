@@ -89,7 +89,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
   sed \
     -e "s|{{ROOT_DIR}}|$ROOT_DIR|g" \
     -e "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g" \
-    -e "s|{{CLAUDE_PATH}}|$AI_CLI_PATH|g" \
+    -e "s|{{AI_CLI_PATH}}|$AI_CLI_PATH|g" \
     -e "s|{{NAMESPACE}}|$NAMESPACE|g" \
     "$LAUNCHD_DIR/com.extractor.inbox-check.plist" >"$TARGET_DIR/$basename_plist"
 
@@ -110,7 +110,7 @@ else
     sed \
       -e "s|{{ROOT_DIR}}|$ROOT_DIR|g" \
       -e "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g" \
-      -e "s|{{CLAUDE_PATH}}|$AI_CLI_PATH|g" \
+      -e "s|{{AI_CLI_PATH}}|$AI_CLI_PATH|g" \
       -e "s|{{NAMESPACE}}|$NAMESPACE|g" \
       -e "s|{{HOME}}|$HOME|g" \
       "$unit" >"$SYSTEMD_DIR/$basename_unit"

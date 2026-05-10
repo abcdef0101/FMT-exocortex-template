@@ -87,7 +87,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     basename_plist="$(basename "$plist" | sed "s/\.plist$/\.${NAMESPACE}\.plist/")"
     sed \
       -e "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g" \
-      -e "s|{{CLAUDE_PATH}}|$AI_CLI_PATH|g" \
+      -e "s|{{AI_CLI_PATH}}|$AI_CLI_PATH|g" \
       -e "s|{{TIMEZONE_HOUR}}|$TIMEZONE_HOUR|g" \
       -e "s|{{NAMESPACE}}|$NAMESPACE|g" \
       "$plist" >"$TARGET_DIR/$basename_plist"
@@ -109,7 +109,7 @@ elif systemctl --user 2>/dev/null; then
     basename_unit="$(basename "$unit" | sed "s/\.service$/\.${NAMESPACE}\.service/")"
     sed \
       -e "s|{{WORKSPACE_DIR}}|$WORKSPACE_DIR|g" \
-      -e "s|{{CLAUDE_PATH}}|$AI_CLI_PATH|g" \
+      -e "s|{{AI_CLI_PATH}}|$AI_CLI_PATH|g" \
       -e "s|{{TIMEZONE_HOUR}}|$TIMEZONE_HOUR|g" \
       -e "s|{{NAMESPACE}}|$NAMESPACE|g" \
       -e "s|{{HOME}}|$HOME|g" \

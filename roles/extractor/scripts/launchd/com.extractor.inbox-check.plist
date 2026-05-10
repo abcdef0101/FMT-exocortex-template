@@ -13,7 +13,7 @@
         <string>--workspace-dir</string>
         <string>{{WORKSPACE_DIR}}</string>
         <string>--agent-ai-path</string>
-        <string>{{CLAUDE_PATH}}</string>
+        <string>{{AI_CLI_PATH}}</string>
         <string>inbox-check</string>
     </array>
 

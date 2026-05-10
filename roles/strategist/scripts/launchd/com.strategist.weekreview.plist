@@ -10,8 +10,8 @@
         <string>{{WORKSPACE_DIR}}/roles/strategist/scripts/strategist.sh</string>
         <string>--workspace-dir</string>
         <string>{{WORKSPACE_DIR}}</string>
-        <string>--claude-path</string>
-        <string>{{CLAUDE_PATH}}</string>
+        <string>--ai-cli-path</string>
+        <string>{{AI_CLI_PATH}}</string>
         <string>week-review</string>
     </array>
 
