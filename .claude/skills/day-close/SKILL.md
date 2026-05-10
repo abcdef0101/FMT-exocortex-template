@@ -185,16 +185,11 @@ bash "${CLAUDE_SKILL_DIR}/scripts/day-close.sh" --index-health
 Условие: `params.yaml → day_close_checks_enabled: true`. Если `false` → пропустить.
 Проверить: `ls "$WORKSPACE_DIR/extensions/day-close.checks.md"`. Если существует → `Read` → выполнить верификацию. БЛОКИРУЮЩЕЕ: commit запрещён до прохождения checks.
 
-### 14. Верификация (fast-тир, R23)
+### 14. Верификация (R23)
 
 > Условный шаг: если `params.yaml → verify_quick_close: false` → пропустить.
 
-Запустить sub-agent fast-тира в роли R23 (context isolation). Передать:
-- Чеклист Day Close (ниже)
-- DayPlan (секция «Итоги дня»)
-- Список изменённых файлов: `git diff --cached --name-only`
-
-По ❌ — исправить до завершения. **Commit запрещён до прохождения.**
+Выполнить: `bash scripts/verify-close.sh --day`. При `failed` — исправить пункты из вывода и повторить. **Commit запрещён до `passed`.**
 
 ### 15. Commit + Push
 

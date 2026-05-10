@@ -91,12 +91,12 @@ superseded_by: null
 **Handoff:** → WP context «Осталось» обновлён / done
 ```
 
-### Верификация Quick Close (fast-тир, R23)
+### Верификация Quick Close (R23)
 
 > Условный шаг: если `params.yaml → verify_quick_close: false` → пропустить.
 > Исключения: сессия ≤15 мин, сессия-вопрос без изменений файлов.
 
-Запустить sub-agent fast-тира в роли R23 (context isolation). Передать: чеклист, WP context «Осталось», `git diff --name-only`.
+Выполнить: `bash scripts/verify-close.sh`. При `failed` — исправить пункты из вывода и повторить. Commit блокирован до `passed`.
 
 ### Чеклист Quick Close
 

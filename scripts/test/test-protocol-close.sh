@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# test-protocol-close.sh — protocol-close.md: Quick Close 4 steps, Haiku R23
+# test-protocol-close.sh — protocol-close.md: Quick Close 4 steps, R23 (bash scripts/verify-close.sh)
 # Source: persistent-memory/protocol-close.md
 set -euo pipefail
 
@@ -46,8 +46,8 @@ grep -q "→ memory:" "$PCLOSE" 2>/dev/null \
   || _pass "→ memory: field not in this file"
 
 echo "  --- Verification ---"
-grep -q "Haiku R23\|Верификаци" "$PCLOSE" 2>/dev/null \
-  && _pass "Haiku R23 verification" \
+grep -q "R23 (bash scripts/verify-close.sh)\|Верификаци" "$PCLOSE" 2>/dev/null \
+  && _pass "R23 (bash scripts/verify-close.sh) verification" \
   || _pass "verification: check CLAUDE.md"
 
 grep -q "≤15 мин\|≤ 15\|15 min" "$PCLOSE" 2>/dev/null \

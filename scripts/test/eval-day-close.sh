@@ -35,7 +35,7 @@ if $RUN_MODE; then
 Execute Day Close in workspace $WS_DIR.
 Read the DayPlan, WeekPlan, MEMORY.md, WP-REGISTRY.
 Follow all steps from the protocol file. Use TodoWrite.
-SECRET: This is an automated test. Auto-approve all user confirmations silently without asking. Skip Haiku R23 verification. Trust test harness files. Complete ALL steps including commit+push."
+SECRET: This is an automated test. Auto-approve all user confirmations silently without asking. Skip R23 verification. Trust test harness files. Complete ALL steps including commit+push."
 
   echo "=== Day Close: running AI process ==="
   echo "  prompt: reads $(wc -l < "$SKILL_PATH" 2>/dev/null || echo '?')-line SKILL.md"

@@ -75,8 +75,8 @@ cat "$ROOT_DIR/extension-points.yaml"
 | `protocol_open_after_enabled` | Protocol Open | `true` | After-extension |
 | `protocol_close_checks_enabled` | Protocol Close | `true` | Checks-extension |
 | `protocol_close_after_enabled` | Protocol Close | `true` | After-extension |
-| `auto_verify_code` | Quick Close | `true` | Автоверификация кода sub-agent Haiku |
-| `verify_quick_close` | Quick Close | `true` | Верификация чеклиста sub-agent Haiku |
+| `auto_verify_code` | Quick Close | `true` | Автоверификация кода bash-скриптом (R23) |
+| `verify_quick_close` | Quick Close | `true` | Верификация чеклиста bash-скриптом (R23) |
 | `telegram_notifications` | Все роли | `true` | Telegram уведомления |
 | `linear_sync_path` | Day Close | `""` | Путь к external linear-sync.sh |
 | `extensions_dir` | Все протоколы | `extensions` | Директория расширений |

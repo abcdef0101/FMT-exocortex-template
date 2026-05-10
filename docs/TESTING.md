@@ -608,7 +608,7 @@ Coverage is measured as: number of documented protocol steps (from `protocol-ope
 |-----------------|:-----------:|:-------------:|:---:|-------|
 | Protocol Open (WP Gate, 4 verification classes) | 5 | 5 | 100 | `test-protocol-open.sh`, `test-wp-gate-logic.sh`, `eval-wp-gate.sh` |
 | Protocol Work (KE routing, self-correction, milestones) | 6 | 6 | 100 | `test-protocol-work.sh`, `assert-capture-to-pack.sh`, `assert-orz-cycle.sh` |
-| Protocol Close (4-step, fast-тир (R23), commit+push) | 5 | 5 | 100 | `test-protocol-close.sh`, `assert-quick-close.sh`, `eval-quick-close.sh` |
+| Protocol Close (4-step, R23 verification, commit+push) | 5 | 5 | 100 | `test-protocol-close.sh`, `assert-quick-close.sh`, `eval-quick-close.sh` |
 | Day Open (DayPlan, carry-over, calendar) | 5 | 5 | 100 | `assert-day-open.sh`, `eval-day-open.sh` |
 | Day Close (итоги, multiplier, praise, MEMORY) | 6 | 6 | 100 | `assert-day-close.sh`, `eval-day-close.sh`, `canary-day-close.sh` |
 | Week Close (WeekPlan итоги, completion, ADR audit) | 5 | 5 | 100 | `assert-week-close.sh`, `eval-week-close.sh` |
@@ -661,7 +661,7 @@ These gates are validated both by deterministic unit tests (rule logic) and by E
 
 | Depth | Class | Verifier | Used in |
 |:-----:|-------|----------|---------|
-| VT.001 | Trivial | fast-тир (R23) — autonomous | Quick Close, single-file changes |
+| VT.001 | Trivial | R23 — bash-скрипт | Quick Close, single-file changes |
 | VT.002 | Closed-loop | thinking — tests exist | Implementation review, ArchGate follow-up |
 | VT.003 | Open-loop | pro — captures needed | Problem-framing, strategy decisions |
 
