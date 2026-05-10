@@ -156,6 +156,57 @@ _opencode_setup_config() {
 OPECFG
 }
 
+# === Model tier resolution ===
+# Reads model-tiers.yaml to map capability tier → model ID per provider.
+# Usage: resolve_model [fast|thinking|pro]
+# Fallback chain: $WORKSPACE_DIR/model-tiers.yaml → seed/model-tiers.yaml
+
+resolve_model() {
+  local tier="${1:-thinking}"
+  local provider
+  provider=$(detect_ai_cli)
+
+  local provider_key
+  case "$provider" in
+    claude) provider_key="anthropic" ;;
+    opencode)
+      if [ -n "${AI_CLI_MODEL:-}" ] && [[ "$AI_CLI_MODEL" == */* ]]; then
+        provider_key="${AI_CLI_MODEL%%/*}"
+      else
+        provider_key="anthropic"
+      fi
+      ;;
+    *) provider_key="anthropic" ;;
+  esac
+
+  local tiers_file=""
+  for cand in \
+    "${WORKSPACE_DIR:-}/model-tiers.yaml" \
+    "seed/model-tiers.yaml" \
+    "${FMT_DIR:-}/seed/model-tiers.yaml"; do
+    [ -n "$cand" ] && [ -f "$cand" ] && { tiers_file="$cand"; break; }
+  done
+
+  if [ -z "$tiers_file" ]; then
+    echo "ERROR: model-tiers.yaml not found for provider=$provider_key tier=$tier" >&2
+    return 1
+  fi
+
+  local model_id
+  model_id=$(awk -v prov="$provider_key" -v t="$tier" '
+    $0 ~ "^" prov ":" { in_block=1; next }
+    in_block && /^[a-z]/ { exit }
+    in_block && $1 ~ "^" t ":" { gsub(/[" ]/,""); sub(/^[^:]*:/,""); print; exit }
+  ' "$tiers_file")
+
+  if [ -z "$model_id" ]; then
+    echo "ERROR: no model found for provider=$provider_key tier=$tier in $tiers_file" >&2
+    return 1
+  fi
+
+  echo "$model_id"
+}
+
 # === Agent management ===
 # opencode: create agent with allowed tools (idempotent — skips if exists)
 # claude: uses --allowedTools flag directly, no agent needed
@@ -212,17 +263,22 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
       shift
       ai_cli_agent_create "$@"
       ;;
+    resolve)
+      shift
+      resolve_model "$@"
+      ;;
     flags)
       shift
       ai_cli_flags "$@"
       ;;
     *)
-      echo "Usage: ai-cli-wrapper.sh {run|check|agent-create|flags} [args...]" >&2
+      echo "Usage: ai-cli-wrapper.sh {run|check|agent-create|resolve|flags} [args...]" >&2
       echo "" >&2
       echo "Commands:" >&2
       echo "  run PROMPT [--bare] [--allowed-tools A,B] [--budget N]  Run AI CLI" >&2
       echo "  check                   Check AI CLI availability" >&2
       echo "  agent-create NAME TOOLS              Create agent (opencode)" >&2
+      echo "  resolve TIER            Resolve capability tier to model ID" >&2
       echo "  flags [--bare] [--allowed-tools A,B] Print CLI flags" >&2
       echo "" >&2
       echo "Provider: $(detect_ai_cli)" >&2

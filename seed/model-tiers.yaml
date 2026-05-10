@@ -1,0 +1,25 @@
+# Model Tier Mapping — provider-agnostic capability tiers
+#
+# Each provider maps 3 tiers to specific model IDs.
+# Tiers describe capability, not model name:
+#   fast     — low cost, basic reliability, context isolation (R23 verification)
+#   thinking — medium cost, high reliability, autonomous execution
+#   pro      — maximum cost, expert quality, collaborative mode, captures
+#
+# Override per workspace: $WORKSPACE/model-tiers.yaml
+# (NOT overwritten by update.sh — same pattern as params.yaml)
+
+anthropic:
+  fast:     claude-haiku-4-5-20251001
+  thinking: claude-sonnet-4-20250514
+  pro:      claude-opus-4-20250514
+
+deepseek:
+  fast:     deepseek/deepseek-chat
+  thinking: deepseek/deepseek-reasoner
+  pro:      deepseek/deepseek-reasoner
+
+openai:
+  fast:     openai/gpt-4o-mini
+  thinking: openai/gpt-4o
+  pro:      openai/o1

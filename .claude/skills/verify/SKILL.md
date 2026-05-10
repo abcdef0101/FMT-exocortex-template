@@ -41,20 +41,20 @@ argument-hint: "[code|archgate|capture|wp|chain|adversarial|auto] [путь ил
 - Прочитать `git diff` (или указанные файлы)
 - Прочитать `CLAUDE.md` затронутого репо
 - Передать sub-agent'у: diff + CLAUDE.md + чеклист code
-- Модель sub-agent'а: Sonnet
+- Модель sub-agent'а: thinking
 
 **Для `archgate`:**
 - Найти ЭМОГССБ-таблицу из текущей сессии (или запросить)
 - Прочитать изменённые файлы реализации
 - Прочитать DP.ARCH.001 §7 (21 принцип)
 - Передать sub-agent'у: файлы + таблица + принципы + чеклист archgate
-- Модель sub-agent'а: Opus
+- Модель sub-agent'а: pro
 
 **Для `capture`:**
 - Прочитать capture-candidate
 - Прочитать manifest целевого Pack
 - Передать sub-agent'у: candidate + manifest + чеклист capture
-- Модель sub-agent'а: Sonnet
+- Модель sub-agent'а: thinking
 
 **Для `wp`:**
 - Прочитать WP context file (`$WORKSPACE_DIR/DS-strategy/inbox/WP-{N}-*.md`)
@@ -67,7 +67,7 @@ argument-hint: "[code|archgate|capture|wp|chain|adversarial|auto] [путь ил
 - Для каждого изменённого output: `grep` по codebase — найти все файлы, которые import/require/вызывают изменённые функции
 - Прочитать каждый downstream consumer
 - Передать sub-agent'у: diff + consumers + чеклист chain
-- Модель sub-agent'а: Sonnet
+- Модель sub-agent'а: thinking
 - **Чеклист chain:**
   1. Для каждого изменённого output — кто потребляет?
   2. Прочитан ли каждый потребитель?
@@ -80,7 +80,7 @@ argument-hint: "[code|archgate|capture|wp|chain|adversarial|auto] [путь ил
 - Составить список файлов, которые автор НЕ прочитал, но которые могут быть затронуты (`git diff --stat` vs файлы из diff)
 - Прочитать описание задачи (из WP context или commit message)
 - Передать sub-agent'у: diff + unread files list + task description + чеклист adversarial
-- Модель sub-agent'а: Sonnet
+- Модель sub-agent'а: thinking
 - **Чеклист adversarial:**
   1. Scope определён анализом кода или подогнан под заранее выбранный вывод?
   2. Какие файлы/компоненты НЕ прочитаны, но могут быть затронуты?

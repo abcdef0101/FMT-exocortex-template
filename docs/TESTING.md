@@ -608,7 +608,7 @@ Coverage is measured as: number of documented protocol steps (from `protocol-ope
 |-----------------|:-----------:|:-------------:|:---:|-------|
 | Protocol Open (WP Gate, 4 verification classes) | 5 | 5 | 100 | `test-protocol-open.sh`, `test-wp-gate-logic.sh`, `eval-wp-gate.sh` |
 | Protocol Work (KE routing, self-correction, milestones) | 6 | 6 | 100 | `test-protocol-work.sh`, `assert-capture-to-pack.sh`, `assert-orz-cycle.sh` |
-| Protocol Close (4-step, Haiku R23, commit+push) | 5 | 5 | 100 | `test-protocol-close.sh`, `assert-quick-close.sh`, `eval-quick-close.sh` |
+| Protocol Close (4-step, fast-тир (R23), commit+push) | 5 | 5 | 100 | `test-protocol-close.sh`, `assert-quick-close.sh`, `eval-quick-close.sh` |
 | Day Open (DayPlan, carry-over, calendar) | 5 | 5 | 100 | `assert-day-open.sh`, `eval-day-open.sh` |
 | Day Close (итоги, multiplier, praise, MEMORY) | 6 | 6 | 100 | `assert-day-close.sh`, `eval-day-close.sh`, `canary-day-close.sh` |
 | Week Close (WeekPlan итоги, completion, ADR audit) | 5 | 5 | 100 | `assert-week-close.sh`, `eval-week-close.sh` |
@@ -661,9 +661,9 @@ These gates are validated both by deterministic unit tests (rule logic) and by E
 
 | Depth | Class | Verifier | Used in |
 |:-----:|-------|----------|---------|
-| VT.001 | Trivial | Haiku R23 — autonomous | Quick Close, single-file changes |
-| VT.002 | Closed-loop | Sonnet — tests exist | Implementation review, ArchGate follow-up |
-| VT.003 | Open-loop | Opus — captures needed | Problem-framing, strategy decisions |
+| VT.001 | Trivial | fast-тир (R23) — autonomous | Quick Close, single-file changes |
+| VT.002 | Closed-loop | thinking — tests exist | Implementation review, ArchGate follow-up |
+| VT.003 | Open-loop | pro — captures needed | Problem-framing, strategy decisions |
 
 ---
 
@@ -972,7 +972,7 @@ IWE ships with a QA agent template at `seed/agents/tester/` for testing **produc
 |:-----:|------|------|-----------|------|
 | L1 | Smoke | pytest | CI/CD + post-deploy | Critical paths of the target bot |
 | L2 | Regression | pytest + factories | CI/CD every push | State machine guards, callbacks |
-| L3 | AI Quality | LLM-as-Judge (Claude Haiku) | Weekly | 50 real dialogues scored against 5 metrics |
+| L3 | AI Quality | LLM-as-Judge (fast-тир) | Weekly | 50 real dialogues scored against 5 metrics |
 | L4 | Red Team | Promptfoo | Weekly | Injection, jailbreak, PII, off-topic probes (7 test cases) |
 | L5 | Observability | Langfuse (self-hosted) | Continuous | Production tracing, user feedback drift |
 | L6 | Synthetic | Claude simulator + judge | Weekly | Multi-turn scenarios with persona-based users |

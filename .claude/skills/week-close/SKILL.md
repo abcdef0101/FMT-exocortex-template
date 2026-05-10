@@ -145,11 +145,11 @@ content_plan: null
 Условие: `$WORKSPACE_DIR/params.yaml → week_close_after_enabled: true`. Если `false` → пропустить.
 Проверить: `ls "$WORKSPACE_DIR/extensions/week-close.after.md"`. Если существует → `Read` → выполнить содержимое. Не существует → пропустить.
 
-### 13. Верификация (Haiku R23)
+### 13. Верификация (fast-тир, R23)
 
 > Условный шаг: если `$WORKSPACE_DIR/params.yaml → verify_quick_close: false` → пропустить.
 
-Запустить sub-agent Haiku в роли R23 (context isolation). Передать:
+Запустить sub-agent fast-тира в роли R23 (context isolation). Передать:
 - Чеклист Week Close (ниже)
 - WeekPlan (секция «Итоги W{N}»)
 - Список изменённых файлов: `git -C "$WORKSPACE_DIR/DS-strategy" diff --cached --name-only`

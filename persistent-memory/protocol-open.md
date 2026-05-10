@@ -66,12 +66,12 @@
 
 | Класс | Проверка | Режим | Модель |
 |-------|----------|-------|--------|
-| trivial | Не нужна | Автономно | Haiku |
-| closed-loop | Тесты | Автономно | Sonnet |
-| open-loop | Дорогая, отложенная | Совместно, Captures | Opus |
-| problem-framing | Неизвестная | Экзоскелетный: 3 вопроса ДО решения | Opus |
+| trivial | Не нужна | Автономно | fast |
+| closed-loop | Тесты | Автономно | thinking |
+| open-loop | Дорогая, отложенная | Совместно, Captures | pro |
+| problem-framing | Неизвестная | Экзоскелетный: 3 вопроса ДО решения | pro |
 
-**Переключение модели:** Вся сессия → `/model` (только пользователь). Sub-agent → только вниз (Opus→Sonnet/Haiku, Sonnet→Haiku).
+**Переключение модели:** Вся сессия → `/model` (только пользователь). Sub-agent → только вниз (pro→thinking/fast, thinking→fast).
 
 **Шаг 1c. Экзоскелетный режим** (problem-framing): 3 вопроса (Что? Зачем? Ограничения?) → 2-3 варианта подхода → пользователь выбирает.
 
@@ -94,7 +94,7 @@
 
 ## Issue Funnel (→ WP-debt)
 
-- **Auto-triage (Grade 1):** helpful=false → Haiku classify → `feedback_triage` DB → TG alert
+- **Auto-triage (Grade 1):** helpful=false → fast-тир classify → `feedback_triage` DB → TG alert
 - **Review (Grade 3):** structured report + 2 файловых intake
 - **Прямая команда:** «запиши замечание: X» → fleeting-notes.md
 
