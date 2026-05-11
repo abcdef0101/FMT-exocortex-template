@@ -35,7 +35,7 @@ if [ -z "$TRANSCRIPT_PATH" ] || [ ! -f "$TRANSCRIPT_PATH" ]; then
 fi
 
 IWE_ROOT="${IWE_ROOT:-$HOME/IWE}"
-GATE_LOG="$IWE_ROOT/.claude/logs/gate_log.jsonl"
+GATE_LOG="$IWE_ROOT/.logs/gate_log.jsonl"
 mkdir -p "$(dirname "$GATE_LOG")" 2>/dev/null || true
 
 # --- Шаг 1: был ли вызов протокольного скилла? ---

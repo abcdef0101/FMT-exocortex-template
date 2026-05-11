@@ -57,7 +57,7 @@ if [ -f "$RUNNER" ]; then
 fi
 
 # Log file check
-LOG_DIR="$ROOT_DIR/.claude/logs"
+LOG_DIR="$ROOT_DIR/.logs"
 if [ -f "$LOG_DIR/migrations.log" ]; then
   entries=$(wc -l < "$LOG_DIR/migrations.log" | tr -d ' ')
   [ "$entries" -ge 1 ] \

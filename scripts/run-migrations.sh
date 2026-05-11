@@ -8,7 +8,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 MIGRATIONS_DIR="$ROOT_DIR/migrations"
-LOG_FILE="$ROOT_DIR/.claude/logs/migrations.log"
+LOG_FILE="$ROOT_DIR/.logs/migrations.log"
 
 APPLIED_MARKER="$ROOT_DIR/.claude/.migrations-applied"
 

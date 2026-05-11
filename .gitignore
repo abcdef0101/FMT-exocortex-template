@@ -6,6 +6,7 @@ workspaces/
 .wakatime-project
 .wakatime.cfg
 .mcp.json
-.claude/logs/
+.logs/*
+!.logs/.gitkeep
 tg2md/
 .tests/

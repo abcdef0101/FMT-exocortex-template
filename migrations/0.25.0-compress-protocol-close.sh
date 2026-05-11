@@ -6,7 +6,7 @@ set -euo pipefail
 MIGRATION_NAME="$(basename "$0")"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-LOG_DIR="$ROOT_DIR/.claude/logs"
+LOG_DIR="$ROOT_DIR/.logs"
 LOG_FILE="$LOG_DIR/migrations.log"
 mkdir -p "$LOG_DIR"
 _log() { echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] [$1] $MIGRATION_NAME${2:+ — $2}" | tee -a "$LOG_FILE"; }

@@ -141,7 +141,7 @@ artifacts:
 - Pre-condition: проверить что миграция нужна
 - Backup: `.backup` перед изменением
 - Post-condition: валидация после миграции
-- Логирование: `.claude/logs/migrations.log`
+- Логирование: `.logs/migrations.log`
 
 `update.sh` запускает pending миграции (версия > локальной И ≤ upstream) перед обновлением файлов.
 
