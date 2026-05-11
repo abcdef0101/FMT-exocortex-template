@@ -310,8 +310,8 @@ if [ -d "$WORKSPACE_FULL_PATH" ]; then
   exit 1
 fi
 
-# PACK-репо — рядом с FMT-exocortex-template (архитектура: CLAUDE.md §1)
-PACK_DIR="${PACK_DIR:-$ROOT_DIR/../PACK-digital-platform}"
+# PACK-репо — в корне workspace (архитектура: CLAUDE.md §1)
+PACK_DIR="${PACK_DIR:-$WORKSPACE_FULL_PATH/PACK-digital-platform}"
 MY_STRATEGY_DIR="${MY_STRATEGY_DIR:-$WORKSPACE_FULL_PATH}"
 
 # === Manifest-driven installation (ADR-005 §1) ===
