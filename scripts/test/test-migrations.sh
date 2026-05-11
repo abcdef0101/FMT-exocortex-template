@@ -76,7 +76,7 @@ while IFS= read -r -d '' script; do
     _fail "no skip/info condition: $name"
   fi
 done < <(find "$MIG_DIR" -name "*.sh" -not -name "_template.sh" -print0)
-echo "  ✓ conventions verified for $mig_count migrations"
+[ "$FAIL" -eq 0 ] && echo "  ✓ conventions verified for $mig_count migrations"
 
 echo "  --- runner: version filtering ---"
 # Test runner with dummy versions — should skip all migrations

@@ -85,14 +85,12 @@ jobs:
       - name: Run unit tests
         run: |
           FAIL=0
-          for test in scripts/test/test-verify-scripts.sh scripts/test/test-create-agents.sh; do
-            echo "=== $test ==="
-            if ! bash "$test"; then
-              echo "FAIL: $test"
-              FAIL=1
-            fi
-          done
-          [ "$FAIL" -eq 0 ] && echo "PASS: All unit tests passed"
+          echo "=== Full Phase 0 test suite ==="
+          if ! bash scripts/test/run-phase0.sh; then
+            echo "FAIL: Phase 0 tests"
+            FAIL=1
+          fi
+          [ "$FAIL" -eq 0 ] && echo "PASS: All tests passed"
           exit $FAIL
 
   validate:

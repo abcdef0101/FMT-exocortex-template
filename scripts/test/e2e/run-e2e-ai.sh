@@ -80,80 +80,55 @@ run_e2e() {
   echo ""
 }
 
+E2E_SCENARIOS=(
+  "Day Close|seed-day-close.sh|eval-day-close.sh|assert-day-close.sh"
+  "Quick Close|seed-quick-close.sh|eval-quick-close.sh|assert-quick-close.sh"
+  "Week Close|seed-week-close.sh|eval-week-close.sh|assert-week-close.sh"
+  "wp-new|seed-wp-new.sh|eval-wp-new.sh|assert-wp-new.sh"
+  "Day Open|seed-day-open.sh|eval-day-open.sh|assert-day-open.sh"
+  "Strategy Session|seed-strategy-session.sh|eval-strategy-session.sh|assert-strategy-session.sh"
+  "Session Prep|seed-session-prep.sh|eval-session-prep.sh|assert-session-prep.sh"
+  "WP Gate|seed-wp-gate-e2e.sh|eval-wp-gate.sh|assert-wp-gate.sh"
+  "ORZ Cycle|seed-orz-cycle.sh|eval-orz-cycle.sh|assert-orz-cycle.sh"
+  "Note Review|seed-note-review.sh|eval-note-review.sh|assert-note-review.sh"
+  "ArchGate|seed-archgate-e2e.sh|eval-archgate-e2e.sh|assert-archgate.sh"
+  "IntegrationGate|seed-integration-gate-e2e.sh|eval-integration-gate-e2e.sh|assert-integration-gate.sh"
+  "Role Execution|seed-role-execution-e2e.sh|eval-role-execution-e2e.sh|assert-role-execution.sh"
+  "Skill Invocation|seed-skill-invocation-e2e.sh|eval-skill-invocation-e2e.sh|assert-skill-invocation.sh"
+  "Extractor Inbox Check|seed-extractor-inbox-check.sh|eval-extractor-inbox-check.sh|assert-extractor-inbox-check.sh"
+  "Synchronizer Code Scan|seed-synchronizer-code-scan.sh|eval-synchronizer-code-scan.sh|assert-synchronizer-code-scan.sh"
+  "Verifier Pack Entity|seed-verifier-pack-entity.sh|eval-verifier-pack-entity.sh|assert-verifier-pack-entity.sh"
+  "Extractor Offline Fallback|seed-extractor-offline-fallback.sh|eval-extractor-offline-fallback.sh|assert-extractor-offline-fallback.sh"
+)
+
+run_scenario() {
+  local entry="$1"
+  local name seed eval_script assert_script
+  IFS='|' read -r name seed eval_script assert_script <<< "$entry"
+  run_e2e "$name" "$seed" "$eval_script" "$assert_script" "--run"
+}
+
 case "$E2E_PHASE" in
-  day-close)
-    run_e2e "Day Close" "seed-day-close.sh" "eval-day-close.sh" "assert-day-close.sh" "--run"
+  all)
+    for entry in "${E2E_SCENARIOS[@]}"; do
+      run_scenario "$entry"
+    done
     ;;
-  quick-close)
-    run_e2e "Quick Close" "seed-quick-close.sh" "eval-quick-close.sh" "assert-quick-close.sh" "--run"
-    ;;
-  week-close)
-    run_e2e "Week Close" "seed-week-close.sh" "eval-week-close.sh" "assert-week-close.sh" "--run"
-    ;;
-  wp-new)
-    run_e2e "wp-new" "seed-wp-new.sh" "eval-wp-new.sh" "assert-wp-new.sh" "--run"
-    ;;
-  day-open)
-    run_e2e "Day Open" "seed-day-open.sh" "eval-day-open.sh" "assert-day-open.sh" "--run"
-    ;;
-  strategy-session)
-    run_e2e "Strategy Session" "seed-strategy-session.sh" "eval-strategy-session.sh" "assert-strategy-session.sh" "--run"
-    ;;
-  session-prep)
-    run_e2e "Session Prep" "seed-session-prep.sh" "eval-session-prep.sh" "assert-session-prep.sh" "--run"
-    ;;
-  wp-gate)
-    run_e2e "WP Gate" "seed-wp-gate-e2e.sh" "eval-wp-gate.sh" "assert-wp-gate.sh" "--run"
-    ;;
-  orz-cycle)
-    run_e2e "ORZ Cycle" "seed-orz-cycle.sh" "eval-orz-cycle.sh" "assert-orz-cycle.sh" "--run"
-    ;;
-  note-review)
-    run_e2e "Note Review" "seed-note-review.sh" "eval-note-review.sh" "assert-note-review.sh" "--run"
-    ;;
-  archgate)
-    run_e2e "ArchGate" "seed-archgate-e2e.sh" "eval-archgate-e2e.sh" "assert-archgate.sh" "--run"
-    ;;
-  intgate)
-    run_e2e "IntegrationGate" "seed-integration-gate-e2e.sh" "eval-integration-gate-e2e.sh" "assert-integration-gate.sh" "--run"
-    ;;
-  role-exec)
-    run_e2e "Role Execution" "seed-role-execution-e2e.sh" "eval-role-execution-e2e.sh" "assert-role-execution.sh" "--run"
-    ;;
-  skill-invoke)
-    run_e2e "Skill Invocation" "seed-skill-invocation-e2e.sh" "eval-skill-invocation-e2e.sh" "assert-skill-invocation.sh" "--run"
-    ;;
-  extractor)
-    run_e2e "Extractor Inbox Check" "seed-extractor-inbox-check.sh" "eval-extractor-inbox-check.sh" "assert-extractor-inbox-check.sh" "--run"
-    ;;
-  synchronizer)
-    run_e2e "Synchronizer Code Scan" "seed-synchronizer-code-scan.sh" "eval-synchronizer-code-scan.sh" "assert-synchronizer-code-scan.sh" "--run"
-    ;;
-  verifier)
-    run_e2e "Verifier Pack Entity" "seed-verifier-pack-entity.sh" "eval-verifier-pack-entity.sh" "assert-verifier-pack-entity.sh" "--run"
-    ;;
-  offline-fallback)
-    run_e2e "Extractor Offline Fallback" "seed-extractor-offline-fallback.sh" "eval-extractor-offline-fallback.sh" "assert-extractor-offline-fallback.sh" "--run"
-    ;;
-  all|*)
-    run_e2e "Quick Close" "seed-quick-close.sh" "eval-quick-close.sh" "assert-quick-close.sh" "--run"
-    run_e2e "wp-new" "seed-wp-new.sh" "eval-wp-new.sh" "assert-wp-new.sh" "--run"
-    run_e2e "Day Close" "seed-day-close.sh" "eval-day-close.sh" "assert-day-close.sh" "--run"
-    run_e2e "Week Close" "seed-week-close.sh" "eval-week-close.sh" "assert-week-close.sh" "--run"
-    run_e2e "Day Open" "seed-day-open.sh" "eval-day-open.sh" "assert-day-open.sh" "--run"
-    run_e2e "Strategy Session" "seed-strategy-session.sh" "eval-strategy-session.sh" "assert-strategy-session.sh" "--run"
-    run_e2e "Session Prep" "seed-session-prep.sh" "eval-session-prep.sh" "assert-session-prep.sh" "--run"
-    run_e2e "WP Gate" "seed-wp-gate-e2e.sh" "eval-wp-gate.sh" "assert-wp-gate.sh" "--run"
-    run_e2e "ORZ Cycle" "seed-orz-cycle.sh" "eval-orz-cycle.sh" "assert-orz-cycle.sh" "--run"
-    run_e2e "Note Review" "seed-note-review.sh" "eval-note-review.sh" "assert-note-review.sh" "--run"
-    run_e2e "ArchGate" "seed-archgate-e2e.sh" "eval-archgate-e2e.sh" "assert-archgate.sh" "--run"
-    run_e2e "IntegrationGate" "seed-integration-gate-e2e.sh" "eval-integration-gate-e2e.sh" "assert-integration-gate.sh" "--run"
-    run_e2e "Role Execution" "seed-role-execution-e2e.sh" "eval-role-execution-e2e.sh" "assert-role-execution.sh" "--run"
-    run_e2e "Skill Invocation" "seed-skill-invocation-e2e.sh" "eval-skill-invocation-e2e.sh" "assert-skill-invocation.sh" "--run"
-    run_e2e "Extractor Inbox Check" "seed-extractor-inbox-check.sh" "eval-extractor-inbox-check.sh" "assert-extractor-inbox-check.sh" "--run"
-    run_e2e "Synchronizer Code Scan" "seed-synchronizer-code-scan.sh" "eval-synchronizer-code-scan.sh" "assert-synchronizer-code-scan.sh" "--run"
-    run_e2e "Verifier Pack Entity" "seed-verifier-pack-entity.sh" "eval-verifier-pack-entity.sh" "assert-verifier-pack-entity.sh" "--run"
-    run_e2e "Extractor Offline Fallback" "seed-extractor-offline-fallback.sh" "eval-extractor-offline-fallback.sh" "assert-extractor-offline-fallback.sh" "--run"
+  *)
+    found=false
+    for entry in "${E2E_SCENARIOS[@]}"; do
+      phase_name=$(echo "$entry" | cut -d'|' -f1 | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
+      if [ "$phase_name" = "$E2E_PHASE" ]; then
+        run_scenario "$entry"
+        found=true
+        break
+      fi
+    done
+    if ! $found; then
+      echo "ERROR: unknown phase '$E2E_PHASE'"
+      echo "Available: all, $(for e in "${E2E_SCENARIOS[@]}"; do echo "$e" | cut -d'|' -f1 | tr '[:upper:]' '[:lower:]' | tr ' ' '-'; done | tr '\n' ' ')"
+      exit 1
+    fi
     ;;
 esac
 

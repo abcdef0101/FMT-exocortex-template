@@ -18,15 +18,14 @@ echo "  --- 7 characteristics (ЭМОГССБ v3) ---"
 chars=0
 grep -q "Эволюционируемость" "$ARCHGATE" && chars=$((chars + 1))
 grep -q "Масштабируемость" "$ARCHGATE" && chars=$((chars + 1))
-grep -q "Модульность" "$ARCHGATE" 2>/dev/null && chars=$((chars + 1))
-grep -q "Наблюдаемость\|Обучаемость" "$ARCHGATE" && chars=$((chars + 1))
+grep -q "Обучаемость" "$ARCHGATE" && chars=$((chars + 1))
 grep -q "Генеративность" "$ARCHGATE" && chars=$((chars + 1))
 grep -q "Скорость" "$ARCHGATE" && chars=$((chars + 1))
 grep -q "Современность" "$ARCHGATE" && chars=$((chars + 1))
 grep -q "Безопасность" "$ARCHGATE" && chars=$((chars + 1))
 [ "$chars" -ge 7 ] \
-  && _pass "characteristics: $chars/8 found" \
-  || _fail "characteristics: only $chars/8 found"
+  && _pass "characteristics: $chars/7 found" \
+  || _fail "characteristics: only $chars/7 found"
 
 echo "  --- v3 conjunctive screening (profile, not aggregate score) ---"
 grep -q "Достаточно\|Слабо\|Блокер\|✅\|⚠️\|❌" "$ARCHGATE" \

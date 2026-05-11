@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 # test-update-apply.sh — тесты update.sh --apply и внутренних функций
-# NOTE: set -e omitted — update.sh --check regenerates checksums.yaml,
-# which makes subsequent git operations in the test environment fragile.
-# Full set -euo pipefail needs update.sh decoupling (P1-BUG-02).
-set -uo pipefail
+# NOTE: source of manifest-lib.sh is guarded explicitly (non-fatal).
+set -euo pipefail
 
 ROOT_DIR="${ROOT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
-source "$ROOT_DIR/scripts/lib/manifest-lib.sh" 2>/dev/null || true
+source "$ROOT_DIR/scripts/lib/manifest-lib.sh" 2>/dev/null \
+  || { echo "  ✗ cannot source manifest-lib.sh"; FAIL=$((FAIL + 1)); }
 FAIL=0
 _pass()  { echo "  ✓ $1"; }
 _fail() { echo "  ✗ $1"; FAIL=$((FAIL + 1)); }

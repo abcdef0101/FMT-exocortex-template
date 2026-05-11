@@ -57,7 +57,14 @@ echo "  --- unknown arg ---"
   || _fail "unknown arg exits $rc (expected 1)"
 
 echo "  --- --check output sections ---"
-output=$("$UPDATER" --check 2>&1) || true
+output=$("$UPDATER" --check 2>&1) && check_rc=0 || check_rc=$?
+if [ "$check_rc" -eq 3 ]; then
+  _pass "--check: graceful error exit (rc=3)"
+elif [ "$check_rc" -eq 0 ]; then
+  _pass "--check: clean exit (rc=0)"
+else
+  _fail "--check: unexpected exit code $check_rc"
+fi
 echo "$output" | grep -q "Fetching upstream" \
   && _pass "--check: fetch section" || _fail "--check: fetch section"
 echo "$output" | grep -q "Comparing component versions" \

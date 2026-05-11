@@ -16,15 +16,22 @@ CK_FILE="$ROOT_DIR/checksums.yaml"
 # -------------------------------------------------------------------
 echo "  --- idempotency ---"
 
+TMPDIR=$(mktemp -d -t checksums-test-XXXXXX)
+trap 'rm -rf "$TMPDIR"' EXIT
+
+CK_COPY="$TMPDIR/checksums-copy.yaml"
+cp "$CK_FILE" "$CK_COPY"
+
 bash "$GEN_SCRIPT" 2>/dev/null
-cp "$CK_FILE" /tmp/checksums-first.yaml
+cp "$CK_FILE" "$TMPDIR/checksums-first.yaml"
 bash "$GEN_SCRIPT" 2>/dev/null
-cp "$CK_FILE" /tmp/checksums-second.yaml
-# Strip volatile 'generated:' field before comparison
-diff <(grep -v '^generated:' /tmp/checksums-first.yaml) <(grep -v '^generated:' /tmp/checksums-second.yaml) \
+cp "$CK_FILE" "$TMPDIR/checksums-second.yaml"
+
+cp "$CK_COPY" "$CK_FILE"
+
+diff <(grep -v '^generated:' "$TMPDIR/checksums-first.yaml") <(grep -v '^generated:' "$TMPDIR/checksums-second.yaml") \
   && _pass "regenerate is idempotent" \
   || _fail "regenerate is idempotent (content differs between two runs)"
-rm -f /tmp/checksums-first.yaml /tmp/checksums-second.yaml
 
 # -------------------------------------------------------------------
 echo "  --- never_touch exclusion ---"
