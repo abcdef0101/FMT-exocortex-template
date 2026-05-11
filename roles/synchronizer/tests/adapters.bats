@@ -96,6 +96,8 @@ EOF
 
 @test "log: adapter_send пишет запись в файл" {
     source "$ADAPTERS/log.sh"
+    local saved_home="$HOME"
+    export HOME="$BATS_TEST_TMPDIR/log-test"
     adapter_send "LogTitle" "LogMessage"
 
     local today_log="$HOME/.local/state/logs/notify/$(date +%Y-%m-%d).log"
@@ -103,6 +105,7 @@ EOF
     assert_success
     run grep 'LogMessage' "$today_log"
     assert_success
+    export HOME="$saved_home"
 }
 
 @test "log: adapter_send создаёт директорию при отсутствии" {
@@ -191,6 +194,12 @@ EOF
 @test "telegram: HTML спецсимволы в title не ломают отправку" {
     cat > "$BIN_DIR/curl" <<'EOF'
 #!/usr/bin/env bash
+while [ $# -gt 0 ]; do
+  if [ "$1" = "-d" ]; then
+    printf '%s' "$2" > "$BATS_TEST_TMPDIR/telegram_payload.json"
+  fi
+  shift
+done
 echo '{"ok":true}'
 EOF
     chmod +x "$BIN_DIR/curl"
@@ -201,6 +210,15 @@ EOF
     run adapter_send "Title <b>bold</b> & Entity" "Message"
     assert_success
     assert_output --partial "Sent via telegram"
+    run python3 - "$BATS_TEST_TMPDIR/telegram_payload.json" <<'PY'
+import json
+import sys
+with open(sys.argv[1], encoding='utf-8') as fh:
+    data = json.load(fh)
+assert data['parse_mode'] == 'HTML'
+assert data['text'] == '<b>Title <b>bold</b> & Entity</b>\n\nMessage'
+PY
+    assert_success
 }
 
 @test "telegram: adapter_send с пустым message" {
@@ -219,6 +237,8 @@ EOF
 
 @test "log: % в title/message не ломает printf" {
     source "$ADAPTERS/log.sh"
+    local saved_home="$HOME"
+    export HOME="$BATS_TEST_TMPDIR/log-pct-test"
     run adapter_send "100% test %s" "%d items"
     assert_success
     # Проверяем что запись в log файле содержит оригинальный текст, не раскрытый printf
@@ -227,4 +247,5 @@ EOF
     assert_success
     run grep '%d items' "$today_log"
     assert_success
+    export HOME="$saved_home"
 }

@@ -15,6 +15,19 @@ UPDATER="$ROOT_DIR/update.sh"
 TMPDIR=$(mktemp -d -t upapply-test-XXXXXX)
 trap 'rm -rf "$TMPDIR"' EXIT
 
+overlay_worktree_snapshot() {
+  local dest="$1"
+  (cd "$ROOT_DIR" && tar --exclude=.git -cf - .) | (cd "$dest" && tar -xf -)
+}
+
+commit_snapshot_if_dirty() {
+  local repo="$1"
+  if ! git -C "$repo" diff --quiet || ! git -C "$repo" diff --cached --quiet || [ -n "$(git -C "$repo" ls-files --others --exclude-standard)" ]; then
+    git -C "$repo" add -A
+    git -C "$repo" -c user.name=Test -c user.email=test@example.com commit -m "test: sync worktree snapshot" --quiet
+  fi
+}
+
 echo "  --- --apply without changes ---"
 # Simulate already up-to-date by running --check which returns 0
 output=$("$UPDATER" --check 2>&1)
@@ -68,27 +81,45 @@ else
 fi
 
 echo "  --- --apply error: no git remote ---"
-# Check that update.sh detects missing remote
-grep -q "No git remote" "$UPDATER" \
-  && _pass "update.sh: missing remote detection present" \
-  || _fail "update.sh: no missing remote detection"
+git clone "$ROOT_DIR" "$TMPDIR/no-remote" --quiet 2>/dev/null
+overlay_worktree_snapshot "$TMPDIR/no-remote"
+commit_snapshot_if_dirty "$TMPDIR/no-remote"
+git -C "$TMPDIR/no-remote" remote remove origin
+output=$(bash "$TMPDIR/no-remote/update.sh" --check 2>&1) && rc=0 || rc=$?
+[ "$rc" -eq 3 ] \
+  && _pass "update.sh: missing remote exits 3" \
+  || _fail "update.sh: missing remote rc=$rc"
+echo "$output" | grep -q "No git remote" \
+  && _pass "update.sh: missing remote message" \
+  || _fail "update.sh: missing remote message absent"
 
 echo "  --- --apply error: not a git repo ---"
-grep -q "Not a git repository" "$UPDATER" \
-  && _pass "update.sh: not-a-repo detection present" \
-  || _fail "update.sh: no not-a-repo detection"
+mkdir -p "$TMPDIR/plain/scripts/lib"
+cp "$UPDATER" "$TMPDIR/plain/update.sh"
+cp "$ROOT_DIR/scripts/lib/manifest-lib.sh" "$TMPDIR/plain/scripts/lib/manifest-lib.sh"
+output=$(bash "$TMPDIR/plain/update.sh" --check 2>&1) && rc=0 || rc=$?
+[ "$rc" -eq 3 ] \
+  && _pass "update.sh: not-a-repo exits 3" \
+  || _fail "update.sh: not-a-repo rc=$rc"
+echo "$output" | grep -q "Not a git repository" \
+  && _pass "update.sh: not-a-repo message" \
+  || _fail "update.sh: not-a-repo message absent"
 
-echo "  --- cross-platform sed_inplace ---"
-grep -q "sed_inplace()" "$UPDATER" \
-  && _pass "update.sh: cross-platform sed wrapper present" \
-  || _fail "update.sh: no cross-platform sed wrapper"
-
-# P0 #7: rebase conflict handling
 echo "  --- git pull rebase conflict detection ---"
-grep -q "pull.*rebase" "$UPDATER" 2>/dev/null \
-  && _pass "update.sh: git pull --rebase present" \
-  || _fail "update.sh: no git pull --rebase"
-grep -q "Resolve conflicts manually" "$UPDATER" 2>/dev/null \
+git clone "$ROOT_DIR" "$TMPDIR/conflict-upstream" --quiet 2>/dev/null
+overlay_worktree_snapshot "$TMPDIR/conflict-upstream"
+commit_snapshot_if_dirty "$TMPDIR/conflict-upstream"
+git clone "$TMPDIR/conflict-upstream" "$TMPDIR/conflict-local" --quiet 2>/dev/null
+echo "upstream change" >> "$TMPDIR/conflict-upstream/CLAUDE.md"
+git -C "$TMPDIR/conflict-upstream" add CLAUDE.md && git -C "$TMPDIR/conflict-upstream" -c user.name=Test -c user.email=test@example.com commit -m "upstream change" --quiet
+echo "local change" >> "$TMPDIR/conflict-local/CLAUDE.md"
+git -C "$TMPDIR/conflict-local" add CLAUDE.md && git -C "$TMPDIR/conflict-local" -c user.name=Test -c user.email=test@example.com commit -m "local change" --quiet
+git -C "$TMPDIR/conflict-local" remote set-url origin "$TMPDIR/conflict-upstream"
+output=$(bash "$TMPDIR/conflict-local/update.sh" --apply 2>&1) && rc=0 || rc=$?
+[ "$rc" -eq 3 ] \
+  && _pass "update.sh: rebase conflict exits 3" \
+  || _fail "update.sh: rebase conflict rc=$rc"
+echo "$output" | grep -q "Resolve conflicts manually" \
   && _pass "update.sh: conflict resolution message present" \
   || _fail "update.sh: no conflict resolution message"
 
@@ -99,13 +130,12 @@ mkdir -p "$TMPDIR/conflict-repo"
 cd "$TMPDIR/conflict-repo"
 git init --quiet
 echo "v1" > file.txt && git add file.txt && git commit -m "initial" --quiet
-echo "v2" > file.txt && git add file.txt && git commit -m "local" --quiet
-# Create a conflicting change on a new branch
 git checkout -b upstream --quiet 2>/dev/null || true
-echo "v3" > file.txt && git add file.txt && git commit -m "upstream" --quiet
+echo "upstream" > file.txt && git add file.txt && git commit -m "upstream" --quiet
 git checkout main --quiet 2>/dev/null || git checkout master --quiet 2>/dev/null || true
+echo "local" > file.txt && git add file.txt && git commit -m "local" --quiet
 # git pull --rebase should conflict
-git pull --rebase . upstream 2>/dev/null && rc=1 || rc=$?
+git pull --rebase . upstream >/dev/null 2>&1 && rc=0 || rc=$?
 [ "$rc" -ne 0 ] \
   && _pass "rebase conflict: git correctly returns non-zero" \
   || _fail "rebase conflict: git should return non-zero"

@@ -334,7 +334,7 @@ _post_update() {
   fi
 
   # Verify checksums.yaml integrity auto-regenerated
-  if [ -f "$ROOT_DIR/scripts/generate-checksums.sh" ]; then
+  if $APPLY && [ -f "$ROOT_DIR/scripts/generate-checksums.sh" ]; then
     bash "$ROOT_DIR/scripts/generate-checksums.sh" 2>/dev/null || true
     echo "  ✓ checksums.yaml regenerated"
   fi

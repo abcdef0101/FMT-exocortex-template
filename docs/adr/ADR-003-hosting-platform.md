@@ -114,6 +114,13 @@ vagrant up  # скачивает образ Ubuntu + tmux + Claude Code + IWE T1
 
 Vagrant-образ = третий способ доставки (для DevOps-аудитории, тестирования).
 
+## Consequences
+
+1. `FMT-exocortex-template` остаётся единым source-of-truth для CLI и hosting delivery.
+2. Хостинг обязан вызывать те же `setup.sh` / `update.sh`, а не отдельную ветку логики.
+3. Нужно поддержать неинтерактивный режим, экспорт и platform-managed onboarding без vendor lock-in.
+4. Любые platform-specific упрощения должны быть обратимы через `git clone` / export в локальную T4-установку.
+
 ## Что нужно реализовать (backlog)
 
 | # | Артефакт | Уровень | Зависимость |

@@ -15,22 +15,24 @@ grep -qiE 'SC Gate|service.clause|08-service-clauses' "$CLAUDE" 2>/dev/null \
   || _f "SC Gate rule not found"
 
 echo "  --- SC Gate: promise check ---"
-grep -qiE 'какое обещание.*затронуто\|service clause.*promise\|SC.*затронуто' "$CLAUDE" 2>/dev/null \
+grep -qi 'какое обещание' "$CLAUDE" 2>/dev/null \
   && _p "SC Gate: promise question" \
-  || _p "SC Gate promise: check CLAUDE.md"
+  || _f "SC Gate promise: not found"
 
 echo "  --- SC Gate: context ---"
-grep -qiE 'Пользовательский сценарий\|user scenario.*SC Gate' "$CLAUDE" 2>/dev/null \
+grep -qi 'Пользовательский сценарий' "$CLAUDE" 2>/dev/null \
   && _p "SC Gate: user scenario trigger" \
-  || _p "SC trigger: check CLAUDE.md"
+  || _f "SC Gate trigger: user scenario not found"
 
 echo "  --- SC Gate: service clauses dir ---"
-[ -d "$ROOT_DIR/workspaces" ] && _p "workspaces dir exists" || _p "workspaces dir: not found"
+[ -d "$ROOT_DIR/workspaces" ] \
+  && _p "workspaces dir exists" \
+  || _f "workspaces dir: not found"
 
 echo "  --- SC Gate: blocking ---"
-grep -qiE 'SC Gate.*БЛОКИРУЮЩ\|SC.*pre-action' "$CLAUDE" 2>/dev/null \
-  && _p "SC Gate: defined as blocking" \
-  || _p "SC blocking: check CLAUDE.md"
+{ grep -q 'SC Gate' "$CLAUDE" && grep -q 'Pre-action Gates' "$CLAUDE"; } \
+  && _p "SC Gate: defined under Pre-action Gates" \
+  || _f "SC Gate: not linked to Pre-action Gates section"
 
 [ "$FAIL" -eq 0 ] && echo "  All assertions passed" || echo "  $FAIL assertion(s) failed"
 exit $FAIL

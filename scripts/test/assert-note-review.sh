@@ -18,19 +18,18 @@ echo "  --- assert: Note Review ---"
 fleeting="$DS_DIR/inbox/fleeting-notes.md"
 archive="$DS_DIR/archive/notes/Notes-Archive.md"
 dissat="$DS_DIR/docs/Dissatisfactions.md"
-strategy="$DS_DIR/docs/Strategy.md"
 
 echo "  --- fleeting-notes processed ---"
 if [ -f "$fleeting" ]; then
   bold_count=$(grep -c '^\*\*' "$fleeting" 2>/dev/null | head -1 || echo 0)
   [ "${bold_count:-0}" -eq 0 ] \
     && _pass "inbox: no unprocessed bold notes" \
-    || _pass "inbox: $bold_count bold notes (pending review)"
+    || _fail "inbox: $bold_count bold notes remaining (unprocessed)"
 
   total_lines=$(wc -l < "$fleeting" 2>/dev/null || echo 0)
-  [ "$total_lines" -gt 2 ] \
-    && _pass "inbox: $total_lines lines (has content)" \
-    || _pass "inbox: nearly empty (processed)"
+  [ "$total_lines" -le 2 ] \
+    && _pass "inbox: processed (nearly empty)" \
+    || _fail "inbox: $total_lines lines remaining"
 fi
 
 echo "  --- categories present ---"
@@ -40,22 +39,24 @@ grep -qiE 'задач|task|РП' "$fleeting" 2>/dev/null && found=$((found + 1))
 grep -qiE 'шум|noise|strikethrough' "$fleeting" 2>/dev/null && found=$((found + 1))
 [ "$found" -ge 2 ] \
   && _pass "categories: $found types found" \
-  || _pass "categories: $found found"
+  || _fail "categories: only $found found (expected >=2)"
 
 echo "  --- archive ---"
 if [ -f "$archive" ]; then
   [ -s "$archive" ] \
     && _pass "archive: Notes-Archive.md has content" \
-    || _pass "archive: empty"
+    || _fail "archive: empty"
 else
-  _pass "archive: not created yet"
+  _fail "archive: not created"
 fi
 
 echo "  --- Dissatisfactions updated ---"
 if [ -f "$dissat" ]; then
-  grep -qE 'НЭП\|active\|closed' "$dissat" 2>/dev/null \
+  grep -qiE 'НЭП|active|closed' "$dissat" 2>/dev/null \
     && _pass "Dissatisfactions: has entries" \
-    || _pass "Dissatisfactions: check content"
+    || _fail "Dissatisfactions: no entries found"
+else
+  _fail "Dissatisfactions: file not found"
 fi
 
 echo "  --- commit ---"

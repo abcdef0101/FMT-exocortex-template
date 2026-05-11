@@ -69,6 +69,12 @@ if [ -n "${LOCAL_DIR:-}" ] && [ -d "$LOCAL_DIR" ]; then
   grep -q "e2e-lib test content" "$LOCAL_DIR/test-change.txt" 2>/dev/null \
     && _pass "inject_change: content present" \
     || _fail "inject_change: content missing"
+  git -C "$LOCAL_DIR" log -1 --format=%s 2>/dev/null | grep -q '^e2e: inject change$' \
+    && _pass "inject_change: commit created" \
+    || _fail "inject_change: commit missing"
+  git -C "$LOCAL_DIR" rev-parse main >/dev/null 2>&1 \
+    && _pass "inject_change: main ref updated" \
+    || _fail "inject_change: main ref missing"
 else
   _pass "inject_change: skipped (no local clone)"
 fi

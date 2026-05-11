@@ -38,6 +38,9 @@ RUBRICS="$SCRIPT_DIR/rubrics-session-prep.yaml"
 [ ! -f "$RUBRICS" ] && { echo "ERROR: rubrics not found" >&2; exit 1; }
 
 DS_DIR="$WS_DIR/DS-strategy"
+CURRENT_WEEKPLAN=$(find "$DS_DIR/current" -name 'WeekPlan*' -type f 2>/dev/null | head -1)
+ARCHIVED_WEEKPLAN=$(find "$DS_DIR/archive/week-plans" -name 'WeekPlan*' -type f 2>/dev/null | head -1)
+ARCHIVED_DAYPLAN=$(find "$DS_DIR/archive" -name 'DayPlan*' -type f 2>/dev/null | head -1)
 echo "=== LLM-as-Judge: Session Prep ==="
 
 JUDGE_PROMPT=$(cat <<PROMPT
@@ -47,11 +50,13 @@ WeekPlan по 8 критериям. Для каждого: score 0.0-1.0, passed
 ## Критерии
 $(cat "$RUBRICS")
 
-## Входные данные (seed)
-=== Previous WeekPlan (W13) ===
-$(cat "$DS_DIR/current/WeekPlan W13"*".md" 2>/dev/null | head -100 || echo "N/A")
-=== Previous DayPlan ===
-$(cat "$DS_DIR/current/DayPlan"*".md" 2>/dev/null | head -60 || echo "N/A")
+## Результат после Session Prep
+=== Current WeekPlan draft ===
+$(cat "$CURRENT_WEEKPLAN" 2>/dev/null | head -120 || echo "N/A")
+=== Archived WeekPlan ===
+$(cat "$ARCHIVED_WEEKPLAN" 2>/dev/null | head -80 || echo "N/A")
+=== Archived DayPlan ===
+$(cat "$ARCHIVED_DAYPLAN" 2>/dev/null | head -60 || echo "N/A")
 === MEMORY.md ===
 $(cat "$WS_DIR/memory/MEMORY.md" 2>/dev/null || echo "N/A")
 === Strategy.md ===
@@ -62,6 +67,8 @@ $(cat "$DS_DIR/docs/Dissatisfactions.md" 2>/dev/null || echo "N/A")
 $(cat "$DS_DIR/inbox/fleeting-notes.md" 2>/dev/null || echo "N/A")
 === Session Agenda ===
 $(cat "$DS_DIR/docs/Session Agenda.md" 2>/dev/null || echo "N/A")
+=== fleeting-notes after run ===
+$(cat "$DS_DIR/inbox/fleeting-notes.md" 2>/dev/null || echo "N/A")
 
 ## Формат ответа — СТРОГО JSON-массив:
 [{"metric":"...","score":0.8,"passed":true,"reasoning":"..."},...]

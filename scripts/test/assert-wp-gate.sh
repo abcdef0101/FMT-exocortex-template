@@ -45,7 +45,7 @@ echo "  --- no new WP created ---"
 new_wp=$(find "$DS_DIR/inbox" -name "WP-4*" -type f 2>/dev/null || true)
 [ -z "$new_wp" ] \
   && _pass "no WP-4 context file (gate prevented)" \
-  || _pass "WP-4 found ($(basename "$new_wp"))"
+  || _fail "unexpected WP-4 created ($(basename "$new_wp"))"
 
 echo "  --- git state ---"
 cd "$WS_DIR" 2>/dev/null || true

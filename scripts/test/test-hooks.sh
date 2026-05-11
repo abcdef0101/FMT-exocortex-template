@@ -112,7 +112,7 @@ for hook in "${HOOKS[@]}"; do
   elif [ "$hook" = "precompact-checkpoint.sh" ]; then
     : # precompact uses jq directly, different pattern
   else
-    _pass "$hook reads stdin" # assume it does if it passed the empty-input test above
+    _skip "$hook reads stdin: no stdin pattern detected"
   fi
 
   # All hooks should output JSON (either {} or structured)
@@ -157,12 +157,11 @@ grep -q '_LIB_RESOLVE_WORKSPACE_LOADED' "$RESOLVE" \
 # Check workspaces/ directory resolution
 grep -q 'workspaces/CURRENT_WORKSPACE' "$RESOLVE" \
   && _pass "resolve-workspace: CURRENT_WORKSPACE symlink check" \
-  || _pass "resolve-workspace: no CURRENT_WORKSPACE (CLI override mode)"
+  || _fail "resolve-workspace: no CURRENT_WORKSPACE and no CLI override"
 
-# Check CLI override
 grep -q 'CLI_WORKSPACE_DIR' "$RESOLVE" \
   && _pass "resolve-workspace: CLI workspace override" \
-  || _pass "resolve-workspace: no CLI override (ok)"
+  || _fail "resolve-workspace: no CLI override found"
 
 # Source the library and verify it doesn't crash
 if source "$RESOLVE" 2>/dev/null; then
@@ -187,21 +186,21 @@ grep -q 'set -eu' "$LOADEXT" 2>/dev/null \
 # Check sources resolve-workspace.sh
 grep -q 'resolve-workspace' "$LOADEXT" \
   && _pass "load-extensions: depends on resolve-workspace" \
-  || _pass "load-extensions: standalone (no resolve-workspace dep)"
+  || _fail "load-extensions: no resolve-workspace dependency"
 
 # Test usage/help behavior
 output=$(bash "$LOADEXT" 2>&1) && rc=$? || rc=$?
 if [ "$rc" -ne 0 ]; then
   _pass "load-extensions: no args → error (rc=$rc)"
 else
-  _pass "load-extensions: no args → exit 0 (no extensions dir?)"
+  _fail "load-extensions: no args → expected non-zero exit (got rc=0)"
 fi
 
 # Test with --help or help
 output=$(bash "$LOADEXT" --help 2>&1) && rc=$? || rc=$?
 [ "$rc" -ne 0 ] \
   && _pass "load-extensions: --help fails gracefully (rc=$rc)" \
-  || _pass "load-extensions: --help accepted"
+  || _fail "load-extensions: --help unexpected exit 0"
 
 # -------------------------------------------------------------------
 [ "$FAIL" -eq 0 ] && echo "  All tests passed" || echo "  $FAIL test(s) failed"

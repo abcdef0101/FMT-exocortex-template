@@ -17,27 +17,27 @@ grep -qiE 'Security Gate|B7\.3|PII.*gate' "$CLAUDE" 2>/dev/null \
 echo "  --- PII scope ---"
 grep -qiE 'email|telegram_id|ЦД|tokens|user_events' "$CLAUDE" 2>/dev/null \
   && _p "PII fields: enumerated" \
-  || _p "PII fields: check CLAUDE.md"
+  || _f "PII fields: not enumerated in CLAUDE.md"
 
 echo "  --- ArchGate §Б checklist ---"
 grep -qiE '§Б.*чеклист|ArchGate.*PII|Security.*ArchGate' "$CLAUDE" 2>/dev/null \
   && _p "ArchGate §Б checklist: referenced" \
-  || _p "§Б checklist: check CLAUDE.md"
+  || _f "§Б checklist: not found in CLAUDE.md"
 
 echo "  --- logging blocker ---"
 grep -qiE 'логирование.*PII.*блокер|PII.*logging.*block' "$CLAUDE" 2>/dev/null \
   && _p "PII logging: blocker rule" \
-  || _p "PII logging block: check CLAUDE.md"
+  || _f "PII logging: blocker rule not found in CLAUDE.md"
 
 echo "  --- PII triggers ---"
 grep -qiE 'РП.*PII|затрагивает.*PII|персональн' "$CLAUDE" 2>/dev/null \
   && _p "trigger: PII-touching RP defined" \
-  || _p "trigger: check CLAUDE.md"
+  || _f "trigger: PII-touching RP not found in CLAUDE.md"
 
 echo "  --- gate: blocking ---"
-grep -qiE 'Security.*БЛОКИРУЮЩ|Security.*blocking|B7.3.*блок' "$CLAUDE" 2>/dev/null \
-  && _p "Security Gate: blocking" \
-  || _p "blocking: check CLAUDE.md"
+{ grep -q 'Security Gate' "$CLAUDE" && grep -q 'Pre-action Gates' "$CLAUDE"; } \
+  && _p "Security Gate: defined under Pre-action Gates" \
+  || _f "Security Gate: not linked to Pre-action Gates section"
 
 [ "$FAIL" -eq 0 ] && echo "  All assertions passed" || echo "  $FAIL assertion(s) failed"
 exit $FAIL

@@ -13,10 +13,19 @@ setup() {
 # ===========================================================================
 
 @test "iwe_notify_local: macOS path — вызывает osascript" {
+    BIN_DIR="$BATS_TEST_TMPDIR/bin"
+    mkdir -p "$BIN_DIR"
+    cat > "$BIN_DIR/osascript" <<EOF
+#!/usr/bin/env bash
+cat > "$TEST_DIR/osascript_payload"
+EOF
+    chmod +x "$BIN_DIR/osascript"
+    export PATH="$BIN_DIR:$PATH"
     source "${BATS_TEST_DIRNAME}/../../../roles/shared/lib/lib-notify.sh"
     OSTYPE="darwin20"  # force macOS
     run iwe_notify_local "TestTitle" "TestMessage"
-    # osascript не установлен в CI → || true, ошибка не фатальна
+    assert_success
+    run grep 'display notification "TestMessage" with title "TestTitle"' "$TEST_DIR/osascript_payload"
     assert_success
 }
 
@@ -43,12 +52,14 @@ EOF
     source "${BATS_TEST_DIRNAME}/../../../roles/shared/lib/lib-notify.sh"
     OSTYPE="linux-gnu"
     # Убеждаемся что notify-send не в PATH
+    local saved_path="$PATH"
     BIN_DIR="$BATS_TEST_TMPDIR/emptybin"
     mkdir -p "$BIN_DIR"
     export PATH="$BIN_DIR"
 
     run iwe_notify_local "TestTitle" "TestMessage"
     assert_success
+    export PATH="$saved_path"
 }
 
 @test "iwe_notify_local: неизвестная платформа — silent no-op" {

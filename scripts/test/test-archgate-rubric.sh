@@ -24,7 +24,7 @@ grep -q "Генеративность" "$ARCHGATE" && chars=$((chars + 1))
 grep -q "Скорость" "$ARCHGATE" && chars=$((chars + 1))
 grep -q "Современность" "$ARCHGATE" && chars=$((chars + 1))
 grep -q "Безопасность" "$ARCHGATE" && chars=$((chars + 1))
-[ "$chars" -ge 6 ] \
+[ "$chars" -ge 7 ] \
   && _pass "characteristics: $chars/8 found" \
   || _fail "characteristics: only $chars/8 found"
 
@@ -35,33 +35,33 @@ grep -q "Достаточно\|Слабо\|Блокер\|✅\|⚠️\|❌" "$ARC
 
 grep -q "veto\|conjunctive\|Правило [1-3]" "$ARCHGATE" 2>/dev/null \
   && _pass "veto rules present" \
-  || _pass "veto rules: check archgate SKILL.md"
+  || _fail "veto rules missing"
 
 echo "  --- modernity checks ---"
 grep -q "SOTA.002\|Context Engineering" "$ARCHGATE" 2>/dev/null \
   && _pass "modernity: Context Engineering (SOTA.002)" \
-  || _pass "SOTA.002: check archgate"
+  || _fail "SOTA.002 missing"
 
 grep -q "SOTA.001\|DDD Strategic" "$ARCHGATE" 2>/dev/null \
   && _pass "modernity: DDD Strategic (SOTA.001)" \
-  || _pass "SOTA.001: check archgate"
+  || _fail "SOTA.001 missing"
 
 grep -q "SOTA.011\|Coupling Model" "$ARCHGATE" 2>/dev/null \
   && _pass "modernity: Coupling Model (SOTA.011)" \
-  || _pass "SOTA.011: check archgate"
+  || _fail "SOTA.011 missing"
 
 echo "  --- ArchGate in CLAUDE.md §5 ---"
 grep -q "АрхГейт\|ArchGate\|Архитектурное решение.*оценка" "$CLAUDE" 2>/dev/null \
   && _pass "ArchGate in CLAUDE.md" \
   || _fail "ArchGate not in CLAUDE.md"
 
-grep -q "rank\|Ranker" "$ARCHGATE" 2>/dev/null \
-  && _pass "gate ≠ ranker distinction" \
-  || _pass "gate/ranker distinction: check archgate"
+grep -q "Без агрегатного балла\|только профиль\|non-compensatory" "$ARCHGATE" 2>/dev/null \
+  && _pass "gate semantics: profile without aggregate ranking" \
+  || _fail "gate semantics: profile-only distinction missing"
 
 grep -q "ЭМОГССБ" "$ARCHGATE" \
   && _pass "acronym ЭМОГССБ present" \
-  || _pass "ЭМОГССБ: check archgate naming"
+  || _fail "ЭМОГССБ acronym missing"
 
 [ "$FAIL" -eq 0 ] && echo "  All checks passed" || echo "  $FAIL check(s) failed"
 exit $FAIL

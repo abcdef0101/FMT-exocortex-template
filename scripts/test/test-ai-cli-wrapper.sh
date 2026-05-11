@@ -105,6 +105,68 @@ echo "$flags" | grep -q "agent build" \
 
 unset AI_CLI_AGENT 2>/dev/null || true
 
+echo "  --- run + resolve_model ---"
+
+TMPDIR=$(mktemp -d -t ai-cli-wrapper-test-XXXXXX)
+trap 'rm -rf "$TMPDIR"' EXIT
+unset AI_CLI_BASE_URL AI_CLI_CONFIG 2>/dev/null || true
+
+cat > "$TMPDIR/model-tiers.yaml" <<'EOF'
+anthropic:
+  fast: anthropic/claude-3-5-haiku
+  thinking: anthropic/claude-sonnet-4
+openrouter:
+  fast: openrouter/fast-model
+  thinking: openrouter/reasoning-model
+EOF
+
+WORKSPACE_DIR="$TMPDIR"
+export WORKSPACE_DIR
+
+detect_ai_cli() { echo "claude"; }
+timeout() { printf '%s\n' "$*" > "$TMPDIR/claude-run.args"; }
+export -f detect_ai_cli timeout
+ai_cli_run "hello world" --bare --allowed-tools "Read,Bash" --budget 0.25 >/dev/null 2>&1 && rc=0 || rc=$?
+[ "$rc" -eq 0 ] \
+  && _pass "ai_cli_run: claude path returns 0" \
+  || _fail "ai_cli_run: claude path rc=$rc"
+grep -q 'claude .*--bare .*--allowedTools Read,Bash .*--max-budget-usd 0.25 .* -p hello world' "$TMPDIR/claude-run.args" 2>/dev/null \
+  && _pass "ai_cli_run: claude command line includes mapped flags" \
+  || {
+    grep -q 'claude ' "$TMPDIR/claude-run.args" 2>/dev/null \
+      && grep -q -- '--bare' "$TMPDIR/claude-run.args" 2>/dev/null \
+      && grep -q -- '--allowedTools Read,Bash' "$TMPDIR/claude-run.args" 2>/dev/null \
+      && grep -q -- '--max-budget-usd 0.25' "$TMPDIR/claude-run.args" 2>/dev/null \
+      && grep -q -- '-p hello world' "$TMPDIR/claude-run.args" 2>/dev/null \
+      && _pass "ai_cli_run: claude command line includes mapped flags" \
+      || _fail "ai_cli_run: claude command line mismatch";
+  }
+
+model=$(resolve_model thinking 2>/dev/null || true)
+[ "$model" = "anthropic/claude-sonnet-4" ] \
+  && _pass "resolve_model: anthropic thinking tier" \
+  || _fail "resolve_model: expected anthropic/claude-sonnet-4, got $model"
+
+detect_ai_cli() { echo "opencode"; }
+export AI_CLI_MODEL="openrouter/reasoning-model"
+timeout() { printf '%s\n' "$*" > "$TMPDIR/opencode-run.args"; }
+export -f detect_ai_cli timeout
+ai_cli_run "opencode prompt" --bare --budget 0.50 >/dev/null 2>&1 && rc=0 || rc=$?
+[ "$rc" -eq 0 ] \
+  && _pass "ai_cli_run: opencode path returns 0" \
+  || _fail "ai_cli_run: opencode path rc=$rc"
+grep -q 'opencode run opencode prompt -m openrouter/reasoning-model --dangerously-skip-permissions --pure --variant minimal' "$TMPDIR/opencode-run.args" 2>/dev/null \
+  && _pass "ai_cli_run: opencode command line includes mapped flags" \
+  || _fail "ai_cli_run: opencode command line mismatch"
+
+model=$(resolve_model fast 2>/dev/null || true)
+[ "$model" = "openrouter/fast-model" ] \
+  && _pass "resolve_model: provider-aware fast tier" \
+  || _fail "resolve_model: expected openrouter/fast-model, got $model"
+
+unset AI_CLI_MODEL
+unset -f timeout 2>/dev/null || true
+
 echo "  --- CLI interface ---"
 
 # Restore real detect

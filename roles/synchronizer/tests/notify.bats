@@ -78,8 +78,14 @@ EOF
 }
 
 @test "iwe_telegram_send: обрезает текст до 4000 символов" {
-    cat > "$BIN_DIR/curl" <<'EOF'
+    cat > "$BIN_DIR/curl" <<EOF
 #!/usr/bin/env bash
+while [ \$# -gt 0 ]; do
+  if [ "\$1" = "-d" ]; then
+    printf '%s' "\$2" > "$BATS_TEST_TMPDIR/telegram_request.json"
+  fi
+  shift
+done
 echo '{"ok":true}'
 EOF
     chmod +x "$BIN_DIR/curl"
@@ -88,6 +94,14 @@ EOF
     local long_text
     long_text=$(printf '%05001d' 0 | tr '0' 'x')
     run iwe_telegram_send "tok" "123" "$long_text" "[]"
+    assert_success
+    run python3 - "$BATS_TEST_TMPDIR/telegram_request.json" <<'PY'
+import json
+import sys
+with open(sys.argv[1], encoding='utf-8') as fh:
+    data = json.load(fh)
+assert len(data['text']) == 4000
+PY
     assert_success
 }
 
@@ -197,19 +211,34 @@ echo '{"ok":true}'
 EOF
     chmod +x "$BIN_DIR/curl"
 
+    mkdir -p "$TEST_DIR/repo/memory" "$TEST_DIR/repo/scripts/adapters" "$TEST_DIR/repo/lib"
+    touch "$TEST_DIR/repo/CLAUDE.md"
+    cp "${BATS_TEST_DIRNAME}/../../../scripts/notify.sh" "$TEST_DIR/repo/scripts/notify.sh"
+    cp -R "${BATS_TEST_DIRNAME}/../../../scripts/adapters/"* "$TEST_DIR/repo/scripts/adapters/"
+    cp -R "${BATS_TEST_DIRNAME}/../../../lib/"* "$TEST_DIR/repo/lib/"
+
+    local auto_env_dir="$TEST_DIR/.$(basename "$TEST_DIR")"
+    mkdir -p "$auto_env_dir"
+    printf 'TELEGRAM_BOT_TOKEN=auto-token\nTELEGRAM_CHAT_ID=22222\n' > "$auto_env_dir/env"
+
     local env_file="$TEST_DIR/priority.env"
     printf 'TELEGRAM_BOT_TOKEN=custom-token\nTELEGRAM_CHAT_ID=11111\n' > "$env_file"
 
-    env IWE_NOTIFY_ENV_FILE="$env_file" \
-        bash "${BATS_TEST_DIRNAME}/../../../scripts/notify.sh" "T" "M" notice
+    env HOME="$TEST_DIR" IWE_NOTIFY_ENV_FILE="$env_file" \
+        bash "$TEST_DIR/repo/scripts/notify.sh" "T" "M" notice
 
     run grep 'custom-token' "$TEST_DIR/curl_args"
     assert_success
+    run grep -q 'auto-token' "$TEST_DIR/curl_args"
+    assert_failure
 }
 
 @test "notify.sh: log.sh адаптер пишет в файл" {
     local env_file
     env_file="$(_make_env "" "")"
+
+    local saved_home="$HOME"
+    export HOME="$BATS_TEST_TMPDIR/log-notify-test"
 
     run env IWE_NOTIFY_ENV_FILE="$env_file" \
         bash "${BATS_TEST_DIRNAME}/../../../scripts/notify.sh" "TestTitle" "TestMessage" info
@@ -218,6 +247,7 @@ EOF
     local today_log="$HOME/.local/state/logs/notify/$(date +%Y-%m-%d).log"
     run grep 'TestTitle' "$today_log"
     assert_success
+    export HOME="$saved_home"
 }
 
 @test "notify.sh: disabled адаптер не отправляет" {
@@ -275,6 +305,9 @@ echo '{"ok":true}'
 EOF
     chmod +x "$BIN_DIR/curl"
 
+    local saved_home="$HOME"
+    export HOME="$BATS_TEST_TMPDIR/log-counters-test"
+
     # log.sh всегда enabled + telegram.sh enabled = _dispatched=4, _sent=2
     # slack.sh и email.sh disabled (no env vars)
     run env IWE_NOTIFY_ENV_FILE="$env_file" \
@@ -284,6 +317,7 @@ EOF
     # log.sh should have written
     run test -f "$HOME/.local/state/logs/notify/$(date +%Y-%m-%d).log"
     assert_success
+    export HOME="$saved_home"
 }
 
 @test "notify.sh: WARN при отсутствии файлов адаптеров" {

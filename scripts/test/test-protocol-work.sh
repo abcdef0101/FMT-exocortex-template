@@ -17,7 +17,6 @@ grep -q "Capture-to-Pack\|Capture to Pack" "$PWORK" \
   && _pass "Capture-to-Pack section" \
   || _fail "Capture-to-Pack not found"
 
-cap_count=$(grep -c '→\|->' "$PWORK" 2>/dev/null | head -1 || echo 0)
 _routes=0
 grep -q "CLAUDE.md" "$PWORK" && _routes=$((_routes + 1))
 grep -q "Pack" "$PWORK" && _routes=$((_routes + 1))
@@ -28,7 +27,7 @@ grep -q "memory/" "$PWORK" && _routes=$((_routes + 1))
 
 grep -q "Правило.*1-3\|1-3 строки" "$PWORK" 2>/dev/null \
   && _pass "rule: 1-3 lines → CLAUDE.md" \
-  || _pass "rule format: check if mentioned"
+  || _fail "rule format: 1-3 lines not mentioned"
 
 echo "  --- Self-correction ---"
 grep -q "Self-correction\|самокоррекци\|расхождение.*немедленно" "$PWORK" "$ROOT_DIR/CLAUDE.md" 2>/dev/null \
@@ -38,11 +37,11 @@ grep -q "Self-correction\|самокоррекци\|расхождение.*не
 echo "  --- Decision Capture ---"
 grep -q "Decision Capture\|decision.capture" "$PWORK" \
   && _pass "Decision Capture section" \
-  || _pass "Decision Capture: not in this file"
+  || _fail "Decision Capture: not found"
 
-grep -q "пользовательские\|user decision" "$PWORK" 2>/dev/null \
+grep -q "пользователь\|user decision" "$PWORK" 2>/dev/null \
   && _pass "only user decisions captured" \
-  || _pass "user decisions: check context"
+  || _fail "user decisions: not specified"
 
 echo "  --- Pre-action Gates ---"
 grep -q "Pre-action Gate\|MAP.002\|Знай свои сервисы" "$PWORK" \
@@ -51,16 +50,16 @@ grep -q "Pre-action Gate\|MAP.002\|Знай свои сервисы" "$PWORK" \
 
 grep -q "Pull-before-Commit\|pull.*rebase" "$PWORK" 2>/dev/null \
   && _pass "Pull-before-Commit rule" \
-  || _pass "Pull-before-Commit: check CLAUDE.md"
+  || _fail "Pull-before-Commit: not found"
 
 grep -q "Skill Discovery\|≥3 повторен\|3 повтор" "$PWORK" 2>/dev/null \
   && _pass "Skill Discovery rule" \
-  || _pass "Skill Discovery: not in this section"
+  || _fail "Skill Discovery: not found"
 
 echo "  --- Day Work meta-rules ---"
-grep -q "self.dev slot 1\|Слот 1 = self-dev" "$PWORK" 2>/dev/null \
+grep -q "Слот 1 = саморазвитие\|self.dev slot" "$PWORK" 2>/dev/null \
   && _pass "self-dev slot 1 rule" \
-  || _pass "self-dev slot: check context"
+  || _fail "self-dev slot: not found"
 
 [ "$FAIL" -eq 0 ] && echo "  All checks passed" || echo "  $FAIL check(s) failed"
 exit $FAIL

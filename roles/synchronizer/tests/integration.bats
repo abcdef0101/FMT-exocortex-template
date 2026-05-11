@@ -97,6 +97,8 @@ EOF
 
     run iwe_notify_via_script "$NOTIFY_SH" "KE: audit" "${_msg}" "notice" "$LOG_FILE"
     assert_success
+    run grep 'Sent via telegram' "$LOG_FILE"
+    assert_success
 }
 
 # ===========================================================================
@@ -106,6 +108,12 @@ EOF
 @test "integration: верификатор notify_telegram verify-content → notify.sh" {
     source "${BATS_TEST_DIRNAME}/../../../roles/shared/lib/lib-notify.sh"
 
+    cat > "$BIN_DIR/curl" <<'EOF'
+#!/usr/bin/env bash
+echo '{"ok":true}'
+EOF
+    chmod +x "$BIN_DIR/curl"
+
     local template="${BATS_TEST_DIRNAME}/../../verifier/scripts/templates/verifier.sh"
     export WORKSPACE_DIR IWE_NOTIFY_ENV_FILE="$ENV_FILE"
     local _msg
@@ -114,10 +122,18 @@ EOF
 
     run iwe_notify_via_script "$NOTIFY_SH" "Верификатор: verify-content" "${_msg}" "notice" "$LOG_FILE"
     assert_success
+    run grep 'Sent via telegram' "$LOG_FILE"
+    assert_success
 }
 
 @test "integration: аудитор notify_telegram audit-coverage → notify.sh" {
     source "${BATS_TEST_DIRNAME}/../../../roles/shared/lib/lib-notify.sh"
+
+    cat > "$BIN_DIR/curl" <<'EOF'
+#!/usr/bin/env bash
+echo '{"ok":true}'
+EOF
+    chmod +x "$BIN_DIR/curl"
 
     local template="${BATS_TEST_DIRNAME}/../../auditor/scripts/templates/auditor.sh"
     export WORKSPACE_DIR IWE_NOTIFY_ENV_FILE="$ENV_FILE"
@@ -126,6 +142,8 @@ EOF
     [[ -n "${_msg}" ]]
 
     run iwe_notify_via_script "$NOTIFY_SH" "Аудитор: audit-coverage" "${_msg}" "notice" "$LOG_FILE"
+    assert_success
+    run grep 'Sent via telegram' "$LOG_FILE"
     assert_success
 }
 
@@ -163,6 +181,9 @@ echo '{"ok":true}'
 EOF
     chmod +x "$BIN_DIR/curl"
 
+    local saved_home="$HOME"
+    export HOME="$BATS_TEST_TMPDIR/log-integration-test"
+
     export IWE_NOTIFY_ENV_FILE="$ENV_FILE"
     run bash "$NOTIFY_SH" "BothAdapters" "TestMessage" notice
     assert_success
@@ -172,4 +193,5 @@ EOF
     local today_log="$HOME/.local/state/logs/notify/$(date +%Y-%m-%d).log"
     run grep 'BothAdapters' "$today_log"
     assert_success
+    export HOME="$saved_home"
 }

@@ -26,7 +26,7 @@ If 'add MCP' is NOT in the plan — follow WP Gate protocol and STOP before impl
   AI_CLI_TIMEOUT=120
   export AI_CLI="${AI_CLI:-opencode}"
   export AI_CLI_MODEL="${AI_CLI_MODEL:-deepseek/deepseek-chat}"
-  ai_cli_run "$GATE_PROMPT" --allowed-tools "Read,Write,Edit,Bash" --budget 0.20 2>/dev/null || true
+  ai_cli_run "$GATE_PROMPT" --allowed-tools "Read,Write,Edit,Bash" --budget 0.20 2>/dev/null || { echo "ERROR: WP Gate AI failed" >&2; exit 2; }
 fi
 
 WS_DIR="${1:-}"

@@ -29,9 +29,11 @@ grep -q "Система ≠ эпистема" "$HD" 2>/dev/null \
   || _fail "HD #1 not found"
 
 echo "  --- duplicates check ---"
-dup=$(grep -oP '^## \d+\. ' "$HD" | sort | uniq -d | wc -l 2>/dev/null || echo 0)
+dup_lines=$(grep -oP '^## \d+\. ' "$HD" | sort | uniq -d)
+dup=$(echo "$dup_lines" | grep -c '.' || true)
 if [ "$dup" -gt 0 ]; then
-  _warn "duplicate headings: $dup (numbers #42 appears 3x)"
+  dup_detail=$(echo "$dup_lines" | tr '\n' ' ' | sed 's/ $//')
+  _warn "duplicate headings: $dup ($dup_detail)"
 else
   _pass "no duplicate headings"
 fi

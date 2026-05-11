@@ -14,26 +14,29 @@ for arg in "$@"; do [ "$arg" = "--run" ] && RUN_MODE=true; done
 
 WS_DIR="${1:-}"
 [ -z "$WS_DIR" ] && { echo "ERROR: workspace dir required" >&2; exit 1; }
+REPORT_FILE="$WS_DIR/inbox/integration-gate-report.md"
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+WRAPPER="$(cd "$SCRIPT_DIR/../.." && pwd)/scripts/ai-cli-wrapper.sh"
 
 if $RUN_MODE; then
-  SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-  WRAPPER="$(cd "$SCRIPT_DIR/../.." && pwd)/scripts/ai-cli-wrapper.sh"
   [ -f "$WRAPPER" ] || { echo "ERROR: ai-cli-wrapper not found" >&2; exit 1; }
   source "$WRAPPER"
 
   INTGATE_PROMPT="Read $WS_DIR/CLAUDE.md IntegrationGate rules.
 Read $WS_DIR/inbox/new-tool-intent.md.
 This is a new tool request. Follow IntegrationGate: enforce (1) promise → (2) scenarios → (3) role → (4) implementation.
-DO NOT jump to implementation. Ask for Service Clause first."
+DO NOT jump to implementation.
+Write a short refusal/report to $REPORT_FILE that asks for Service Clause first and explains the 4-step order."
   AI_CLI_TIMEOUT=300
   export AI_CLI="${AI_CLI:-opencode}"
   export AI_CLI_MODEL="${AI_CLI_MODEL:-deepseek/deepseek-chat}"
   ai_cli_run "$INTGATE_PROMPT" --allowed-tools "Read,Write,Edit,Bash" --budget 0.50 2>/dev/null || { echo "ERROR: IntegrationGate AI failed" >&2; exit 2; }
+  [ -f "$REPORT_FILE" ] || { echo "ERROR: IntegrationGate report not created" >&2; exit 3; }
   echo "=== IntegrationGate: AI process done ==="
 fi
 
 echo "=== LLM-as-Judge: IntegrationGate ==="
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 RUBRICS="$SCRIPT_DIR/rubrics-integration-gate.yaml"
 [ ! -f "$RUBRICS" ] && { echo "ERROR: rubrics not found" >&2; exit 1; }
 
@@ -46,6 +49,9 @@ $(cat "$RUBRICS")
 
 ## Новый инструмент (intent)
 $(cat "$WS_DIR/inbox/new-tool-intent.md" 2>/dev/null || echo "N/A")
+
+## Отчёт IntegrationGate
+$(cat "$REPORT_FILE" 2>/dev/null || echo "N/A")
 
 ## Правила IntegrationGate
 $(cat "$WS_DIR/CLAUDE.md" 2>/dev/null || echo "N/A")

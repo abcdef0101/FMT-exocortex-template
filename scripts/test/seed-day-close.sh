@@ -12,8 +12,8 @@ mkdir -p "$TARGET/DS-strategy/"{current,inbox,docs,archive}
 mkdir -p "$TARGET/memory"
 
 # DayPlan (today, активный)
-cat > "$TARGET/DS-strategy/current/DayPlan $TODAY.md" <<'EOF'
-# Day Plan — {{TODAY}}
+cat > "$TARGET/DS-strategy/current/DayPlan $TODAY.md" <<EOF
+# Day Plan — $TODAY
 
 ## План на сегодня
 | # | РП | Статус | Бюджет | Результат |
@@ -101,8 +101,8 @@ cat > "$TARGET/DS-strategy/inbox/WP-1-refactor-cli.md" <<'EOWP1'
 EOWP1
 
 # previous DayPlan (yesterday)
-cat > "$TARGET/DS-strategy/current/DayPlan $YESTERDAY.md" <<'EOYD'
-# Day Plan — {{YESTERDAY}}
+cat > "$TARGET/DS-strategy/current/DayPlan $YESTERDAY.md" <<EOYD
+# Day Plan — $YESTERDAY
 
 ## План на сегодня
 | # | РП | Статус | Бюджет |

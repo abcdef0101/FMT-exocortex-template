@@ -72,18 +72,29 @@ artifact_count=$(echo "$output" | grep -c '\[DRY RUN\]' || true)
 echo "  --- artifact ordering ---"
 
 # Extract artifact order from output (target paths after DRY RUN)
-targets=$(echo "$output" | grep -oP 'DRY RUN.*→ \K[^ ]+' | sed 's|/tmp/[^/]*/||g' || true)
+expected_order=(
+  "$TMP_WORKSPACE/CLAUDE.md"
+  "$TMP_WORKSPACE/params.yaml"
+  "$TMP_WORKSPACE/memory/MEMORY.md"
+  "$TMP_WORKSPACE/memory/day-rhythm-config.yaml"
+  "$TMP_WORKSPACE/memory/persistent-memory"
+  "$TMP_WORKSPACE/.claude/settings.local.json"
+  "$TMP_WORKSPACE/.mcp.json"
+  "$TMP_WORKSPACE/extensions/mcps/"
+)
 
 order_violations=0
-prev=""
-for t in $targets; do
-  # CLAUDE.md should come first
-  if [ -z "$prev" ] && [[ "$t" != *CLAUDE.md* ]] && [[ "$t" != *CLAUDE* ]]; then
-    # Actually, first could be CLAUDE.md or params or anything — just check general ordering
-    :
+prev_line=0
+for target in "${expected_order[@]}"; do
+  line_no=$(printf '%s\n' "$output" | grep -nF "$target" | head -1 | cut -d: -f1)
+  if [ -z "$line_no" ]; then
+    order_violations=$((order_violations + 1))
+    continue
   fi
-  # Check once: symlink should precede memory files that depend on it? Not required.
-  prev="$t"
+  if [ "$line_no" -le "$prev_line" ]; then
+    order_violations=$((order_violations + 1))
+  fi
+  prev_line="$line_no"
 done
 
 [ "$order_violations" -eq 0 ] \

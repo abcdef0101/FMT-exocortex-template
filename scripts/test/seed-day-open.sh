@@ -5,8 +5,8 @@
 # Requires: GH_TOKEN (optional, for GitHub test repo)
 set -euo pipefail
 
-TARGET="${1:-/tmp/iwe-seed-dayopen}"
-rm -rf "$TARGET"
+TARGET="${1:-$(mktemp -d /tmp/iwe-seed-dayopen-XXXXXX)}"
+rm -rf "${TARGET:?}" 2>/dev/null || true
 mkdir -p "$TARGET"/{docs,current,inbox,archive,memory}
 
 TODAY=$(date +%Y-%m-%d)

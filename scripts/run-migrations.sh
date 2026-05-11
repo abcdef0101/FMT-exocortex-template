@@ -37,8 +37,12 @@ compare_versions() {
   read -ra a <<< "$v1"
   read -ra b <<< "$v2"
   for i in 0 1 2; do
-    local ai=$((10#${a[$i]:-0} 2>/dev/null || 0))
-    local bi=$((10#${b[$i]:-0} 2>/dev/null || 0))
+    local ai="${a[$i]:-0}"
+    local bi="${b[$i]:-0}"
+    [[ "$ai" =~ ^[0-9]+$ ]] || ai=0
+    [[ "$bi" =~ ^[0-9]+$ ]] || bi=0
+    ai=$((10#$ai))
+    bi=$((10#$bi))
     [ "$ai" -lt "$bi" ] && echo "-1" && return
     [ "$ai" -gt "$bi" ] && echo "1" && return
   done

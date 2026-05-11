@@ -145,18 +145,18 @@ AI Smoke and E2E AI tests use LLM-as-Judge evaluation. Be aware of inherent limi
 
 ### 1. Unit Tests — `scripts/test/test-*.sh`
 
-**51 tests**, ~3 seconds, deterministic, 0 cost. Bash-only.
+**53 tests**, ~3 seconds, deterministic, 0 cost. Bash-only.
 
 Run with:
 ```bash
-bash scripts/test/run-phase0.sh          # all 51
+bash scripts/test/run-phase0.sh          # all 53
 bash scripts/test/run-phase0.sh --verbose  # full output
 bash scripts/test/test-memory-limits.sh  # single test
 ```
 
 ### Unit Tests — What to expect
 
-**Runtime:** ~3 seconds for all 51 tests. No AI, no secrets, no network.
+**Runtime:** ~3 seconds for all 53 tests. No AI, no secrets, no network.
 
 **Output format:**
 ```
@@ -169,7 +169,7 @@ bash scripts/test/test-memory-limits.sh  # single test
 ✓ PASS: test-checksums.sh
 ...
 =========================================
- Result: 51 passed, 0 failed, 0 skipped
+ Result: 53 passed, 0 failed, 0 skipped
 =========================================
 ```
 
@@ -203,7 +203,7 @@ bash scripts/test/test-memory-limits.sh --strict  # with --strict (violations = 
 
 ### 2. Assert Scripts — `scripts/test/assert-*.sh`
 
-**18 scripts**, deterministic, 0 cost. Check structural invariants AFTER an AI process completes.
+**19 scripts**, deterministic, 0 cost. Check structural invariants AFTER an AI process completes.
 
 Run standalone:
 ```bash
@@ -234,7 +234,7 @@ bash scripts/test/assert-wp-gate.sh <workspace_dir>
 
 ### 3. E2E AI Tests — `scripts/test/seed-*.sh` + `eval-*.sh` + `rubrics-*.yaml`
 
-**17 E2E workflows**, each = seed + eval + assert + rubrics. Requires AI CLI (`opencode` or `claude`).
+**18 E2E workflows**, each = seed + eval + assert. Most workflows also use rubrics + LLM judge. Requires AI CLI (`opencode` or `claude`).
 
 Run with:
 ```bash
@@ -242,7 +242,7 @@ Run with:
 bash scripts/test/e2e/run-e2e-ai.sh day-close
 bash scripts/test/e2e/run-e2e-ai.sh wp-gate
 
-# All 17 (seed → run → assert → judge)
+# All 18 (seed → run → assert)
 bash scripts/test/e2e/run-e2e-ai.sh all
 ```
 
@@ -265,8 +265,9 @@ bash scripts/test/e2e/run-e2e-ai.sh all
 | 15 | Extractor Inbox Check | --run | $0.30 | AI checks inbox → classifies, flags stale items |
 | 16 | Synchronizer Code Scan | --run | $0.30 | AI scans REGISTRY↔MEMORY↔WeekPlan for drift |
 | 17 | Verifier Pack Entity | --run | $0.30 | AI verifies Pack entity against SPF/FPF |
+| 18 | Extractor Offline Fallback | --run | $0.30 | AI writes fallback extraction report when network/API path is unavailable |
 
-> **Note:** All 17 workflows have full coverage: seed + eval + rubrics + assert. Each workflow runs the complete seed→run→assert→judge cycle.
+> **Note:** All 18 workflows have full structural coverage: seed + eval + assert. Judge/rubrics coverage is used where the workflow includes an LLM-evaluated artifact.
 
 **E2E test anatomy (4 files each):**
 ```
@@ -286,13 +287,13 @@ source ~/.iwe-test-vm/secrets/.env    # AI_CLI_API_KEY + AI_CLI_MODEL
 command -v opencode || command -v claude
 ```
 
-**Runtime:** ~5 minutes for all 17 workflows. Each `--run` test: 30-120 sec.
+**Runtime:** ~5 minutes for all 18 workflows. Each `--run` test: 30-120 sec.
 
 **Cost:** ~$0.004–0.06 per workflow with DeepSeek chat (token-based). Budget caps ($0.20–0.50) are
 upper safety limits — actual DeepSeek spend is 50–100× lower.
 
 **What happens if secrets are NOT sourced:**
-- All 17 --run tests: **FAIL** — AI CLI cannot authenticate. Error: `ERROR: * AI failed`
+- All 18 --run tests: **FAIL** — AI CLI cannot authenticate. Error: `ERROR: * AI failed`
 - `assert-*` scripts still run: they check seed data (which hasn't been modified by AI)
 - `run-e2e-ai.sh` will report `N passed, M failed` with M = number of --run tests
 
@@ -303,13 +304,9 @@ upper safety limits — actual DeepSeek spend is 50–100× lower.
 
 **Running without AI (cheap + fast, ~10 sec, no secrets):**
 ```bash
-# Runs seed + assert for all 17 tests — no AI, no secrets
-for phase in quick-close wp-new day-close week-close day-open \
-  strategy-session session-prep wp-gate orz-cycle note-review \
-  archgate intgate role-exec skill-invoke; do
-  bash scripts/test/e2e/run-e2e-ai.sh "$phase"
-done
-# Each phase: seed created ✓, --run SKIPPED (no secrets), assert checked ✓
+# Runs seed + eval + assert for all workflows. Without secrets, --run fails but structural asserts still execute.
+bash scripts/test/e2e/run-e2e-ai.sh all
+# Each phase: seed created ✓, --run FAILS without secrets, assert still executes ✓
 ```
 
 ### 4. Canary Tests — `scripts/test/canary-*.sh`

@@ -46,6 +46,8 @@ fi
 
 [ -z "$WS_DIR" ] && { echo "ERROR: workspace directory required" >&2; exit 1; }
 [ ! -d "$WS_DIR" ] && { echo "ERROR: directory not found: $WS_DIR" >&2; exit 1; }
+[ "$DAYPLAN" = "--run" ] && DAYPLAN=""
+[ -z "$DAYPLAN" ] && DAYPLAN=$(find "$WS_DIR" -name 'DayPlan*' -type f 2>/dev/null | sort | tail -1)
 [ -z "$DAYPLAN" ] && { echo "ERROR: DayPlan path required" >&2; exit 1; }
 [ ! -f "$DAYPLAN" ] && { echo "ERROR: DayPlan not found: $DAYPLAN" >&2; exit 1; }
 
@@ -125,4 +127,4 @@ else
 fi
 
 # Parse JSON output, compute pass/fail per metric
-echo "$JUDGE_OUT" | python3 "$SCRIPT_DIR/_parse_judge_output.py" 2>&1
+echo "$JUDGE_OUT" | python3 "$SCRIPT_DIR/_parse_judge_output.py" 6 2>&1

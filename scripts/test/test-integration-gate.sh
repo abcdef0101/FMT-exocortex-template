@@ -27,11 +27,11 @@ grep -q "сценари\|Сценари" "$CLAUDE" 2>/dev/null \
 
 grep -q "минимум 3\|≥3\|3 сценари" "$CLAUDE" 2>/dev/null \
   && _pass "step 2: minimum 3 scenarios" \
-  || _pass "min 3: check context"
+  || _fail "min 3 scenarios missing"
 
-grep -q "рол\|Рол" "$CLAUDE" 2>/dev/null | grep -q "DP.ROLE" 2>/dev/null \
-  && _pass "step 3: роль (DP.ROLE)" \
-  || _warn "step 3 role reference not in CLAUDE.md (check workflow-full.md)"
+  { grep -q "рол" "$CLAUDE" && grep -q "DP.ROLE" "$CLAUDE"; } 2>/dev/null \
+    && _pass "step 3: роль (DP.ROLE)" \
+    || _warn "step 3 role reference not in CLAUDE.md (check workflow-full.md)"
 
 grep -q "реализаци\|Реализаци" "$CLAUDE" 2>/dev/null \
   && _pass "step 4: реализация" \
@@ -40,28 +40,28 @@ grep -q "реализаци\|Реализаци" "$CLAUDE" 2>/dev/null \
 echo "  --- Violations & penalties ---"
 grep -q "P10\|DP.FM.010\|прыжок.*реализац" "$CLAUDE" 2>/dev/null \
   && _pass "jump to implementation = P10" \
-  || _pass "P10: check CLAUDE.md context"
+  || _fail "P10 penalty missing"
 
 echo "  --- Exceptions ---"
 exceptions=0
-grep -q "правка.*без изменения.*обещания\|fix.*without.*promise" "$CLAUDE" 2>/dev/null && exceptions=$((exceptions + 1))
-grep -q "bugfix.*без изменения\|Bugfix.*behavior" "$CLAUDE" 2>/dev/null && exceptions=$((exceptions + 1))
-grep -q "рефакторинг\|Refactoring" "$CLAUDE" 2>/dev/null && exceptions=$((exceptions + 1))
-grep -q "экспериментальный\|experimental" "$CLAUDE" 2>/dev/null && exceptions=$((exceptions + 1))
+grep -q "Правка существующего инструмента без изменения его обещания\|fix.*without.*promise" "$CLAUDE" 2>/dev/null && exceptions=$((exceptions + 1))
+grep -q "Bugfix без изменения поведения снаружи\|Bugfix.*behavior" "$CLAUDE" 2>/dev/null && exceptions=$((exceptions + 1))
+grep -q "Рефакторинг.*без функциональных изменений\|Refactoring" "$CLAUDE" 2>/dev/null && exceptions=$((exceptions + 1))
+grep -q "Экспериментальный скрипт на один запуск\|experimental" "$CLAUDE" 2>/dev/null && exceptions=$((exceptions + 1))
 [ "$exceptions" -ge 3 ] \
   && _pass "exceptions: $exceptions/4 listed" \
-  || _pass "exceptions: $exceptions listed (check workflow-full.md for full list)"
+  || _fail "exceptions: only $exceptions/4 listed"
 
 echo "  --- Implementation header format ---"
 grep -q "DP.SC\|DP.ROLE" "$CLAUDE" 2>/dev/null \
   && _pass "header format: # see DP.SC.NNN, DP.ROLE.NNN" \
-  || _pass "header format: check CLAUDE.md"
+  || _fail "header format missing"
 
 echo "  --- Cross-reference with workflow-full.md ---"
 if [ -f "$WFFULL" ]; then
   grep -q "IntegrationGate" "$WFFULL" \
     && _pass "workflow-full.md covers IntegrationGate" \
-    || _pass "workflow-full.md: IntegrationGate not covered"
+    || _fail "workflow-full.md: IntegrationGate not covered"
 fi
 
 [ "$FAIL" -eq 0 ] && echo "  All checks passed" || echo "  $FAIL check(s) failed"

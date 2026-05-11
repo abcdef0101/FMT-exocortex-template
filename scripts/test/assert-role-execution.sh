@@ -18,7 +18,7 @@ echo "  --- DayPlan created ---"
 dayplans=$(find "$DS_DIR/current" -name "DayPlan*" -type f 2>/dev/null | wc -l)
 [ "$dayplans" -ge 2 ] \
   && _pass "DayPlans: $dayplans in current/ (new one created)" \
-  || _pass "DayPlan: $dayplans found"
+  || _fail "DayPlan: expected a new plan, found only $dayplans"
 
 latest=$(find "$DS_DIR/current" -name "DayPlan*" -type f 2>/dev/null | sort | tail -1)
 if [ -n "$latest" ] && [ -f "$latest" ]; then
@@ -31,17 +31,17 @@ fi
 echo "  --- plan table ---"
 grep -q '^|' "$latest" 2>/dev/null \
   && _pass "table: present" \
-  || _pass "table: not found in DayPlan"
+  || _fail "table: not found in DayPlan"
 
 echo "  --- carry-over ---"
 grep -qiE 'carry.over\|Итоги вчера\|вчера' "$latest" 2>/dev/null \
   && _pass "carry-over: mentioned" \
-  || _pass "carry-over: not found"
+  || _fail "carry-over: not found"
 
 echo "  --- self-development ---"
 grep -qiE 'self.dev\|саморазвит\|self_dev' "$latest" 2>/dev/null \
   && _pass "self-dev: present" \
-  || _pass "self-dev: not found"
+  || _fail "self-dev: not found"
 
 echo "  --- file integrity ---"
 [ -f "$WS_DIR/memory/MEMORY.md" ] && _pass "MEMORY.md: present" || _fail "MEMORY.md: missing"

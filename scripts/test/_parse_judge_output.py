@@ -2,7 +2,8 @@ import json, sys, re
 
 text = sys.stdin.read()
 
-# Extract JSON from LLM output (may have markdown fences or extra text)
+threshold = int(sys.argv[1]) if len(sys.argv) > 1 else 5
+
 if '```' in text:
     parts = text.split('```')
     for p in parts:
@@ -10,7 +11,6 @@ if '```' in text:
             text = p.strip()
             break
 
-# Find the JSON array
 match = re.search(r'\[.*\]', text, re.DOTALL)
 if match:
     text = match.group(0)
@@ -27,7 +27,7 @@ try:
 
     print(f'LLM_JUDGE_PASS={passed}')
     print(f'LLM_JUDGE_TOTAL={total}')
-    sys.exit(0 if passed >= 5 else 1)
+    sys.exit(0 if passed >= threshold else 1)
 
 except (json.JSONDecodeError, KeyError, TypeError) as e:
     print(f'LLM_JUDGE_PARSE_ERROR={e}')

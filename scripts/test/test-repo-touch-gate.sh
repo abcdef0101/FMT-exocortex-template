@@ -17,22 +17,22 @@ grep -qiE 'Repo-Touch Gate|Repo.Touch.*Gate|первое.*действие.*ре
 echo "  --- CLAUDE.md loading requirement ---"
 grep -qiE 'прочитать.*CLAUDE.md|read.*CLAUDE.md|загрузить.*CLAUDE' "$CLAUDE" 2>/dev/null \
   && _p "CLAUDE.md loading: required" \
-  || _p "CLAUDE.md loading: check rule"
+  || _f "CLAUDE.md loading: requirement not found"
 
 echo "  --- обязательный блок ---"
 grep -qiE 'блок.*обязательно загружай|mandatory.*load|загрузить указанные файлы' "$CLAUDE" 2>/dev/null \
   && _p "mandatory load block: referenced" \
-  || _p "mandatory block: check CLAUDE.md"
+  || _f "mandatory load block: not found"
 
 echo "  --- trigger conditions ---"
 grep -qiE 'Read файла|Edit.*ответ о структуре|commit.*Repo.Touch' "$CLAUDE" 2>/dev/null \
   && _p "triggers: Read, Edit, commit listed" \
-  || _p "triggers: check CLAUDE.md"
+  || _f "trigger conditions: not found"
 
 echo "  --- gate: blocking ---"
-grep -qiE 'Repo-Touch.*Gate.*БЛОКИРУЮЩ|Repo.*pre-action' "$CLAUDE" 2>/dev/null \
-  && _p "Repo-Touch Gate: blocking" \
-  || _p "blocking status: check CLAUDE.md"
+{ grep -q 'Repo-Touch Gate' "$CLAUDE" && grep -q 'Pre-action Gates' "$CLAUDE"; } \
+  && _p "Repo-Touch Gate: defined under Pre-action Gates" \
+  || _f "Repo-Touch Gate: not linked to Pre-action Gates section"
 
 [ "$FAIL" -eq 0 ] && echo "  All assertions passed" || echo "  $FAIL assertion(s) failed"
 exit $FAIL

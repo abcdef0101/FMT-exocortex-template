@@ -17,22 +17,22 @@ grep -qiE 'Priority Gate|РП.*≥.?3h|к какому.*R\{N\}' "$CLAUDE" 2>/dev
 echo "  --- time threshold ---"
 grep -qiE '≥.?3h' "$CLAUDE" 2>/dev/null \
   && _p "threshold: ≥3h defined" \
-  || _p "threshold: check CLAUDE.md"
+  || _f "threshold: ≥3h not found in CLAUDE.md"
 
 echo "  --- R{N} routing ---"
 grep -qiE 'R\{N\}' "$CLAUDE" 2>/dev/null \
   && _p "R{N} routing: referenced" \
-  || _p "R{N} routing: check CLAUDE.md"
+  || _f "R{N} routing: not found in CLAUDE.md"
 
 echo "  --- gate trigger context ---"
 grep -qiE 'РП.*≥.*h.*ведёт|какому.*R.*ведёт' "$CLAUDE" 2>/dev/null \
   && _p "trigger: RP duration → R{N} mapping" \
-  || _p "trigger: check CLAUDE.md"
+  || _f "trigger: RP duration → R{N} mapping not found"
 
 echo "  --- gate: pre-action ---"
 grep -qiE 'Priority.*Gate|priority.*trigger' "$CLAUDE" 2>/dev/null \
   && _p "Priority Gate: pre-action gate" \
-  || _p "pre-action: check CLAUDE.md"
+  || _f "Priority Gate: pre-action gate not found"
 
 [ "$FAIL" -eq 0 ] && echo "  All assertions passed" || echo "  $FAIL assertion(s) failed"
 exit $FAIL

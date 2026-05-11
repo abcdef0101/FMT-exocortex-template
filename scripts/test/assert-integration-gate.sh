@@ -8,48 +8,50 @@ WS_DIR="${1:-}"
 FAIL=0
 _pass()  { echo "  ✓ $1"; }
 _fail() { echo "  ✗ $1"; FAIL=$((FAIL + 1)); }
+REPORT_FILE="$WS_DIR/inbox/integration-gate-report.md"
 
 echo "  --- assert: IntegrationGate ---"
 
-echo "  --- gate rules present ---"
-grep -qi 'IntegrationGate\|БЛОКИРУЮЩЕЕ.*новый инструмент' "$WS_DIR/CLAUDE.md" 2>/dev/null \
-  && _pass "IntegrationGate rules in CLAUDE.md" \
-  || _fail "IntegrationGate rules not found"
+echo "  --- report exists ---"
+[ -f "$REPORT_FILE" ] \
+  && _pass "report exists: $(basename "$REPORT_FILE")" \
+  || _fail "report missing: $REPORT_FILE"
 
 echo "  --- 4-step order defined ---"
 steps=0
-grep -qiE 'обещание|Service Clause' "$WS_DIR/CLAUDE.md" 2>/dev/null && steps=$((steps + 1))
-grep -qiE 'сценари|scenario' "$WS_DIR/CLAUDE.md" 2>/dev/null && steps=$((steps + 1))
-grep -qiE 'рол|DP.ROLE|role' "$WS_DIR/CLAUDE.md" 2>/dev/null && steps=$((steps + 1))
-grep -qiE 'реализац|implementation' "$WS_DIR/CLAUDE.md" 2>/dev/null && steps=$((steps + 1))
-[ "$steps" -ge 3 ] \
+grep -qiE 'обещание|Service Clause' "$REPORT_FILE" 2>/dev/null && steps=$((steps + 1))
+grep -qiE 'сценари|scenario' "$REPORT_FILE" 2>/dev/null && steps=$((steps + 1))
+grep -qiE 'рол|DP.ROLE|role' "$REPORT_FILE" 2>/dev/null && steps=$((steps + 1))
+grep -qiE 'реализац|implementation' "$REPORT_FILE" 2>/dev/null && steps=$((steps + 1))
+[ "$steps" -eq 4 ] \
   && _pass "4-step order: $steps/4 defined" \
   || _fail "4-step order: only $steps/4"
 
 echo "  --- P10 penalty ---"
-grep -qiE 'P10\|DP\.FM\.010\|прыжок.*реализац' "$WS_DIR/CLAUDE.md" 2>/dev/null \
+grep -qiE 'P10\|DP\.FM\.010\|прыжок.*реализац' "$REPORT_FILE" 2>/dev/null \
   && _pass "penalty: P10 mentioned" \
-  || _pass "P10: check CLAUDE.md"
+  || _fail "P10: missing from report"
 
 echo "  --- exceptions listed ---"
 exceptions=0
-grep -qi 'правка.*без изменения' "$WS_DIR/CLAUDE.md" 2>/dev/null && exceptions=$((exceptions + 1))
-grep -qi 'bugfix' "$WS_DIR/CLAUDE.md" 2>/dev/null && exceptions=$((exceptions + 1))
-grep -qi 'рефакторинг\|refactor' "$WS_DIR/CLAUDE.md" 2>/dev/null && exceptions=$((exceptions + 1))
-grep -qi 'экспериментальн\|experimental' "$WS_DIR/CLAUDE.md" 2>/dev/null && exceptions=$((exceptions + 1))
+grep -qi 'правка.*без изменения' "$REPORT_FILE" 2>/dev/null && exceptions=$((exceptions + 1))
+grep -qi 'bugfix' "$REPORT_FILE" 2>/dev/null && exceptions=$((exceptions + 1))
+grep -qi 'рефакторинг\|refactor' "$REPORT_FILE" 2>/dev/null && exceptions=$((exceptions + 1))
+grep -qi 'экспериментальн\|experimental' "$REPORT_FILE" 2>/dev/null && exceptions=$((exceptions + 1))
 [ "$exceptions" -ge 3 ] \
   && _pass "exceptions: $exceptions/4 listed" \
-  || _pass "exceptions: $exceptions listed"
+  || _fail "exceptions: only $exceptions/4 listed"
 
 echo "  --- header format ---"
-grep -qiE 'DP\.SC\.\|DP\.ROLE\.' "$WS_DIR/CLAUDE.md" 2>/dev/null \
+grep -qiE 'DP\.SC\.\|DP\.ROLE\.' "$REPORT_FILE" 2>/dev/null \
   && _pass "header format: DP.SC.NNN, DP.ROLE.NNN" \
-  || _pass "header: check CLAUDE.md"
+  || _fail "header format missing"
 
-echo "  --- intent exists ---"
-[ -f "$WS_DIR/inbox/new-tool-intent.md" ] \
-  && _pass "intent document exists" \
-  || _fail "intent document missing"
+echo "  --- no implementation files created ---"
+implementation_files=$(find "$WS_DIR" \( -path '*/.git/*' -o -name 'integration-gate-report.md' \) -prune -o -type f \( -name '*.sh' -o -name '*.py' -o -name '*.ts' -o -name '*.js' \) -print)
+[ -z "$implementation_files" ] \
+  && _pass "implementation blocked before code creation" \
+  || _fail "unexpected implementation files created"
 
 [ "$FAIL" -eq 0 ] && echo "  All assertions passed" || echo "  $FAIL assertion(s) failed"
 exit $FAIL

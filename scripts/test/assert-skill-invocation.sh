@@ -13,21 +13,28 @@ echo "  --- assert: Skill Invocation ---"
 
 PACK_FILE="$WS_DIR/Pack/08-service-clauses/DP.SC.025-capture-bus.md"
 STANDARD="$WS_DIR/DS-strategy/docs/DP-standard.md"
+REPORT_FILE="$WS_DIR/verification-skill-report.md"
 
 echo "  --- input files present ---"
 [ -f "$PACK_FILE" ] && _pass "Pack file exists" || _fail "Pack file missing"
 [ -f "$STANDARD" ] && _pass "DP standard exists" || _fail "DP standard missing"
 
-echo "  --- violations in seed ---"
-# The seed intentionally has violations:
-grep -q 'MISSING SECTION: Dependencies' "$PACK_FILE" 2>/dev/null \
-  && _pass "seed violation: missing Dependencies" \
-  || _pass "seed: Dependencies section present"
-grep -c '^[0-9]\.' "$PACK_FILE" 2>/dev/null | while read n; do
-  [ "${n:-0}" -lt 3 ] \
-    && _pass "seed violation: $n acceptance criteria (<3)" \
-    || _pass "seed: $n acceptance criteria"
-done
+echo "  --- verification report ---"
+[ -f "$REPORT_FILE" ] \
+  && _pass "verification report exists" \
+  || _fail "verification report missing"
+
+grep -qiE 'Dependencies|missing.*Dependencies' "$REPORT_FILE" 2>/dev/null \
+  && _pass "report: missing Dependencies detected" \
+  || _fail "report: missing Dependencies not detected"
+
+grep -qiE 'acceptance criteria|≥3|only 2|insufficient' "$REPORT_FILE" 2>/dev/null \
+  && _pass "report: insufficient AC count detected" \
+  || _fail "report: insufficient AC count not detected"
+
+grep -qiE 'DP\.SC\.025|path:line|evidence' "$REPORT_FILE" 2>/dev/null \
+  && _pass "report: evidence included" \
+  || _fail "report: evidence missing"
 
 echo "  --- standard rules present ---"
 grep -qi 'Dependencies' "$STANDARD" 2>/dev/null \

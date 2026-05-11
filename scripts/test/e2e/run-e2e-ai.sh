@@ -16,56 +16,68 @@ run_e2e() {
   echo " E2E: $name"
   echo "========================================="
   
+  local seed_failed=false
+  local step_failed=false
+
   # 1. Seed — take last line only (seed scripts may print info to stdout)
   echo "  [seed] $seed..."
   WS=$(bash "$TEST_DIR/$seed" 2>/dev/null | tail -1) && rc=0 || rc=$?
   if [ "$rc" -ne 0 ] || [ -z "$WS" ] || [ ! -d "$WS" ]; then
     echo "  ✗ SEED FAILED (ws='$WS')"
     FAIL=$((FAIL + 1))
-    return
+    seed_failed=true
+    step_failed=true
   fi
-  [ -d "$WS" ] && ln -sfn . "$WS/DS-strategy" 2>/dev/null || true
-  echo "  ✓ seed: $WS"
-  
-  # 2. Run or Judge (AI process or LLM evaluation)
-  if [ -n "$run_flag" ] && [ -f "$TEST_DIR/$eval" ]; then
-    case "$run_flag" in
-      --run)
-        echo "  [run] $eval --run..."
-        if bash "$TEST_DIR/$eval" "$WS" --run 2>/dev/null; then
-          echo "  ✓ run complete"
-        else
-          echo "  ✗ RUN FAILED"
-          FAIL=$((FAIL + 1))
-        fi
-        ;;
-      --judge)
-        # Auto-detect artifact for judge: DayPlan or WeekPlan
-        ARTIFACT=$(find "$WS/DS-strategy/current" "$WS/current" -name "DayPlan*" -o -name "WeekPlan*" 2>/dev/null | head -1)
-        echo "  [judge] $eval $ARTIFACT..."
-        if bash "$TEST_DIR/$eval" "$WS" "$ARTIFACT" 2>/dev/null; then
-          echo "  ✓ judge passed"
-        else
-          echo "  ✗ JUDGE FAILED"
-          FAIL=$((FAIL + 1))
-        fi
-        ;;
-    esac
-  fi
-  
-  # 3. Assert (structural invariants)
-  if [ -f "$TEST_DIR/$assert" ]; then
-    echo "  [assert] $assert..."
-    if bash "$TEST_DIR/$assert" "$WS" 2>/dev/null; then
-      echo "  ✓ assert passed"
-    else
-      echo "  ✗ ASSERT FAILED"
-      FAIL=$((FAIL + 1))
+
+  if ! $seed_failed; then
+    [ -d "$WS" ] && ln -sfn . "$WS/DS-strategy" 2>/dev/null || true
+    echo "  ✓ seed: $WS"
+
+    # 2. Run or Judge (AI process or LLM evaluation)
+    if [ -n "$run_flag" ] && [ -f "$TEST_DIR/$eval" ]; then
+      case "$run_flag" in
+        --run)
+          echo "  [run] $eval --run..."
+          if bash "$TEST_DIR/$eval" "$WS" --run 2>/dev/null; then
+            echo "  ✓ run complete"
+          else
+            echo "  ✗ RUN FAILED"
+            FAIL=$((FAIL + 1))
+            step_failed=true
+          fi
+          ;;
+        --judge)
+          ARTIFACT=$(find "$WS/DS-strategy/current" "$WS/current" -name "DayPlan*" -o -name "WeekPlan*" 2>/dev/null | head -1)
+          echo "  [judge] $eval $ARTIFACT..."
+          if bash "$TEST_DIR/$eval" "$WS" "$ARTIFACT" 2>/dev/null; then
+            echo "  ✓ judge passed"
+          else
+            echo "  ✗ JUDGE FAILED"
+            FAIL=$((FAIL + 1))
+            step_failed=true
+          fi
+          ;;
+      esac
+    fi
+
+    # 3. Assert (structural invariants)
+    if [ -f "$TEST_DIR/$assert" ]; then
+      echo "  [assert] $assert..."
+      if bash "$TEST_DIR/$assert" "$WS" 2>/dev/null; then
+        echo "  ✓ assert passed"
+      else
+        echo "  ✗ ASSERT FAILED"
+        FAIL=$((FAIL + 1))
+        step_failed=true
+      fi
     fi
   fi
-  
+
+  if ! $step_failed; then
+    PASS=$((PASS + 1))
+  fi
+
   echo ""
-  PASS=$((PASS + 1))
 }
 
 case "$E2E_PHASE" in

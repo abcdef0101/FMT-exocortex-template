@@ -5,7 +5,7 @@ set -euo pipefail
 
 ROOT_DIR="${ROOT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 STRATEGIST="$ROOT_DIR/roles/strategist/scripts/strategist.sh"
-FETCH="$${ROOT_DIR}/roles/strategist/scripts/fetch-wakatime.sh"
+FETCH="$ROOT_DIR/roles/strategist/scripts/fetch-wakatime.sh"
 FAIL=0
 _pass()  { echo "  ✓ $1"; }
 _fail() { echo "  ✗ $1"; FAIL=$((FAIL + 1)); }

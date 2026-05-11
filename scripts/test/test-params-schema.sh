@@ -16,7 +16,15 @@ _pass "params.yaml: $PARAMS"
 
 # params.yaml keys can be commented (seed template) or active (user config)
 # Check they are at least mentioned
-for section in author_mode schedule purpose pomodoro extensions; do
+for section in author_mode extensions; do
+  if grep -q "$section" "$PARAMS" 2>/dev/null; then
+    _pass "section mentioned: $section"
+  else
+    _fail "section missing: $section"
+  fi
+done
+
+for section in schedule purpose pomodoro; do
   if grep -q "$section" "$PARAMS" 2>/dev/null; then
     _pass "section mentioned: $section"
   else

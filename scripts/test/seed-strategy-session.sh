@@ -5,8 +5,8 @@
 # Returns: 0 on success, non-zero on failure
 set -euo pipefail
 
-TARGET="${1:-/tmp/iwe-seed-ds-strategy}"
-rm -rf "$TARGET"
+TARGET="${1:-$(mktemp -d /tmp/iwe-seed-ds-strategy-XXXXXX)}"
+rm -rf "${TARGET:?}" 2>/dev/null || true
 mkdir -p "$TARGET"/{docs,current,inbox,archive,memory}
 
 TODAY=$(date +%Y-%m-%d)

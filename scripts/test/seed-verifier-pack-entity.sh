@@ -11,7 +11,6 @@ cat > "$TARGET/Pack/08-service-clauses/DP.SC.025-capture-bus.md" <<'EOF'
 # DP.SC.025 — Capture Bus
 
 > **Status:** draft
-> **Created:** 2026-04-01
 
 ## Promise
 The capture bus routes knowledge from sessions to their appropriate destinations.

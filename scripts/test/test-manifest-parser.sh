@@ -122,12 +122,11 @@ echo 'Path: {{ROOT_DIR}}/subdir, Var: {{ROOT_DIR}}_NAME' > "$TMPDIR/partial/src.
 export ROOT_DIR="/fake/partial"
 apply_strategy "$TMPDIR/partial/src.txt" "$TMPDIR/partial/dst.txt" "copy-and-substitute" "" "{{ROOT_DIR}}" "false"
 export ROOT_DIR="$CURRENT_ROOT"
-if grep -q "/fake/partial/subdir" "$TMPDIR/partial/dst.txt" 2>/dev/null; then
-  # Note: {{ROOT_DIR}}_NAME is also partially matched by s|{{ROOT_DIR}}|...|g
-  # This is a known behavior — the sed substitution is greedy on prefix matches
-  _pass "copy-and-substitute: partial prefix match (sed default: greedy)"
+if grep -q '/fake/partial/subdir' "$TMPDIR/partial/dst.txt" 2>/dev/null \
+  && grep -q 'Var: {{ROOT_DIR}}_NAME' "$TMPDIR/partial/dst.txt" 2>/dev/null; then
+  _pass "copy-and-substitute: does not corrupt larger placeholder names"
 else
-  _fail "copy-and-substitute: partial prefix match (unexpected)"
+  _fail "copy-and-substitute: corrupted partial placeholder match"
 fi
 
 # P1 #3: manifest parser ignores unknown YAML fields
@@ -156,9 +155,20 @@ mkdir -p "$TMPDIR/mcpmod"
 echo '{"mcpServers":{"base":"v1"}}' > "$TMPDIR/mcpmod/base.json"
 echo '{"mcpServers":{"base":"v1","user_custom":"v2"}}' > "$TMPDIR/mcpmod/existing.json"
 apply_strategy "$TMPDIR/mcpmod/base.json" "$TMPDIR/mcpmod/existing.json" "merge-mcp" "" "" "false"
-[ -f "$TMPDIR/mcpmod/existing.json" ] \
-  && _pass "merge-mcp: succeeds when target modified (current: overwrites)" \
-  || _fail "merge-mcp: fails when target modified"
+if python3 - "$TMPDIR/mcpmod/existing.json" <<'PY'
+import json
+import sys
+with open(sys.argv[1], encoding='utf-8') as fh:
+    data = json.load(fh)
+servers = data.get('mcpServers', {})
+assert servers.get('base') == 'v1'
+assert servers.get('user_custom') == 'v2'
+PY
+then
+  _pass "merge-mcp: preserves existing user servers while adding base"
+else
+  _fail "merge-mcp: merge result missing expected servers"
+fi
 
 # -------------------------------------------------------------------
 echo "  --- symlink ---"
@@ -198,9 +208,18 @@ echo "  --- merge-mcp ---"
 mkdir -p "$TMPDIR/merge"
 echo '{"mcpServers":{}}' > "$TMPDIR/merge/base.json"
 apply_strategy "$TMPDIR/merge/base.json" "$TMPDIR/merge/mcp.json" "merge-mcp" "" "" "false"
-[ -f "$TMPDIR/merge/mcp.json" ] \
-  && _pass "merge-mcp copies base" \
-  || _fail "merge-mcp copies base"
+if python3 - "$TMPDIR/merge/mcp.json" <<'PY'
+import json
+import sys
+with open(sys.argv[1], encoding='utf-8') as fh:
+    data = json.load(fh)
+assert data.get('mcpServers') == {}
+PY
+then
+  _pass "merge-mcp writes valid JSON when target absent"
+else
+  _fail "merge-mcp writes valid JSON when target absent"
+fi
 
 # -------------------------------------------------------------------
 echo "  --- structure-only ---"
@@ -251,5 +270,5 @@ count=$(echo "$output" | grep -c 'DRY RUN' || true)
   || _fail "parse full manifest: unknown strategy warnings"
 
 # -------------------------------------------------------------------
-[ "$FAIL" -eq 0 ] && echo "  All $(( 21 )) tests passed" || echo "  $FAIL test(s) failed"
+[ "$FAIL" -eq 0 ] && echo "  All tests passed" || echo "  $FAIL test(s) failed"
 exit $FAIL

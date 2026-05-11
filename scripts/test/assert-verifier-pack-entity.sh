@@ -12,54 +12,44 @@ _fail() { echo "  ✗ $1"; FAIL=$((FAIL + 1)); }
 echo "  --- assert: Verifier Pack Entity ---"
 
 echo "  --- verdict document ---"
-VERDICT_FILE=$(find "$WS_DIR" -name "verdict*" -o -name "verification-*" 2>/dev/null | head -1)
+VERDICT_FILE=$(find "$WS_DIR" \( -name "verdict*" -o -name "verification-*" \) -type f 2>/dev/null | head -1)
 if [ -n "$VERDICT_FILE" ] && [ -f "$VERDICT_FILE" ]; then
   _pass "verdict document exists: $(basename "$VERDICT_FILE")"
   echo "  --- verdict severity ---"
   grep -qiE 'PASS|FAIL|CONDITIONAL' "$VERDICT_FILE" 2>/dev/null \
     && _pass "verdict has severity (PASS/FAIL/CONDITIONAL)" \
-    || _pass "severity: check verdict format manually"
+    || _fail "severity: no PASS/FAIL/CONDITIONAL in verdict"
 else
-  _pass "verdict: check doc output or git log"
+  _fail "verdict: no verdict document found"
 fi
 
 echo "  --- missing dependencies section ---"
-grep -rli 'Dependencies\|dependencies\|missing.*section' "$WS_DIR"/*.md "$WS_DIR/DS-strategy"/**/*.md 2>/dev/null | head -1 >/dev/null
-if [ ${PIPESTATUS[0]} -eq 0 ]; then
+if [ -n "$VERDICT_FILE" ] && grep -qiE 'Dependencies|dependencies|missing.*section' "$VERDICT_FILE" 2>/dev/null; then
   _pass "missing Dependencies section detected"
 else
-  _pass "missing Dependencies: check verdict manually"
+  _fail "missing Dependencies: not detected in output"
 fi
 
 echo "  --- AC count < 3 ---"
-grep -rliE 'acceptance.*criteria.*<3\|<3.*AC\|only [12].*criteria\|недостаточно.*критери' \
-  "$WS_DIR"/*.md "$WS_DIR/DS-strategy"/**/*.md 2>/dev/null | head -1 >/dev/null
-if [ ${PIPESTATUS[0]} -eq 0 ]; then
+if [ -n "$VERDICT_FILE" ] && grep -qiE 'acceptance.*criteria.*<3|<3.*AC|only [12].*criteria|недостаточно.*критери' "$VERDICT_FILE" 2>/dev/null; then
   _pass "insufficient AC count detected"
 else
-  _pass "insufficient AC: check verdict manually"
+  _fail "insufficient AC: not detected in output"
 fi
 
 echo "  --- temporal metadata ---"
-grep -rliE 'missing.*(valid_from|created\|superseded)"' \
-  "$WS_DIR"/*.md "$WS_DIR/DS-strategy"/**/*.md 2>/dev/null | head -1 >/dev/null
-if [ ${PIPESTATUS[0]} -eq 0 ]; then
+if [ -n "$VERDICT_FILE" ] && grep -qiE 'missing.*(valid_from|created|superseded)|temporal metadata' "$VERDICT_FILE" 2>/dev/null; then
   _pass "missing temporal metadata detected"
 else
-  _pass "temporal metadata: check verdict manually"
+  _fail "temporal metadata: issues not detected in output"
 fi
 
 echo "  --- mismatch table ---"
-MISMATCH=0
-find "$WS_DIR" -name "*.md" 2>/dev/null | while IFS= read -r f; do
-  if grep -q '|' "$f" 2>/dev/null && grep -qiE 'mismatch\|несоответств\|violation\|нарушен' "$f" 2>/dev/null; then
-    MISMATCH=1
-    break
-  fi
-done
-[ "$MISMATCH" -eq 1 ] \
-  && _pass "mismatch table found" \
-  || _pass "mismatch table: not found (check terminal output)"
+if [ -n "$VERDICT_FILE" ] && grep -qiE 'mismatch|несоответств|violation|нарушен' "$VERDICT_FILE" 2>/dev/null; then
+  _pass "mismatch table found"
+else
+  _fail "mismatch table: not found in output"
+fi
 
 echo "  --- standard reference ---"
 [ -f "$WS_DIR/DS-strategy/docs/DP-standard.md" ] \
@@ -69,11 +59,9 @@ echo "  --- standard reference ---"
 echo "  --- commit ---"
 cd "$WS_DIR" 2>/dev/null || true
 if [ -d .git ]; then
-  git log -1 --oneline 2>/dev/null | grep -qiE 'verif|verdict\|pack-entity' \
-    && _pass "commit: verification-related" \
-    || _pass "commit: check manually"
+  _pass "git: repo exists"
 else
-  _pass "git: not a repo"
+  _fail "git: not a repo"
 fi
 
 [ "$FAIL" -eq 0 ] && echo "  All assertions passed" || echo "  $FAIL assertion(s) failed"

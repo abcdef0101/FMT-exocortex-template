@@ -93,7 +93,7 @@ done
   && _pass "inputs defined: $inputs_ok/$total" \
   || { [ "$inputs_ok" -lt "$total" ] && _fail "inputs defined: $inputs_ok/$total (some missing)"; }
 
-[ "$outputs_ok" -ge "$((total - 1))" ] \
+[ "$outputs_ok" -eq "$total" ] \
   && _pass "outputs defined: $outputs_ok/$total" \
   || _fail "outputs defined: $outputs_ok/$total"
 
@@ -161,19 +161,21 @@ for mf in "${manifests[@]}"; do
     [ "$dep" = "[]" ] && continue
     # Skip runtime paths (containing / — workspaces, DS-strategy, etc.)
     [[ "$dep" == */* ]] && continue
+    [[ "$dep" == DS-* ]] && continue
     # Match: component base name
     if echo "$all_base" | grep -qxF "$dep"; then
       : # valid base name
     elif [ -f "$ROOT_DIR/$dep" ] || [ -d "$ROOT_DIR/$dep" ]; then
       : # valid file/dir
     else
-      echo "  • $rel: unknown dependency '$dep' (advisory)"
+      echo "  • $rel: unknown dependency '$dep'"
+      dep_errors=$((dep_errors + 1))
     fi
   done <<< "$deps"
 done
 [ "$dep_errors" -eq 0 ] \
   && _pass "dependency references: all resolved" \
-  || true
+  || _fail "dependency references: $dep_errors unresolved"
 
 # -------------------------------------------------------------------
 echo "  --- version consistency ---"

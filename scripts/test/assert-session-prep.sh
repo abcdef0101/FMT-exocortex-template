@@ -21,30 +21,31 @@ MEMORY="$WS_DIR/memory/MEMORY.md"
 echo "  --- WeekPlan draft created ---"
 current=$(find "$DS_DIR/current" -name "WeekPlan*" -type f 2>/dev/null | head -1)
 [ -n "$current" ] \
-  && _pass "WeekPlan: $(basename "$current") in current/" \
-  || _pass "WeekPlan: no new WeekPlan (may not have run)"
+  && [ "$(basename "$current")" != "WeekPlan W13 2026.md" ] \
+  && _pass "WeekPlan: new draft $(basename "$current") in current/" \
+  || _fail "WeekPlan: draft not created in current/"
 
 echo "  --- old archived ---"
 if [ -d "$ARCHIVE" ]; then
   archived=$(find "$ARCHIVE" -name "WeekPlan*" -type f 2>/dev/null | wc -l)
   [ "$archived" -ge 1 ] \
     && _pass "archive: $archived old WeekPlan(s) archived" \
-    || _pass "archive: empty (may not have run)"
+    || _fail "archive: old WeekPlan not archived"
 fi
 
 echo "  --- old DayPlans archived ---"
 day_archive=$(find "$DS_DIR/archive" -name "DayPlan*" -type f 2>/dev/null | wc -l)
 [ "$day_archive" -ge 1 ] \
   && _pass "archive: $day_archive old DayPlan(s)" \
-  || _pass "archive: no DayPlans archived"
+  || _fail "archive: old DayPlans not archived"
 
 echo "  --- inbox cleaned ---"
 fleeting="$DS_DIR/inbox/fleeting-notes.md"
 if [ -f "$fleeting" ]; then
-  bold=$(grep -c '^\*\*' "$fleeting" 2>/dev/null | head -1 || echo 0)
-  [ "${bold:-0}" -eq 0 ] \
-    && _pass "inbox: no unprocessed bold notes" \
-    || _pass "inbox: $bold bold notes (may be new)"
+  note_count=$(grep -c '^-' "$fleeting" 2>/dev/null || echo 0)
+  [ "${note_count:-0}" -eq 0 ] \
+    && _pass "inbox: notes processed or archived" \
+    || _fail "inbox: lingering notes remain ($note_count)"
 fi
 
 echo "  --- MEMORY intact ---"

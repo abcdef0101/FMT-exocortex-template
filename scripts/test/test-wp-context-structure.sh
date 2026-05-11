@@ -21,14 +21,18 @@ else
     name=$(basename "$f")
     checked=$((checked + 1))
     # Check at least one of the section heading patterns (ru/en)
-    has_remaining=$(grep -cE '## Осталось|## What.s Left' "$f" 2>/dev/null || echo 0)
-    has_tried=$(grep -cE '## Что пробовали|## Tried' "$f" 2>/dev/null || echo 0)
-    has_learned=$(grep -cE '## Что узнали|## Learned' "$f" 2>/dev/null || echo 0)
-    has_next=$(grep -cE '## Следующий шаг|## Next Step' "$f" 2>/dev/null || echo 0)
+    has_remaining=$(grep -cE '## Осталось|## What.s Left' "$f" 2>/dev/null || true)
+    has_remaining=${has_remaining:-0}
+    has_tried=$(grep -cE '## Что пробовали|## Tried' "$f" 2>/dev/null || true)
+    has_tried=${has_tried:-0}
+    has_learned=$(grep -cE '## Что узнали|## Learned' "$f" 2>/dev/null || true)
+    has_learned=${has_learned:-0}
+    has_next=$(grep -cE '## Следующий шаг|## Next Step' "$f" 2>/dev/null || true)
+    has_next=${has_next:-0}
 
     missing=""
-    [ "$has_remaining" -eq 0 ] && missing="$missing remaining"
-    [ "$has_next" -eq 0 ] && missing="$missing next-step"
+    [ "$has_remaining" -eq 0 ] 2>/dev/null && missing="$missing remaining"
+    [ "$has_next" -eq 0 ] 2>/dev/null && missing="$missing next-step"
 
     if [ -z "$missing" ]; then
       _pass "$name: key sections present"

@@ -21,10 +21,14 @@ for test in "$E2E_DIR"/e2e-*.sh; do
   echo ""
   echo "--- $tname ---"
 
-  output=$(bash "$test" 2>&1)
+  if output=$(bash "$test" 2>&1); then
+    rc=0
+  else
+    rc=$?
+  fi
   echo "$output"
 
-  if echo "$output" | grep -q "E2E:.*0 failed"; then
+  if [ "$rc" -eq 0 ] && echo "$output" | grep -qE 'E2E: [0-9]+ passed, 0 failed'; then
     echo "✓ PASS: $tname"
     PASS=$((PASS + 1))
   else

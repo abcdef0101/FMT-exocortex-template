@@ -16,23 +16,27 @@ while IFS= read -r -d '' f; do
   name=$(basename "$f")
   adr_count=$((adr_count + 1))
 
-  has_context=$(grep -c '## Context\|## Контекст' "$f" 2>/dev/null || echo 0)
-  has_decision=$(grep -c '## Decision\|## Решение' "$f" 2>/dev/null || echo 0)
-  has_consequences=$(grep -c '## Consequences\|## Последствия' "$f" 2>/dev/null || echo 0)
-  has_status=$(grep -c '## Status\|## Статус' "$f" 2>/dev/null || echo 0)
+  has_context=$(grep -ciE '## Context|## Контекст|\*\*Контекст|\*\*Context' "$f" 2>/dev/null || true)
+  has_context=${has_context:-0}
+  has_decision=$(grep -ciE '## Decision|## Решение|\*\*Решение|\*\*Decision' "$f" 2>/dev/null || true)
+  has_decision=${has_decision:-0}
+  has_consequences=$(grep -ciE '## Consequences|## Последствия|\*\*Последстви|\*\*Consequences' "$f" 2>/dev/null || true)
+  has_consequences=${has_consequences:-0}
+  has_status=$(grep -ciE '## Status|## Статус|\*\*Статус|\*\*Status|\>.*Status' "$f" 2>/dev/null || true)
+  has_status=${has_status:-0}
 
   missing=""
-  [ "$has_context" -eq 0 ] && missing="$missing Context"
-  [ "$has_decision" -eq 0 ] && missing="$missing Decision"
-  [ "$has_consequences" -eq 0 ] && missing="$missing Consequences"
-  [ "$has_status" -eq 0 ] && missing="$missing Status"
+  [ "$has_context" -eq 0 ] 2>/dev/null && missing="$missing Context"
+  [ "$has_decision" -eq 0 ] 2>/dev/null && missing="$missing Decision"
+  [ "$has_consequences" -eq 0 ] 2>/dev/null && missing="$missing Consequences"
+  [ "$has_status" -eq 0 ] 2>/dev/null && missing="$missing Status"
 
   if [ -z "$missing" ]; then
     _pass "$name: all sections present"
   else
     _fail "$name: missing sections:$missing"
   fi
-done < <(find "$ADR_DIR" -maxdepth 1 -name "*.md" -type f -print0 2>/dev/null || true)
+done < <(find "$ADR_DIR" -maxdepth 1 -name "ADR-*.md" -type f -print0 2>/dev/null || true)
 
 echo "  ADRs: $adr_count found"
 

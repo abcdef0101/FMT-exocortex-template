@@ -14,6 +14,7 @@ for arg in "$@"; do [ "$arg" = "--run" ] && RUN_MODE=true; done
 
 WS_DIR="${1:-}"
 [ -z "$WS_DIR" ] && { echo "ERROR: workspace dir required" >&2; exit 1; }
+REPORT_FILE="$WS_DIR/docs/adr/archgate-report.md"
 
 if $RUN_MODE; then
   SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -25,6 +26,7 @@ if $RUN_MODE; then
 Read CLAUDE.md for ArchGate rules. Read .claude/skills/archgate/SKILL.md for the full protocol.
 Produce a 7-row ЭМОГССБ table with ✅⚠️❌ for each characteristic.
 Apply 3 veto rules. Check 3 modernity items.
+Write the result to $REPORT_FILE.
 Output: gate decision (pass/fail) with reasoning."
 
   echo "=== ArchGate: running AI process ==="
@@ -32,6 +34,7 @@ Output: gate decision (pass/fail) with reasoning."
   export AI_CLI="${AI_CLI:-opencode}"
   export AI_CLI_MODEL="${AI_CLI_MODEL:-deepseek/deepseek-chat}"
   ai_cli_run "$ARCHGATE_PROMPT" --allowed-tools "Read,Write,Edit,Bash" --budget 0.50 2>/dev/null || { echo "ERROR: ArchGate AI failed" >&2; exit 2; }
+  [ -f "$REPORT_FILE" ] || { echo "ERROR: ArchGate report not created" >&2; exit 3; }
   echo "=== ArchGate: AI process done ==="
 fi
 
@@ -49,6 +52,9 @@ $(cat "$RUBRICS")
 
 ## Решение для оценки
 $(cat "$WS_DIR/docs/adr/sample-decision.md" 2>/dev/null || echo "N/A")
+
+## Отчёт ArchGate
+$(cat "$REPORT_FILE" 2>/dev/null || echo "N/A")
 
 ## Правила ArchGate (из CLAUDE.md)
 $(cat "$WS_DIR/CLAUDE.md" 2>/dev/null || echo "N/A")

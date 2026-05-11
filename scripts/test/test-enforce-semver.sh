@@ -71,11 +71,8 @@ if [ -f "$CLAUDE_MD" ]; then
 fi
 
 echo "  --- enforcement: error on invalid manifest ---"
-# Create a temporary invalid MANIFEST and check it's caught
 mkdir -p "$TMPDIR/mock"
 echo "version: bad" > "$TMPDIR/mock/MANIFEST.yaml"
-output=$(grep -c 'valid_semver' "$ENFORCER" 2>/dev/null || echo "0")
-# The enforcer checks semver — verify it has the function
 grep -q "valid_semver()" "$ENFORCER" \
   && _pass "enforce: semver function present" \
   || _fail "enforce: no semver function"

@@ -10,6 +10,71 @@ else
   sed_inplace() { sed -i '' "$@"; }
 fi
 
+_replace_placeholder_in_file() {
+  local file="$1"
+  local token="$2"
+  local value="$3"
+
+  if command -v perl >/dev/null 2>&1; then
+    TOKEN="$token" VALUE="$value" perl -0pi -e 's/\Q$ENV{TOKEN}\E(?![A-Za-z0-9_])/$ENV{VALUE}/g' "$file"
+  else
+    sed_inplace "s|$token|$value|g" "$file"
+  fi
+}
+
+_merge_mcp_json() {
+  local source="$1"
+  local target="$2"
+
+  if ! command -v python3 >/dev/null 2>&1; then
+    cp "$source" "$target"
+    echo "    WARN: python3 not found, merge-mcp fell back to copy"
+    return 0
+  fi
+
+  python3 - "$source" "$target" <<'PY'
+import json
+import os
+import sys
+
+source_path, target_path = sys.argv[1:3]
+
+
+def load_json(path):
+    if not os.path.exists(path):
+        return {}
+    with open(path, encoding="utf-8") as fh:
+        data = json.load(fh)
+    if not isinstance(data, dict):
+        raise SystemExit(f"ERROR: expected JSON object in {path}")
+    return data
+
+
+base = load_json(source_path)
+target = load_json(target_path)
+
+base_servers = base.get("mcpServers", {})
+target_servers = target.get("mcpServers", {})
+if not isinstance(base_servers, dict):
+    raise SystemExit(f"ERROR: mcpServers must be an object in {source_path}")
+if not isinstance(target_servers, dict):
+    raise SystemExit(f"ERROR: mcpServers must be an object in {target_path}")
+
+merged = dict(base)
+for key, value in target.items():
+    if key != "mcpServers":
+        merged[key] = value
+
+merged_servers = dict(base_servers)
+merged_servers.update(target_servers)
+merged["mcpServers"] = merged_servers
+
+with open(target_path, "w", encoding="utf-8") as fh:
+    json.dump(merged, fh, ensure_ascii=False, indent=2)
+    fh.write("\n")
+PY
+}
+
 # =========================================================================
 # parse_manifest — читает manifest.yaml и выполняет callback для каждого артефакта
 # Usage: parse_manifest <manifest_path> <callback_function>
@@ -150,7 +215,7 @@ apply_strategy() {
           local var_name="${ph//\{\{/}"
           var_name="${var_name//\}\}/}"
           local val="${!var_name:-$ph}"
-          sed_inplace "s|$ph|$val|g" "$target" 2>/dev/null || true
+          _replace_placeholder_in_file "$target" "$ph" "$val" 2>/dev/null || true
           echo "    substituted: $ph → $val"
         done
       fi
@@ -187,9 +252,13 @@ apply_strategy() {
     else
       local tdir; tdir="$(dirname "$target")"
       mkdir -p "$tdir"
-      cp "$source" "$target"
-      echo "  merge-mcp: base → $target"
-      echo "    (user MCP merge via /add-workspace-mcps skill)"
+      if [ -f "$target" ]; then
+        _merge_mcp_json "$source" "$target"
+        echo "  merge-mcp: merged base + existing target → $target"
+      else
+        cp "$source" "$target"
+        echo "  merge-mcp: base → $target"
+      fi
     fi
     ;;
 

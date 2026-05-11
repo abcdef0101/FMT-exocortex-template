@@ -12,53 +12,53 @@ _fail() { echo "  ✗ $1"; FAIL=$((FAIL + 1)); }
 echo "  --- assert: Synchronizer Code Scan ---"
 
 echo "  --- scan output ---"
-REPORT_FILE=$(find "$WS_DIR" -name "scan-report*" -o -name "sync-report*" -o -name "drift-*" 2>/dev/null | head -1)
+REPORT_FILE=$(find "$WS_DIR" \( -name "scan-report*" -o -name "sync-report*" -o -name "drift-*" \) -type f 2>/dev/null | head -1)
 if [ -n "$REPORT_FILE" ] && [ -f "$REPORT_FILE" ]; then
   _pass "scan report exists: $(basename "$REPORT_FILE")"
 else
-  _pass "scan report: not found as file (check git diff or stdout)"
+  _fail "scan report: not found as file"
 fi
 
 echo "  --- CLAUDE.md drift ---"
-# After AI scan, template/CLAUDE.md should be flagged (line added)
-if grep -qiE 'ADDED|added|differs|drift.*CLAUDE' "$WS_DIR"/*.md "$WS_DIR/DS-strategy"/**/*.md 2>/dev/null; then
+if [ -n "$REPORT_FILE" ] && grep -qiE 'CLAUDE.*(ADDED|added|differs|drift)|drift.*CLAUDE' "$REPORT_FILE" 2>/dev/null; then
   _pass "CLAUDE.md drift detected"
 else
-  _pass "CLAUDE.md drift: check scan output manually"
+  _fail "CLAUDE.md drift: not detected in output"
 fi
 
 echo "  --- ONTOLOGY.md drift ---"
-if grep -qiE 'DELETED|deleted|missing.*ЛИНИЯ' "$WS_DIR"/*.md "$WS_DIR/DS-strategy"/**/*.md 2>/dev/null || \
-   grep -qiE 'ONTOLOGY.*diff' "$WS_DIR"/*.md "$WS_DIR/DS-strategy"/**/*.md 2>/dev/null; then
+if [ -n "$REPORT_FILE" ] && grep -qiE 'ONTOLOGY.*(DELETED|deleted|diff)|missing.*ЛИНИЯ' "$REPORT_FILE" 2>/dev/null; then
   _pass "ONTOLOGY.md drift detected"
 else
-  _pass "ONTOLOGY.md drift: check scan output manually"
+  _fail "ONTOLOGY.md drift: not detected in output"
 fi
 
 echo "  --- CHANGELOG.md unchanged ---"
-if grep -qiE 'CHANGELOG' "$WS_DIR"/*.md "$WS_DIR/DS-strategy"/**/*.md 2>/dev/null | grep -qiE 'diff|drift|change' 2>/dev/null; then
-  _fail "CHANGELOG.md flagged but should be unchanged"
+if [ -n "$REPORT_FILE" ] && grep -qi 'CHANGELOG' "$REPORT_FILE" 2>/dev/null; then
+  if grep -qiE 'CHANGELOG.*(diff|drift|changed)' "$REPORT_FILE" 2>/dev/null; then
+    _fail "CHANGELOG.md flagged but should be unchanged"
+  else
+    _pass "CHANGELOG.md: mentioned but not flagged (correct)"
+  fi
 else
-  _pass "CHANGELOG.md: not flagged (correct)"
+  _pass "CHANGELOG.md: not mentioned (correct)"
 fi
 
 echo "  --- REGISTRY/MEMORY/WeekPlan sync ---"
 SYNC_OK=0
 for term in "REGISTRY" "MEMORY" "WeekPlan"; do
-  grep -qil "$term" "$WS_DIR"/*.md 2>/dev/null && SYNC_OK=$((SYNC_OK + 1))
+  [ -n "$REPORT_FILE" ] && grep -qi "$term" "$REPORT_FILE" 2>/dev/null && SYNC_OK=$((SYNC_OK + 1))
 done
-[ "$SYNC_OK" -ge 1 ] \
+[ "$SYNC_OK" -ge 3 ] \
   && _pass "sync terms referenced in output" \
-  || _pass "sync terms: check manually"
+  || _fail "sync terms: missing in output"
 
 echo "  --- commit ---"
 cd "$WS_DIR" 2>/dev/null || true
 if [ -d .git ]; then
-  git log -1 --oneline 2>/dev/null | grep -qiE 'sync|scan|drift' \
-    && _pass "commit: sync-related" \
-    || _pass "commit: check manually"
+  _pass "git: repo exists"
 else
-  _pass "git: not a repo"
+  _fail "git: not a repo"
 fi
 
 [ "$FAIL" -eq 0 ] && echo "  All assertions passed" || echo "  $FAIL assertion(s) failed"

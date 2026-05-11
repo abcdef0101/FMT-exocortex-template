@@ -52,6 +52,8 @@ fi
 
 [ -z "$DS_DIR" ] && { echo "ERROR: DS-strategy directory required" >&2; exit 1; }
 [ ! -d "$DS_DIR" ] && { echo "ERROR: directory not found: $DS_DIR" >&2; exit 1; }
+[ "$WEEKPLAN" = "--run" ] && WEEKPLAN=""
+[ -z "$WEEKPLAN" ] && WEEKPLAN=$(find "$DS_DIR/current" -name 'WeekPlan*' -type f 2>/dev/null | sort | tail -1)
 [ -z "$WEEKPLAN" ] && { echo "ERROR: WeekPlan path required" >&2; exit 1; }
 [ ! -f "$WEEKPLAN" ] && { echo "ERROR: WeekPlan not found: $WEEKPLAN" >&2; exit 1; }
 

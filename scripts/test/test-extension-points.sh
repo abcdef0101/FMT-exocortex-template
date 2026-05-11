@@ -96,22 +96,24 @@ echo "  --- since versions ---"
 
 since_versions=$(grep 'since:' "$EP_FILE" | sed 's/.*since: *//')
 version_violations=0
-current_version="0.25.1"
+current_version=$(grep '^version:' "$ROOT_DIR/MANIFEST.yaml" 2>/dev/null | head -1 | sed 's/^version: *//' || echo "0.0.0")
+[ -z "$current_version" ] && current_version="0.0.0"
 
 version_le() {
-  # Return 0 if $1 <= $2 (semver comparison)
+  # Return 0 if $1 <= $2 (full semver x.y.z comparison)
   local IFS=.
-  local i a1 a2 b1 b2
+  local i a b
   read -ra a <<< "$1"
   read -ra b <<< "$2"
-  a1=${a[0]}; a2=${a[1]}; b1=${b[0]}; b2=${b[1]}
-  # strip leading zeros
-  a1=$((10#${a1})); a2=$((10#${a2}))
-  b1=$((10#${b1})); b2=$((10#${b2}))
-  [ "$a1" -lt "$b1" ] && return 0
-  [ "$a1" -gt "$b1" ] && return 1
-  [ "$a2" -le "$b2" ] && return 0
-  return 1
+  for i in 0 1 2; do
+    local av=${a[$i]:-0}
+    local bv=${b[$i]:-0}
+    av=$((10#${av}))
+    bv=$((10#${bv}))
+    [ "$av" -lt "$bv" ] && return 0
+    [ "$av" -gt "$bv" ] && return 1
+  done
+  return 0
 }
 
 while IFS= read -r sv; do
