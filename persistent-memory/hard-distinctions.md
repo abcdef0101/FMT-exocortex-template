@@ -402,6 +402,17 @@ During = в момент обнаружения (SOTA). After = ретроспе
 
 **Правило:** Формальная верификация — автоматизация, не intelligence. R23 реализован как bash-скрипт, не AI sub-agent.
 
+### Типы верификации — формальная (bash) / качественная (AI)
+
+| Тип | Формальная (bash, R23) | Качественная (AI, R23/R25) |
+|-----|------------------------|---------------------------|
+| code | `verify-chain-discovery.sh` (сбор affected) | `verifier-code` (thinking) — логика, безопасность |
+| archgate | `verify-archgate-formal.sh` (таблица, 7 dims) | `verifier-archgate` (pro) — код vs принципы |
+| capture | `verify-capture-formal.sh` (поля, ссылки) | `verifier-capture` (thinking) — UL, непротиворечивость |
+| wp | `verify-close.sh` (done/not done) | R25 (pro) — качество содержания |
+| chain | `verify-chain-discovery.sh` (consumers) | `verifier-chain` (thinking) — контракты |
+| adversarial | `verify-adversarial-scope.sh` (unread files) | `verifier-adversarial` (thinking) — pre-mortem |
+
 ## 41. Эталон ≠ Шаблон (VR.D.003)
 
 | Эталон (reference) | Шаблон (template) |

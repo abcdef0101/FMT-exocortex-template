@@ -21,7 +21,7 @@
 | R12 | **Оценщик** | — | Bloom eval, WP validation, fixation |
 | R13 | **Проводник** | FX6 | FSM routing, tier gating, progressive disclosure |
 | R21 | **Публикатор** | FX1 | Scan ready posts, scheduled publish, comment check |
-| R23 | **Верификатор** | — | Проверка артефактов по эталону (Pack/SPF). `/verify`. Context isolation |
+| R23 | **Верификатор** | — | Формальная (bash-скрипты) + качественная (AI sub-agents через Agent tool). `/verify`. 6 типов: code/archgate/capture/wp/chain/adversarial |
 | R24 | **Аудитор** | — | Проверка полноты и согласованности (coverage, кросс-контекст) |
 | R27 | **Навигатор** | — | Траектория развития, выбор программы, ритм обучения, мемы, итоги |
 | R28 | **Диагност** | — | Определение ступени мастерства (0-4) и bottleneck через диалог |

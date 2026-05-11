@@ -82,6 +82,19 @@ jobs:
           [ "$FAIL" -eq 0 ] && echo "PASS: All .sh files pass bash -n"
           exit $FAIL
 
+      - name: Run unit tests
+        run: |
+          FAIL=0
+          for test in scripts/test/test-verify-scripts.sh scripts/test/test-create-agents.sh; do
+            echo "=== $test ==="
+            if ! bash "$test"; then
+              echo "FAIL: $test"
+              FAIL=1
+            fi
+          done
+          [ "$FAIL" -eq 0 ] && echo "PASS: All unit tests passed"
+          exit $FAIL
+
   validate:
     runs-on: ubuntu-latest
     steps:
