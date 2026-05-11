@@ -45,7 +45,7 @@ Pack (предметное) → SPF (корректность) → FPF (перв
 
 4. **Если iwe-knowledge недоступен** (нет в `/mcp`):
    - Pack: читай файлы `$WORKSPACE_DIR/PACK-*/pack/` через Glob + Read
-   - SPF: читай `$WORKSPACE_DIR/SPF/docs/` через Glob + Read
-   - FPF: читай `$WORKSPACE_DIR/FPF/Readme.md` (обзор) или ищи через Grep по `$WORKSPACE_DIR/FPF/`
+   - SPF: читай `$WORKSPACE_DIR/SPF/docs/` через Glob + Read. Если `$WORKSPACE_DIR/SPF` не существует → «SPF не клонирован локально, принципы SPF недоступны»
+   - FPF: читай `$WORKSPACE_DIR/FPF/Readme.md` (обзор) или ищи через Grep по `$WORKSPACE_DIR/FPF/`. Если `$WORKSPACE_DIR/FPF` не существует → «FPF не клонирован локально, первые принципы недоступны»
 
 5. **Покажи** релевантные принципы с пояснением, как они применимы к задаче. Включай ссылку на источник (github_url из результата поиска или путь к файлу). **Переводи FPF-термины** в engineering-язык.
