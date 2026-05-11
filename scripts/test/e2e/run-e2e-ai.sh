@@ -120,6 +120,9 @@ case "$E2E_PHASE" in
   verifier)
     run_e2e "Verifier Pack Entity" "seed-verifier-pack-entity.sh" "eval-verifier-pack-entity.sh" "assert-verifier-pack-entity.sh" "--run"
     ;;
+  offline-fallback)
+    run_e2e "Extractor Offline Fallback" "seed-extractor-offline-fallback.sh" "eval-extractor-offline-fallback.sh" "assert-extractor-offline-fallback.sh" "--run"
+    ;;
   all|*)
     run_e2e "Quick Close" "seed-quick-close.sh" "eval-quick-close.sh" "assert-quick-close.sh" "--run"
     run_e2e "wp-new" "seed-wp-new.sh" "eval-wp-new.sh" "assert-wp-new.sh" "--run"
@@ -138,6 +141,7 @@ case "$E2E_PHASE" in
     run_e2e "Extractor Inbox Check" "seed-extractor-inbox-check.sh" "eval-extractor-inbox-check.sh" "assert-extractor-inbox-check.sh" "--run"
     run_e2e "Synchronizer Code Scan" "seed-synchronizer-code-scan.sh" "eval-synchronizer-code-scan.sh" "assert-synchronizer-code-scan.sh" "--run"
     run_e2e "Verifier Pack Entity" "seed-verifier-pack-entity.sh" "eval-verifier-pack-entity.sh" "assert-verifier-pack-entity.sh" "--run"
+    run_e2e "Extractor Offline Fallback" "seed-extractor-offline-fallback.sh" "eval-extractor-offline-fallback.sh" "assert-extractor-offline-fallback.sh" "--run"
     ;;
 esac
 

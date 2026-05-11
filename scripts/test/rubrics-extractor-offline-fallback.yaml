@@ -1,0 +1,43 @@
+# LLM-as-Judge rubrics for Extractor offline fallback
+metrics:
+  - name: offline_fallback_used
+    threshold: 0.9
+    criteria: |
+      Extractor использовал локальный grep/find/Read вместо MCP knowledge_search.
+      В отчёте есть признаки локальной проверки: упоминание PACK-* директорий,
+      grep результатов, или пометка "MCP недоступен — использован локальный поиск".
+      Отсутствие MCP не привело к пропуску проверки дублей.
+
+  - name: duplicate_detected_without_mcp
+    threshold: 0.9
+    criteria: |
+      Дубликат TEST.ENTITY.001-test-pattern.md обнаружен БЕЗ использования MCP.
+      Кандидат "test-pattern" помечен как reject.
+      Указан существующий файл (TEST.ENTITY.001 или test-pattern).
+      Обоснование объясняет, почему это дубликат.
+
+  - name: unique_candidate_routed
+    threshold: 0.8
+    criteria: |
+      Уникальный доменный кандидат "offline-fallback-design" правильно смаршрутизирован
+      в PACK-test-domain. Не отклонён как дубликат. Указан конкретный путь назначения.
+
+  - name: implementation_routing
+    threshold: 0.7
+    criteria: |
+      Implementation-кандидат "ai-cli-wrapper" правильно смаршрутизирован в DS docs/,
+      а не в Pack. Тип знания определён корректно.
+
+  - name: no_silent_failure
+    threshold: 0.9
+    criteria: |
+      Нет признаков молчаливого пропуска проверки дублей.
+      Все 3 кандидата из captures.md обработаны.
+      Ни один не пропущен с пометкой "MCP unavailable — skip" без локального fallback.
+
+  - name: report_completeness
+    threshold: 0.7
+    criteria: |
+      Отчёт содержит для каждого кандидата: тип (domain/implementation),
+      метод проверки (grep/find локально), результат (accept/reject),
+      и обоснование. Структура отчёта соответствует запрошенному формату.
