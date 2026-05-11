@@ -25,6 +25,10 @@ function iwe_notify_via_script() {
   local log_file="${5}"
 
   if [[ -f "${notify_script}" ]]; then
-    "${notify_script}" "${title}" "${message}" "${level}" >> "${log_file}" 2>&1 || true
+    if [[ -n "${log_file:-}" ]]; then
+      "${notify_script}" "${title}" "${message}" "${level}" >> "${log_file}" 2>&1 || true
+    else
+      "${notify_script}" "${title}" "${message}" "${level}" || true
+    fi
   fi
 }

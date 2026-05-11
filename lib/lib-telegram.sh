@@ -17,11 +17,6 @@ function iwe_telegram_load_env() {
   fi
 }
 
-function iwe_telegram_available_templates() {
-  local templates_dir="${1}"
-  ls "${templates_dir}"/*.sh 2>/dev/null | xargs -I{} basename {} .sh | tr '\n' '|' | sed 's/|$//'
-}
-
 function iwe_telegram_send() {
   local telegram_bot_token="${1}"
   local telegram_chat_id="${2}"

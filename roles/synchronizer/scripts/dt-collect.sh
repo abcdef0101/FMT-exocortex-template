@@ -897,9 +897,9 @@ EXIT_CODE=$?
 
 if [ $EXIT_CODE -eq 0 ]; then
   log "=== DT Collect Completed Successfully ==="
-  local _notify_sh="${SCRIPT_DIR}/../../../scripts/notify.sh"
-  local _tmpl_dir="${SCRIPT_DIR}/templates"
-  local _msg
+  _notify_sh="${SCRIPT_DIR}/../../../scripts/notify.sh"
+  _tmpl_dir="${SCRIPT_DIR}/templates"
+  _msg=""
   export WORKSPACE_DIR IWE_NOTIFY_ENV_FILE="$ENV_FILE"
   _msg="$(bash -c 'source "$1"; build_message "$2"' _ "${_tmpl_dir}/synchronizer.sh" "dt-collect")" || true
   [[ -n "${_msg}" ]] && "${_notify_sh}" "DT Collect" "${_msg}" "notice" 2>/dev/null || true

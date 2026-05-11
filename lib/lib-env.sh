@@ -33,11 +33,6 @@ function iwe_env_file_from_repo_root() {
   printf '%s/.%s/env\n' "${HOME}" "$(basename "${workspace_dir}")"
 }
 
-function iwe_project_slug_from_workspace() {
-  local workspace_dir="${1}"
-  printf '%s\n' "${workspace_dir//\//-}"
-}
-
 function iwe_validate_env_file() {
   local filepath="${1}"
 

@@ -48,9 +48,9 @@ for _adapter_file in "${ADAPTERS_DIR}"/*.sh; do
   (
     # shellcheck source=/dev/null
     source "${_adapter_file}"
-    adapter_enabled || exit 0
+    adapter_enabled || exit 1
     _min_int="$(_iwe_level_to_int "$(adapter_min_level)")"
-    [[ "${_LEVEL_INT}" -ge "${_min_int}" ]] || exit 0
+    [[ "${_LEVEL_INT}" -ge "${_min_int}" ]] || exit 1
     adapter_send "${TITLE}" "${MESSAGE}"
   ) && _sent=$((_sent + 1)) || true
 done
