@@ -68,6 +68,10 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(dirname "$SCRIPT_DIR")"
+
+# shellcheck source=roles/shared/lib/lib-notify.sh
+source "${SCRIPT_DIR}/../../shared/lib/lib-notify.sh"
+
 PROMPTS_DIR="$REPO_DIR/prompts"
 LOG_DIR="$WORKSPACE_DIR/logs/auditor"
 ENV_FILE="$WORKSPACE_DIR/.env"
@@ -88,19 +92,18 @@ log() {
 }
 
 notify() {
-  local title="$1"
-  local message="$2"
-  printf 'display notification "%s" with title "%s"' "$message" "$title" | osascript 2>/dev/null ||
-    notify-send "$title" "$message" 2>/dev/null ||
-    true
+  iwe_notify_local "${1}" "${2}"
 }
 
 notify_telegram() {
   local scenario="$1"
-  local notify_script="$ROOT_DIR/roles/synchronizer/scripts/notify.sh"
-  if [ -f "$notify_script" ]; then
-    "$notify_script" --workspace-dir "$WORKSPACE_DIR" --env-file "$ENV_FILE" auditor "$scenario" >>"$LOG_FILE" 2>&1 || true
-  fi
+  local _notify_sh="${ROOT_DIR}/scripts/notify.sh"
+  local _tmpl_dir="${SCRIPT_DIR}/templates"
+  local _msg
+  export WORKSPACE_DIR IWE_NOTIFY_ENV_FILE="$ENV_FILE"
+  _msg="$(bash -c 'source "$1"; build_message "$2"' _ "${_tmpl_dir}/auditor.sh" "${scenario}")" || true
+  [[ -z "${_msg}" ]] && return 0
+  iwe_notify_via_script "${_notify_sh}" "Аудитор: ${scenario}" "${_msg}" "notice" "${LOG_FILE}"
 }
 
 run_claude() {

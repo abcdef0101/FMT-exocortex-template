@@ -64,9 +64,14 @@ caffeinate -diu -w $$ &
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(dirname "$SCRIPT_DIR")"
 FMT_DIR="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+
+# shellcheck source=roles/shared/lib/lib-notify.sh
+source "${SCRIPT_DIR}/../../shared/lib/lib-notify.sh"
+
 STRATEGY_DIR="$WORKSPACE_DIR/DS-strategy"
 PROMPTS_DIR="$REPO_DIR/prompts"
 LOG_DIR="$WORKSPACE_DIR/logs/strategist"
+ENV_FILE="$WORKSPACE_DIR/.env"
 AI_CLI_TIMEOUT="${AI_CLI_TIMEOUT:-${CLAUDE_TIMEOUT:-1800}}" # 30 мин — защита от зависания AI CLI
 
 if [ ! -d "$STRATEGY_DIR" ]; then
@@ -112,15 +117,18 @@ log() {
 }
 
 notify() {
-  local title="$1"
-  local message="$2"
-  printf 'display notification "%s" with title "%s"' "$message" "$title" | osascript 2>/dev/null || true
+  iwe_notify_local "${1}" "${2}"
 }
 
 notify_telegram() {
   local scenario="$1"
-  local notify_script="$REPO_DIR/../synchronizer/scripts/notify.sh"
-  [ -f "$notify_script" ] && "$notify_script" strategist "$scenario" >>"$LOG_FILE" 2>&1 || true
+  local _notify_sh="${FMT_DIR}/scripts/notify.sh"
+  local _tmpl_dir="${SCRIPT_DIR}/templates"
+  local _msg
+  export WORKSPACE_DIR IWE_NOTIFY_ENV_FILE="$ENV_FILE"
+  _msg="$(bash -c 'source "$1"; build_message "$2"' _ "${_tmpl_dir}/strategist.sh" "${scenario}")" || true
+  [[ -z "${_msg}" ]] && return 0
+  iwe_notify_via_script "${_notify_sh}" "Стратег: ${scenario}" "${_msg}" "notice" "${LOG_FILE}"
 }
 
 run_claude() {
@@ -349,17 +357,10 @@ case "$COMMAND" in
 
   # Alert if LLM failed AND cleanup was needed (only for NEW bold, not deferred 🔄)
   if [ "$BOLD_NEW_AFTER" -ge "$BOLD_NEW_BEFORE" ] && [ "$BOLD_NEW_BEFORE" -gt 0 ]; then
-    ENV_FILE="$HOME/.config/aist/env"
-    if [ -f "$ENV_FILE" ]; then
-      set -a
-      source "$ENV_FILE"
-      set +a
-      ALERT_TEXT="⚠️ <b>Note-Review canary</b>: Step 10 не сработал ($BOLD_NEW_BEFORE → $BOLD_NEW_AFTER new bold). Deterministic cleanup applied."
-      ALERT_JSON=$(printf '%s' "$ALERT_TEXT" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))')
-      curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-        -H "Content-Type: application/json" \
-        -d "{\"chat_id\":\"${TELEGRAM_CHAT_ID}\",\"text\":${ALERT_JSON},\"parse_mode\":\"HTML\"}" >>"$LOG_FILE" 2>&1 || true
-    fi
+    local _canary_msg="⚠️ Note-Review canary: Step 10 не сработал ($BOLD_NEW_BEFORE → $BOLD_NEW_AFTER new bold). Deterministic cleanup applied."
+    export IWE_NOTIFY_ENV_FILE="$ENV_FILE"
+    iwe_notify_via_script "${FMT_DIR}/scripts/notify.sh" \
+      "Стратег: note-review-canary" "${_canary_msg}" "alert" "${LOG_FILE}"
   fi
 
   notify_telegram "note-review"

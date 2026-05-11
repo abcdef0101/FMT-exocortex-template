@@ -79,8 +79,10 @@ verify_quick_close: true
 
 # === Уведомления ===
 
-# Telegram уведомления от ролей (strategist, extractor, synchronizer)
-telegram_notifications: true
+# Telegram уведомления управляются через наличие TELEGRAM_BOT_TOKEN в env-файле
+# (адаптер telegram.sh проверяет adapter_enabled через наличие токенов).
+# Этот параметр зарезервирован для будущего toggle на уровне notify.sh.
+# telegram_notifications: true
 
 # === MCP / Capture ===
 

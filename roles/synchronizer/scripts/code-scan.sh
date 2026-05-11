@@ -125,7 +125,12 @@ scan_repos() {
 
   # Уведомление в Telegram
   if [ "$DRY_RUN" = false ] && [ "$total_repos" -gt 0 ]; then
-    "$SCRIPT_DIR/notify.sh" --workspace-dir "$WORKSPACE_DIR" --env-file "$ENV_FILE" synchronizer code-scan 2>/dev/null || true
+    local _notify_sh _tmpl_dir _msg
+    _notify_sh="${SCRIPT_DIR}/../../../scripts/notify.sh"
+    _tmpl_dir="${SCRIPT_DIR}/templates"
+    export WORKSPACE_DIR IWE_NOTIFY_ENV_FILE="$ENV_FILE"
+    _msg="$(bash -c 'source "$1"; build_message "$2"' _ "${_tmpl_dir}/synchronizer.sh" "code-scan")" || true
+    [[ -n "${_msg}" ]] && "${_notify_sh}" "Code Scan" "${_msg}" "notice" 2>/dev/null || true
   fi
 }
 

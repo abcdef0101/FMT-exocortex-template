@@ -1,21 +1,6 @@
 #!/bin/bash
 # Шаблон уведомлений: Стратег (R1)
 # Вызывается из notify.sh через source
-# Требует: WORKSPACE_DIR (env или аргумент)
-
-WORKSPACE_DIR="${WORKSPACE_DIR:-}"
-if [ -z "$WORKSPACE_DIR" ]; then
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
-      --workspace-dir) WORKSPACE_DIR="$2"; shift 2 ;;
-      *) shift ;;
-    esac
-  done
-fi
-if [ -z "$WORKSPACE_DIR" ]; then
-  echo "Ошибка: WORKSPACE_DIR не задан" >&2
-  exit 1
-fi
 
 STRATEGY_DIR="$WORKSPACE_DIR/DS-strategy/current"
 STRATEGY_REPO_DIR="$WORKSPACE_DIR/DS-strategy"
@@ -111,7 +96,7 @@ build_message() {
             local title
             title=$(grep '^# ' "$file" | head -1 | sed 's/^# //')
 
-            printf "<b>📊 Week-Review завершён</b>\n\n%s" "$title"
+            printf "<b>📊 %s</b>" "$title"
             ;;
 
         "note-review")

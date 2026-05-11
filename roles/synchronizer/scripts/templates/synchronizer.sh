@@ -1,21 +1,6 @@
 #!/bin/bash
 # Шаблон уведомлений: Синхронизатор (R8)
-# Вызывается из notify.sh через source
-# Требует: WORKSPACE_DIR (env или аргумент)
-
-WORKSPACE_DIR="${WORKSPACE_DIR:-}"
-if [ -z "$WORKSPACE_DIR" ]; then
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
-      --workspace-dir) WORKSPACE_DIR="$2"; shift 2 ;;
-      *) shift ;;
-    esac
-  done
-fi
-if [ -z "$WORKSPACE_DIR" ]; then
-  echo "Ошибка: WORKSPACE_DIR не задан" >&2
-  exit 1
-fi
+# Вызывается из notify_telegram() через bash -c 'source ...'
 
 LOG_DIR="$WORKSPACE_DIR/logs/synchronizer"
 DATE=$(date +%Y-%m-%d)
@@ -61,14 +46,16 @@ build_message() {
                 return
             fi
 
-            local status_line
-            status_line=$(grep -E '=== DT Collect (Completed|Started)' "$log_file" | tail -1)
-
-            if echo "$status_line" | grep -q 'Completed Successfully'; then
-                printf "<b>📊 DT Collect</b>\n\n📅 %s\n\nЦД обновлён." "$DATE"
+            local status
+            if grep -q 'DT Collect Completed Successfully' "$log_file" 2>/dev/null; then
+                status="✅ Записано"
             else
-                printf "<b>📊 DT Collect</b>\n\n📅 %s\n\n⚠️ Проверьте лог." "$DATE"
+                status="❌ Ошибка"
             fi
+
+            printf "<b>📊 DT Collect</b>\n\n"
+            printf "📅 %s\n\n" "$DATE"
+            printf "%s\n" "$status"
             ;;
 
         *)

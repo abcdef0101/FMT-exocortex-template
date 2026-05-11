@@ -1174,7 +1174,7 @@ phase5f_role_tests() {
   FMT_DIR="$(cd "$HOME/IWE/FMT-exocortex-template" 2>/dev/null && pwd || echo "$HOME/IWE/FMT-exocortex-template")"
 
   # notify.sh
-  NOTIFY="$FMT_DIR/roles/synchronizer/scripts/notify.sh"
+  NOTIFY="$FMT_DIR/scripts/notify.sh"
   if [ -f "$NOTIFY" ]; then
     if bash -n "$NOTIFY" 2>/dev/null; then
       _ok "notify.sh: syntax ok"
