@@ -1,10 +1,6 @@
 # Claude Code — персональные файлы (не входят в шаблон)
 .claude/checkpoint.md
 
-# Сгенерированные definition-файлы sub-agents (шаблоны в seed/agents/templates/)
-.claude/agents/
-.opencode/
-
 # Директория с рабочими пространствами пользователя
 workspaces/
 .wakatime-project
