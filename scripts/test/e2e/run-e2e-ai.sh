@@ -19,18 +19,35 @@ run_e2e() {
   local seed_failed=false
   local step_failed=false
 
-  # 1. Seed — take last line only (seed scripts may print info to stdout)
+  local log_dir="/tmp/e2e-ai-${name// /-}-$$"
+  mkdir -p "$log_dir"
+
+  # 1. Seed — capture stdout+stderr, take last stdout line for workspace path
   echo "  [seed] $seed..."
-  WS=$(bash "$TEST_DIR/$seed" 2>/dev/null | tail -1) && rc=0 || rc=$?
-  if [ "$rc" -ne 0 ] || [ -z "$WS" ] || [ ! -d "$WS" ]; then
-    echo "  ✗ SEED FAILED (ws='$WS')"
+  bash "$TEST_DIR/$seed" >"$log_dir/seed.out" 2>"$log_dir/seed.err" && rc=0 || rc=$?
+  if [ "$rc" -ne 0 ]; then
+    echo "  ✗ SEED FAILED (rc=$rc)"
+    echo "  seed stderr:"
+    [ -s "$log_dir/seed.err" ] && sed 's/^/      /' "$log_dir/seed.err" || echo "      (empty)"
     FAIL=$((FAIL + 1))
     seed_failed=true
     step_failed=true
+  else
+    WS=$(tail -1 "$log_dir/seed.out")
+    if [ -z "$WS" ] || [ ! -d "$WS" ]; then
+      echo "  ✗ SEED FAILED (no valid workspace, ws='$WS')"
+      echo "  seed stdout (last lines):"
+      tail -10 "$log_dir/seed.out" | sed 's/^/      /'
+      FAIL=$((FAIL + 1))
+      seed_failed=true
+      step_failed=true
+    fi
   fi
 
   if ! $seed_failed; then
-    [ -d "$WS" ] && ln -sfn . "$WS/DS-strategy" 2>/dev/null || true
+    if [ -d "$WS" ]; then
+      ln -sfn . "$WS/DS-strategy" 2>/dev/null || echo "  - DS-strategy symlink failed (advisory)" >&2
+    fi
     echo "  ✓ seed: $WS"
 
     # 2. Run or Judge (AI process or LLM evaluation)
@@ -38,10 +55,13 @@ run_e2e() {
       case "$run_flag" in
         --run)
           echo "  [run] $eval --run..."
-          if bash "$TEST_DIR/$eval" "$WS" --run 2>/dev/null; then
+          bash "$TEST_DIR/$eval" "$WS" --run >"$log_dir/run.out" 2>"$log_dir/run.err" && rc=0 || rc=$?
+          if [ "$rc" -eq 0 ]; then
             echo "  ✓ run complete"
           else
-            echo "  ✗ RUN FAILED"
+            echo "  ✗ RUN FAILED (rc=$rc)"
+            [ -s "$log_dir/run.err" ] && { echo "  stderr:"; sed 's/^/      /' "$log_dir/run.err"; }
+            [ -s "$log_dir/run.out" ] && { echo "  stdout (last 20 lines):"; tail -20 "$log_dir/run.out" | sed 's/^/      /'; }
             FAIL=$((FAIL + 1))
             step_failed=true
           fi
@@ -49,10 +69,13 @@ run_e2e() {
         --judge)
           ARTIFACT=$(find "$WS/DS-strategy/current" "$WS/current" -name "DayPlan*" -o -name "WeekPlan*" 2>/dev/null | head -1)
           echo "  [judge] $eval $ARTIFACT..."
-          if bash "$TEST_DIR/$eval" "$WS" "$ARTIFACT" 2>/dev/null; then
+          bash "$TEST_DIR/$eval" "$WS" "$ARTIFACT" >"$log_dir/judge.out" 2>"$log_dir/judge.err" && rc=0 || rc=$?
+          if [ "$rc" -eq 0 ]; then
             echo "  ✓ judge passed"
           else
-            echo "  ✗ JUDGE FAILED"
+            echo "  ✗ JUDGE FAILED (rc=$rc)"
+            [ -s "$log_dir/judge.err" ] && { echo "  stderr:"; sed 's/^/      /' "$log_dir/judge.err"; }
+            [ -s "$log_dir/judge.out" ] && { echo "  stdout (last 20 lines):"; tail -20 "$log_dir/judge.out" | sed 's/^/      /'; }
             FAIL=$((FAIL + 1))
             step_failed=true
           fi
@@ -63,10 +86,13 @@ run_e2e() {
     # 3. Assert (structural invariants)
     if [ -f "$TEST_DIR/$assert" ]; then
       echo "  [assert] $assert..."
-      if bash "$TEST_DIR/$assert" "$WS" 2>/dev/null; then
+      bash "$TEST_DIR/$assert" "$WS" >"$log_dir/assert.out" 2>"$log_dir/assert.err" && rc=0 || rc=$?
+      if [ "$rc" -eq 0 ]; then
         echo "  ✓ assert passed"
       else
-        echo "  ✗ ASSERT FAILED"
+        echo "  ✗ ASSERT FAILED (rc=$rc)"
+        [ -s "$log_dir/assert.err" ] && { echo "  stderr:"; sed 's/^/      /' "$log_dir/assert.err"; }
+        [ -s "$log_dir/assert.out" ] && { echo "  stdout (last 20 lines):"; tail -20 "$log_dir/assert.out" | sed 's/^/      /'; }
         FAIL=$((FAIL + 1))
         step_failed=true
       fi
@@ -76,6 +102,9 @@ run_e2e() {
   if ! $step_failed; then
     PASS=$((PASS + 1))
   fi
+
+  # Cleanup logs on success
+  $step_failed && echo "  logs: $log_dir/" || rm -rf "$log_dir"
 
   echo ""
 }
