@@ -309,6 +309,47 @@ _compat_check() {
 }
 
 # =========================================================================
+# Pack freshness check (ADR-017 §D4)
+# =========================================================================
+_pack_check() {
+  echo ""
+  echo "[4.5/5] Checking Pack freshness..."
+
+  local pack_dir="$ROOT_DIR/pack"
+  if [ ! -d "$pack_dir" ]; then
+    echo "  ⚠ pack/ not found — run setup.sh to clone Pack"
+    return 0
+  fi
+
+  local found=0
+  for pack_repo in "$pack_dir"/*/; do
+    [ -d "$pack_repo/.git" ] || continue
+    found=1
+    local pack_name
+    pack_name="$(basename "$pack_repo")"
+    local local_sha
+    local_sha=$(git -C "$pack_repo" rev-parse HEAD 2>/dev/null || echo "?")
+    local remote_sha
+    remote_sha=$(git -C "$pack_repo" ls-remote origin HEAD 2>/dev/null | awk '{print $1}' || echo "?")
+
+    if [ "$local_sha" = "$remote_sha" ] || [ "$local_sha" = "?" ] || [ "$remote_sha" = "?" ]; then
+      if [ "$remote_sha" = "?" ]; then
+        echo "  ? $pack_name: cannot reach remote"
+      else
+        echo "  ✓ $pack_name: up to date"
+      fi
+    else
+      echo "  ↑ $pack_name: stale (local ${local_sha:0:7}, remote ${remote_sha:0:7})"
+      echo "    Update: cd $pack_repo && git pull"
+    fi
+  done
+
+  if [ "$found" -eq 0 ]; then
+    echo "  — no Pack repositories found in pack/"
+  fi
+}
+
+# =========================================================================
 # Post-update validate + notify
 # =========================================================================
 _post_update() {
@@ -378,6 +419,9 @@ _checksum_verify || true  # non-fatal in --check mode
 
 # Compat check
 _compat_check
+
+# Pack freshness check
+_pack_check
 
 # If --check only, stop here
 if $CHECK_ONLY; then

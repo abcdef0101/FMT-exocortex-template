@@ -3,7 +3,7 @@
 # ADR-005 §2: checksum-based enforcement при update.sh --apply
 
 version: 2026.05.12
-generated: 2026-05-12T16:31:39Z
+generated: 2026-05-12T19:10:24Z
 
 never_touch:
   - seed/MEMORY.md
@@ -15,7 +15,7 @@ never_touch:
   - scripts/test/__pycache__/
 
 files:
-  CLAUDE.md: "b5db9c026a4356bd49323e078f24625872153fbdb2ef74e76fae9e27b38990f8"
+  CLAUDE.md: "9d555274bae9c5550980cfb07b9062b5c03cd7170bacf8a23db43144ce751f42"
   persistent-memory/MANIFEST.yaml: "a63ef05a81aa2625cfc6b0341aa42d2b4b891c1e68c48177a5a119f17614083f"
   persistent-memory/checklists.md: "e0a23d3cb619a92259595c8a947ffd76e328387525db9442491c5e3982546cc6"
   persistent-memory/fpf-reference.md: "37bf7d2cb827d0ea9a100fffb21f3242248dc8a643ac94983b90abe4e8a75a28"
@@ -29,11 +29,18 @@ files:
   persistent-memory/roles.md: "6a9b7f82b241e6e503d23c6136dc11a424795a56b8bf5de7f3dc753f2c5efb8b"
   persistent-memory/sota-reference.md: "527a7af0509ac6dc37c1a9f009fe70fcea7fb1ad472843369c5550bd5fe02bc8"
   persistent-memory/templates-dayplan.md: "8efbcce8158fecc7f86f12f4c773e9b395cf2b0fb5835ee6ba0ed84c8746cadb"
+  .claude/agents/architect.md: "f70dc3880c944a1106a2cdbb5bed55057a5bb4edafe09b7b34d1558625da81df"
+  .claude/agents/auditor.md: "ed9a29f0c5ac4f696e109a08a33446bffa2d74a5fcf7836bdd53164b7801a436"
+  .claude/agents/extractor.md: "14112f825356611ea9d363f0aa3f09dbb8ed6284a372fdb9d599150cba8cea59"
+  .claude/agents/strategist.md: "a30d87074786ec9d159c019cad4249e51b6923cf19376c8bfb9e730b57121b40"
+  .claude/agents/synchronizer.md: "7257ef38fc5c757b3da02f00c64eb257485f42d759b8f53a4d128cc3d4ff0d44"
+  .claude/agents/verifier-heavy.md: "4138a446fa252f9a34a498f56530187e493933e3919da32f155cf21fa48321d7"
+  .claude/agents/verifier.md: "b39306b946572e648a8f61221375abec73def3965d78ff8618a255ea117cf25b"
   .claude/skills/add-workspace-mcps/MANIFEST.yaml: "b50929396430455614492f8f1426f3665e5eaa03be828d21f35b37f87ff0c87c"
   .claude/skills/add-workspace-mcps/SKILL.md: "2b71cc41f31d64d8edf9c7cb0c2bc5b1d833c67e9cd7c9b35ea35f8f685b99aa"
   .claude/skills/add-workspace-mcps/add-mcps.sh: "7c5e20ea62f2eb2db2c8313596fc59abde38e080ca2f2551ec8baf008cf7a16e"
   .claude/skills/archgate/MANIFEST.yaml: "753c7465cc609c5645780728a0cc22dd40f7e02818a09d5b982ac2ffaafd460f"
-  .claude/skills/archgate/SKILL.md: "bcec92544a7f5d0cda36ca5557b091f977d17ccdd55ef3f1f82c35ec536a3cbb"
+  .claude/skills/archgate/SKILL.md: "9b49d6457803fd81eb8b329cb2ccaa04993dc5d8d7e011344e96def12cd40d76"
   .claude/skills/day-close/MANIFEST.yaml: "d97a944277b5d473e1d452e84d9128cfe9df6cc61b0e561e639d766e559af6d9"
   .claude/skills/day-close/SKILL.md: "51482bb0750e1d0ad6109c2ec4520011ceb7b4abdfef1add88ad70cf68603c3c"
   .claude/skills/day-close/scripts/day-close.sh: "cc1a4a80bbddfb9f8171e9952f9dc8a24f1cfee8c8276712f8c65ca57a023d18"
@@ -42,9 +49,9 @@ files:
   .claude/skills/extend/MANIFEST.yaml: "03168591970c3848e5d0593b2c65030c82381c28da8c09b1405da57767714bc3"
   .claude/skills/extend/SKILL.md: "e809f9c95a1018fc99fe49329b9319702be79a46bd6bb857a8872ab5eb22340a"
   .claude/skills/fpf/MANIFEST.yaml: "13d43b35a9f9417145a29261fcbc5ceb52f650b7723192b8eb07a0b21868aed1"
-  .claude/skills/fpf/SKILL.md: "8ff35dc9ad1a0f9d1657f048e658081c87d3d4a91598d0b30c9aa53f9b944582"
+  .claude/skills/fpf/SKILL.md: "962a516a4c4d873422ff3aaf3a036d6ceb6b344c335fc81ba1d44c5132baf331"
   .claude/skills/iwe-rules-review/MANIFEST.yaml: "85da7f3489aea00645829e73cd5f7a940b2cb6dedcf0057c423939e61e4ef55a"
-  .claude/skills/iwe-rules-review/SKILL.md: "eea5f4bfa15d4968d7eb54b4322521e9d8302bacc9d3a32aabd9c0954e883fee"
+  .claude/skills/iwe-rules-review/SKILL.md: "ba1408a75d585ea91a275e9c43ab6d2c7944064e7cd111282e2c66c07acf56c6"
   .claude/skills/iwe-update/MANIFEST.yaml: "d8dbd4250e51f254b418fa667df322935335088e014ad802c087a7a170b895a5"
   .claude/skills/iwe-update/SKILL.md: "23bf43bb1725248c534f1252e42ecb68bdb130e98e32ec731a42dda310ab7822"
   .claude/skills/iwe-workspace/MANIFEST.yaml: "3929a06c880917fc88533a72ba4f672b10e248e9087dc027e7968e38f9fa3084"
@@ -52,8 +59,6 @@ files:
   .claude/skills/iwe-workspace/workspace.sh: "39b7eb4a1873eb6b40458dcb8ba5c6e96a0f4a47cb79b87e6e754c8ebe7a1894"
   .claude/skills/ke/MANIFEST.yaml: "cfdd178e16107e10bb97f9c0d9b6f545f1bff18fb6b776183cb205c59ed64bf6"
   .claude/skills/ke/SKILL.md: "50733718fa70e6e1cf27bc28b7abcaf54884f724394f4c17f3989085dd786184"
-  .claude/skills/role-create/MANIFEST.yaml: "c0559df291f5f68b1b239bc790a79b4d0be3565d6bf221e49f52f0575fb19596"
-  .claude/skills/role-create/SKILL.md: "f9d09c1395e37b844bb0fcc4c55063a57bdf9ad7dad7a841fdb617eb08b4d736"
   .claude/skills/run-protocol/MANIFEST.yaml: "5b5a057698031698c8de06feebadd4229b2cc04bc44438473aed3a919957e95a"
   .claude/skills/run-protocol/SKILL.md: "da8169d516a7aa169c2eb1a155c007a9cfe5dca00bce53c3c928c6eb64ad84fa"
   .claude/skills/session-topic-archiver/MANIFEST.yaml: "977bc6637f69e76a24fbba097c1889e03a4e0d7d89121b10bb892b444e7d0b7b"
@@ -67,7 +72,7 @@ files:
   .claude/skills/think/SKILL.md: "339d610d3896005ffb56af42e49a6b717386b936f6989ddcdbc414426cec9fe3"
   .claude/skills/verify/MANIFEST.yaml: "28cc9a7614f3708b921701fdead72e88dddb832fa69ee26cf7bbb40cfaa8c0a3"
   .claude/skills/verify/SKILL.md: "9277d10793ed821971a09ed6b00020e88bcdf1a905997fc70d36b9fad5738b3d"
-  .claude/skills/wakatime/MANIFEST.yaml: "47a42f861941ebe670f865da2b7aacfa47cea678842bd0e66f01bbd831fd04c3"
+  .claude/skills/wakatime/MANIFEST.yaml: "4874e031ffdd543fee2a776b2f00856a702a0d1f4e3b47bfbcf6f3d74cf960f6"
   .claude/skills/wakatime/SKILL.md: "11efb779bd93ecb70582e47dda6e76b91fd1fde738bc838383cbdc7f40a14859"
   .claude/skills/wakatime/scripts/fetch-wakatime.sh: "e0346e6b5d940ccd724f70e0ad49434b73f876f33a4f93d79a12f333f46add2e"
   .claude/skills/week-close/MANIFEST.yaml: "4c57e98215f1eb1d00d2b913204391bc90b2da8ffacd9c30394bca9ca795a2fd"
@@ -84,10 +89,16 @@ files:
   .claude/hooks/protocol-stop-gate.sh: "c4c0aa2cf8646ed83032a2e4824697a54fbb131b6ee096db5142b001383c5449"
   .claude/hooks/wakatime-heartbeat.sh: "0c6979480e1b70ce8a511f1015b62c66d7f5222af330ab50e751aab1f1c35997"
   .claude/hooks/wp-gate-reminder.sh: "56ee61a8ed95aaa04fb950620d600a2551e8295084467213b0cd4d753e0763bb"
+  .opencode/agents/architect.md: "a6a52acbd5f6ab795dc38e54fc6242f8d31e3c6f2f39d37adc6b2860aac40522"
+  .opencode/agents/auditor.md: "b61ccd629ba9238eacb37c1547bcc301e307ca5d52d40c4c5f33bbba293f40c8"
+  .opencode/agents/extractor.md: "b576ef4485a3518c466030ff2576fd2dd56f3d2f3d89e22247fd1a6bf41e0953"
+  .opencode/agents/strategist.md: "e28077bfc7954afa0de1b33f545881396b32908fcdf023a26ef8bf2e9687f8cc"
+  .opencode/agents/synchronizer.md: "eadacc3c2ecab1e6f65fdd1705dab0ea969e39844cd3dd79da789a7086ad7019"
+  .opencode/agents/verifier-heavy.md: "7df8658d5bf7673d5e80d21794dfbadd430c4263abc203eec98cb3ee775107a6"
+  .opencode/agents/verifier.md: "b75490a5f3f6d41011715da8b357d62d7352392ebafd2c1eff6b552d71afd5e4"
   .opencode/commands/wp.md: "9b87250b8500d01651b6bba06324c8bc600ddaa1ec608206127043f38225ff4f"
   .opencode/plugins/wp-session-lib.js: "363834d94fd2487ee9f548bd2c5867a9dc3ee4dc481f96226a79fa820a1b7f2b"
   .opencode/plugins/wp-session.js: "dcc3952518d0542809980b3e26aecd3c5307dbcb10f7ae91a1d3a92b31c162c7"
-  .opencode/package.json: "f69ab16b83db4755e566ea8393ab25b15cdf0095cfc4ed14cf360c843dd621fc"
   roles/MANIFEST.yaml: "be456cf3b97949d18d1537786557fe9bc66a3673e1216d0dd0b2051e0216e3fd"
   roles/README.md: "b05e373f8187041bbb26ab8b36b5b146b6c6b3f2426ce032c51a740dc35fc190"
   roles/auditor/README.md: "904bc5a49f00d1783de14e3a498fdd6b21ae4b6ad11d6c59d9ef3c405a231be5"
@@ -183,7 +194,7 @@ files:
   scripts/container/test-from-container.sh: "46fd220364c33f6023bd6d0a8a43e020fb738efb21a719ea218681090bf9433a"
   scripts/container/verify-container.sh: "cdaa3a94eb5ba066c3ea3564397e4c775e1c0c5b6a160d5b4b9c9160a49866d9"
   scripts/enforce-semver.sh: "325a0c1d9e708103def738ca745c88c19217f1a950e02b1241abf535e364645f"
-  scripts/generate-checksums.sh: "f96a385b39d7743ab7ef4543b2496681e45133b23a78b8525b6acc179d0171d4"
+  scripts/generate-checksums.sh: "ca205ff3b4d89a3cc768b80ea6238b525fb8d079a00ff4a390383b323fb13fb2"
   scripts/lib/manifest-lib.sh: "7fe64c90392fbfb634b232f5db183c86617e188cdfd97e0e9319ef210283fbbe"
   scripts/notify.sh: "18c01be51f00b9b0cf57d86211d9173a90a0ffeb1ebab52525829cd8c232b7fa"
   scripts/run-migrations.sh: "fd07418fa82a3e64949bfdf10923f6e664110afe54e25701ee98bf2de5b40c67"
