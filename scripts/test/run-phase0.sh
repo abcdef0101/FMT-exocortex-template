@@ -78,6 +78,28 @@ for test in "$SCRIPT_DIR"/test-*.sh; do
   rm -f "$TEST_LOG"
 done
 
+# === BATS (Bash Automated Testing System) ===
+if command -v bats &>/dev/null && [ -d "$ROOT_DIR/roles/synchronizer/tests" ]; then
+  echo ""
+  echo "--- BATS (roles/synchronizer/tests/) ---"
+  for bats_file in "$ROOT_DIR"/roles/synchronizer/tests/*.bats; do
+    tname=$(basename "$bats_file")
+    echo ""
+    echo "  --- $tname ---"
+    if bats "$bats_file" 2>&1; then
+      echo "  ✓ PASS: $tname"
+      PASS=$((PASS + 1))
+    else
+      echo "  ✗ FAIL: $tname"
+      FAIL=$((FAIL + 1))
+      FAILED_TESTS+=("bats/$tname")
+    fi
+  done
+else
+  echo ""
+  echo "--- BATS: not installed or no tests (skip) ---"
+fi
+
 echo ""
 echo "========================================="
 echo " Result: $PASS passed, $FAIL failed, $SKIP skipped"

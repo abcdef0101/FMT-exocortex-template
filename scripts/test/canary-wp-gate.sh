@@ -55,9 +55,9 @@ cp "$ROOT_DIR/CLAUDE.md" "$WS_DIR/CLAUDE.md" 2>/dev/null || echo "# CLAUDE.md" >
 
 # Init git
 cd "$WS_DIR"
-git init --quiet 2>/dev/null || true
-git add -A >/dev/null 2>&1 || true
-git commit -m "seed: WP Gate canary test" --quiet 2>/dev/null || true
+git init --quiet 2>/dev/null || { _fail "git init failed"; exit 1; }
+git add -A >/dev/null 2>&1 || { _fail "git add failed"; exit 1; }
+git commit -m "seed: WP Gate canary test" --quiet 2>/dev/null || { _fail "git commit failed"; exit 1; }
 
 echo "  workspace: $WS_DIR"
 _pass "seed workspace created"
