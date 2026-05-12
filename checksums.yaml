@@ -3,7 +3,7 @@
 # ADR-005 §2: checksum-based enforcement при update.sh --apply
 
 version: 2026.05.12
-generated: 2026-05-12T08:31:33Z
+generated: 2026-05-12T10:01:36Z
 
 never_touch:
   - seed/MEMORY.md
@@ -22,7 +22,6 @@ files:
   persistent-memory/hard-distinctions.md: "3a86c7a9adbae846efd06a6fe27e8ea9d607966b47caee3f23bde892d3db0a64"
   persistent-memory/navigation.md: "b76cd1b7b023042d36f22b7e7de00824f018bbbcbbaf62648db8c89f93e13d52"
   persistent-memory/protocol-close.md: "d190dd2b443b0eef810ea94da4b82c1cb7111890c0a1d89a0c832c84ff518a9f"
-  persistent-memory/protocol-close.md.backup: "d190dd2b443b0eef810ea94da4b82c1cb7111890c0a1d89a0c832c84ff518a9f"
   persistent-memory/protocol-open.md: "9fcf462ff0887f4f851cc09e23cb14a9df1be95294b0a36115a1b8a269d3a699"
   persistent-memory/protocol-work.md: "b58dcb03c544863c0e5dbee698ff6f85b61cc7858372c2c4ecc7eee899c0676c"
   persistent-memory/repo-type-rules.md: "74b334884473d17b60f7aa45b8a45551fffe8926e5c1afdb92da075fd75baa67"
@@ -212,7 +211,7 @@ files:
   scripts/test/canary-day-open.sh: "d5d3437449e01544210e72821339c43e0bfdf753bc27e212744c9c689a4e4ddd"
   scripts/test/canary-orz-cycle.sh: "c1083ec7761e2c1c80df664fce4b786a168b3c94dc069c430870fb139421ea83"
   scripts/test/canary-week-close.sh: "e12ab23b227cc1145dfcef3db301a2ae925f5d2a0ea7c64e958ee05f676ea62f"
-  scripts/test/canary-wp-gate.sh: "a12652b0a2d348be3d071fb27c410b08647674359a9fd07149f596917b80c1bf"
+  scripts/test/canary-wp-gate.sh: "405d54465cd86e8c9f5527ff5558b44f8e35d0c1e2a597e26519ff5f3bf10d6d"
   scripts/test/e2e/SMOKE-TEST.md: "6f724ea96ab58e208006bcc71b9450a62cd747372946187a36c39924658987c4"
   scripts/test/e2e/_lib.sh: "b533d07fe921bb997cf4b08363d58d8bfc409d665e361f6f100dd46241abfadb"
   scripts/test/e2e/e2e-author-sync.sh: "b7a32743f05e46312bc85fb3d2d8fe248b1f85276c6a0fec8b6edadfab773327"
@@ -220,7 +219,7 @@ files:
   scripts/test/e2e/e2e-fresh-install.sh: "54536a4a276d56e321c7eeb3709fe38cb9e6f77fe77b077d060a661ffeafb792"
   scripts/test/e2e/e2e-migration.sh: "4b760d8b76acd2ad3a4d361b4fdb9586271944aa731d4976baee05c862e49cc0"
   scripts/test/e2e/e2e-update-flow.sh: "8941bcd1ae1fdb6104805c80060c0417e656e2db3d160dd3ec16665076a02efa"
-  scripts/test/e2e/run-e2e-ai.sh: "3ecba00ba491c66cfa2e19a6f686b8d66653321499970bc94b9ead530da94c49"
+  scripts/test/e2e/run-e2e-ai.sh: "6db9c668c1f1f848df2eba4bdd823161504194e874be2db460180afc5d5d4c0e"
   scripts/test/eval-archgate-e2e.sh: "89183192d1d9da0a18287229429084fe61c825cf70e2c122977c2b785c9a34f9"
   scripts/test/eval-day-close.sh: "62a6a663a37274c6ff7825042c8c4c7f0cf7b505074a117ccd9a7cee04010158"
   scripts/test/eval-day-open.sh: "05af369521384b52c58e06015797cb1362c7c8bc18f4cc199158e757855c3a67"
@@ -259,7 +258,7 @@ files:
   scripts/test/rubrics-wp-gate.yaml: "197e4bed696944b15333863ffdfd7f8bdd102030609c31e7aa7a157b5a694a06"
   scripts/test/rubrics-wp-new.yaml: "a062e989f263f0721963f755e0e3d3a1ae1cab28d1e97f2955f13fe570a16c7b"
   scripts/test/run-e2e.sh: "366a8ffbe948207657121f84c6b9df40fab9e48d7c9513b7c6bbc36a943d839b"
-  scripts/test/run-phase0.sh: "5be413a542bcaec9277942044a567f9be062514a81a7621727e1d97078c381f9"
+  scripts/test/run-phase0.sh: "0e42f604020065b18814510ab93c1976d1711d0e5fa043409c2d5a043486dca4"
   scripts/test/seed-archgate-e2e.sh: "7d5a75303dcfa378e7d4e1581e58bac284ed2e211e6a4e96ed6129729983f296"
   scripts/test/seed-day-close.sh: "99b9a61f2258406e31723db4390cffd6205142c2aa5e757f081504ef3a7c7c0f"
   scripts/test/seed-day-open.sh: "cb304f2d6d233f92e618edb8b463efba8dbaa8fb131fa21626ba2de3c9c86fcd"
@@ -292,6 +291,8 @@ files:
   scripts/test/test-hard-distinctions.sh: "fbf5d6b6b08afbbc79256db8abdd97e20ec17b2fd43a1827024cb02e3ea88665"
   scripts/test/test-hooks.sh: "ae98232af9168515caa2027f80dab7f845380af157ad56a2c4505512a7146504"
   scripts/test/test-integration-gate.sh: "bb8c9bb7e61026e6b16bb661d7648ef0fd2ef7c4c4748a1e29639d8c49649545"
+  scripts/test/test-lib-env.sh: "858fd52a0c0da5c2331fa479acc9cb88a9e4f3f097a373441962de05bd73f9cb"
+  scripts/test/test-lib-telegram.sh: "d23e1cffdf96a592bab6b41904020f933a074d9a1d5bc0a77fce6fdef26fccd3"
   scripts/test/test-manifest-files.sh: "9ca313f4c88683c2ddb33366d684784c61346b2ff6e458e286ff8730c91223fb"
   scripts/test/test-manifest-parser.sh: "503f92f49e3247d3ca6294e8596da59e12d635ead2218328c6001293af066227"
   scripts/test/test-mcp-json-schema.sh: "cab0e33b9c50d0bb7bdc2b3fdb9e0bcfdab38c41bc9981a738a392ccb3016836"
