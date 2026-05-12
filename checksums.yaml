@@ -3,7 +3,7 @@
 # ADR-005 §2: checksum-based enforcement при update.sh --apply
 
 version: 2026.05.12
-generated: 2026-05-12T20:01:43Z
+generated: 2026-05-12T20:37:20Z
 
 never_touch:
   - seed/MEMORY.md
@@ -190,7 +190,7 @@ files:
   scripts/container/Containerfile: "6a3303ce89e3e1f34506688f1c47a60283eb3acc9248db3b6d535c5cb632f9f8"
   scripts/container/README.md: "7a6867ae3b652e0b929eb8b5330545a9c5208b80f086788183f16145058bd1c1"
   scripts/container/build-container.sh: "59a1184d893eb930f84437658b1d9962c118602a978218c6bab379730b19c646"
-  scripts/container/test-from-container.sh: "46fd220364c33f6023bd6d0a8a43e020fb738efb21a719ea218681090bf9433a"
+  scripts/container/test-from-container.sh: "e3a9e4c038a67c3b74e11df3bb087d7c722fbe9b9072a230e026188bf6f7cdae"
   scripts/container/verify-container.sh: "cdaa3a94eb5ba066c3ea3564397e4c775e1c0c5b6a160d5b4b9c9160a49866d9"
   scripts/enforce-semver.sh: "325a0c1d9e708103def738ca745c88c19217f1a950e02b1241abf535e364645f"
   scripts/generate-checksums.sh: "32e4278ac6f2c26ce64ccf67b1d03cb498efe5cd6548591f9da345a75d700018"
@@ -357,7 +357,7 @@ files:
   scripts/vm/run-full-test.sh: "84731db34e20127249dff3a4f7522751c28b6da3464b0506151b7471e2a8d642"
   scripts/vm/secrets.example: "790a0350a8934f8c8401a00e5ec4d837c5e03f1170fff773fa1bc769477b9939"
   scripts/vm/test-from-golden.sh: "1879da7283a68100f7cb04fe1e652b897a1c2d3d720abe5cc9ffe498bf8d3e4d"
-  scripts/vm/test-phases.sh: "1b4ba9e54892296063145e776de63d225093e818b1288635236fa7c78dbdadee"
+  scripts/vm/test-phases.sh: "8ae7ccd840c16db950b27196bb8613aafe9dc8d0369d979aaadb887c97380b68"
   scripts/vm/user-data.yaml: "c004fee3c5061cf3d865fe58a6bce48d177abf734e79971f7b9f5c7de442db52"
   scripts/vm/verify-golden.sh: "41b26240beeaf97566444699522029f2ff6ea2a2a6c1fefda2b2080ce679105f"
   seed/manifest.yaml: "a605a77fd4a1f82934a470a4312f6f68661b9b5a2ca48a5b6951125d602b75ab"

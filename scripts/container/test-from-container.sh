@@ -248,6 +248,7 @@ case "$RUN_PHASE" in
   5d|e2e-structural) run_phase "5d" "E2E Structural" "phase5d_e2e_tests" ;;
   5e|systemd) run_phase "5e" "Systemd Timers" "phase5e_systemd_timers" ;;
   5f|roles)  run_phase "5f" "Role Behavioral" "phase5f_role_tests" ;;
+  5g|ai-e2e) run_phase "5g" "AI E2E" "phase5g_ai_e2e" ;;
   all)
     run_phase 1 "Clean Install" "phase1_setup"
     run_phase 2 "Update" "phase2_update"
@@ -257,6 +258,7 @@ case "$RUN_PHASE" in
     run_phase "5c" "Unit Tests" "phase5c_unit_tests"
     run_phase "5d" "E2E Structural" "phase5d_e2e_tests"
     run_phase "5f" "Role Behavioral" "phase5f_role_tests"
+    run_phase "5g" "AI E2E" "phase5g_ai_e2e"
     ;;
   *) echo "ERROR: invalid phase: $RUN_PHASE"; exit 1 ;;
 esac

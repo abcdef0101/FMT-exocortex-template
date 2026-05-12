@@ -1216,3 +1216,117 @@ phase5f_role_tests() {
   PHASE_DURATION=$(( $(date +%s) - PHASE_START ))
   echo "phase5f_role_tests PASS=$PHASE_PASS FAIL=$PHASE_FAIL MS=$(( PHASE_DURATION * 1000 ))" >> "$METRICS_FILE"
 }
+
+# =========================================================================
+# Phase 5g: AI E2E — seed → AI run → assert → judge (requires API key)
+# =========================================================================
+phase5g_ai_e2e() {
+  echo ""
+  echo "=== Phase 5g: AI E2E (seed → AI → assert) ==="
+  PHASE_START=$(date +%s)
+  reset_counters
+  cd "$IWE_DIR"
+
+  IWE_DEBUG="${IWE_DEBUG:-false}"
+  HAS_CLAUDE=false
+  AI_CLI="${AI_CLI:-claude}"
+  command -v "$AI_CLI" >/dev/null 2>&1 && HAS_CLAUDE=true
+  HAS_API_KEY=false
+  [ -n "${AI_CLI_API_KEY:-${ANTHROPIC_API_KEY:-}}" ] && HAS_API_KEY=true
+
+  if ! $HAS_CLAUDE; then
+    _skip "ai-e2e: $AI_CLI CLI not installed"
+    return 0
+  fi
+  if ! $HAS_API_KEY; then
+    _skip "ai-e2e: no AI_CLI_API_KEY (or ANTHROPIC_API_KEY)"
+    return 0
+  fi
+
+  if [ -f "scripts/ai-cli-wrapper.sh" ]; then
+    source scripts/ai-cli-wrapper.sh
+  else
+    _fail "ai-e2e: ai-cli-wrapper.sh not found"
+    return 1
+  fi
+
+  FMT_DIR="$(pwd)"
+  # seed→eval→assert triples for AI-dependent E2E tests
+  # Format: seed_script:eval_script:assert_script
+  for triple in \
+    "seed-session-prep.sh:eval-session-prep.sh:assert-session-prep.sh" \
+    "seed-note-review.sh:eval-note-review.sh:assert-note-review.sh" \
+    "seed-archgate-e2e.sh:eval-archgate-e2e.sh:assert-archgate.sh" \
+    "seed-integration-gate-e2e.sh:eval-integration-gate-e2e.sh:assert-integration-gate.sh" \
+    "seed-role-execution-e2e.sh:eval-role-execution-e2e.sh:assert-role-execution.sh" \
+    "seed-skill-invocation-e2e.sh:eval-skill-invocation-e2e.sh:assert-skill-invocation.sh" \
+    "seed-synchronizer-code-scan.sh:eval-synchronizer-code-scan.sh:assert-synchronizer-code-scan.sh"; do
+
+    seed="${triple%%:*}"
+    rest="${triple#*:}"
+    eval_script="${rest%%:*}"
+    assert="${triple##*:}"
+    label="${seed#seed-}"
+    label="${label%.sh}"
+
+    echo "--- [5g] $label ---"
+
+    # 1. Seed workspace
+    WS=$(bash "scripts/test/$seed" 2>/dev/null | tail -1) && seed_rc=0 || seed_rc=$?
+    if [ "$seed_rc" -ne 0 ] || [ -z "$WS" ] || [ ! -d "$WS" ]; then
+      _fail "seed: $seed FAILED (ws='$WS')"
+      continue
+    fi
+
+    # 2. Run AI eval (creates report/output, then asserts or judges)
+    if [ -f "scripts/test/$eval_script" ]; then
+      EVAL_START=$(date +%s)
+      EVAL_RC=0
+      eval_out=$(bash "scripts/test/$eval_script" "$WS" --run 2>&1) || EVAL_RC=$?
+      EVAL_DUR=$(( $(date +%s) - EVAL_START ))
+
+      if [ "$EVAL_RC" -eq 0 ]; then
+        # Check if eval included LLM-as-Judge output
+        judge_pass=$(echo "$eval_out" | grep -oP 'LLM_JUDGE_PASS=\K\d+' 2>/dev/null || echo "")
+        judge_total=$(echo "$eval_out" | grep -oP 'LLM_JUDGE_TOTAL=\K\d+' 2>/dev/null || echo "")
+
+        if [ -n "$judge_pass" ] && [ -n "$judge_total" ]; then
+          # Eval had judge — use its score
+          [ "${judge_pass:-0}" -ge 5 ] \
+            && _ok "ai-e2e: $label judge ${judge_pass}/${judge_total} (${EVAL_DUR}s)" \
+            || _fail "ai-e2e: $label judge ${judge_pass}/${judge_total} (${EVAL_DUR}s)"
+        else
+          _ok "ai-e2e: $label eval done (${EVAL_DUR}s)"
+        fi
+      else
+        _fail "ai-e2e: $label eval failed (rc=$EVAL_RC, ${EVAL_DUR}s)"
+        # Still show output for debugging
+        echo "$eval_out" | tail -5 | sed 's/^/  | /'
+      fi
+    else
+      _skip "ai-e2e: $eval_script not found"
+    fi
+
+    # 3. Assert post-conditions
+    if [ -f "scripts/test/$assert" ]; then
+      ASSERT_RC=0
+      ASSERT_OUT=$(bash "scripts/test/$assert" "$WS" 2>&1) || ASSERT_RC=$?
+      if [ "$ASSERT_RC" -eq 0 ]; then
+        _ok "assert: $assert"
+      else
+        _fail "assert: $assert FAILED"
+        echo "$ASSERT_OUT" | grep '✗' | sed 's/^/  | /'
+      fi
+    else
+      _skip "assert: $assert not found"
+    fi
+
+    # Cleanup
+    if ! $IWE_DEBUG; then
+      rm -rf "$WS" 2>/dev/null || true
+    fi
+  done
+
+  PHASE_DURATION=$(( $(date +%s) - PHASE_START ))
+  echo "phase5g_ai_e2e PASS=$PHASE_PASS FAIL=$PHASE_FAIL MS=$(( PHASE_DURATION * 1000 ))" >> "$METRICS_FILE"
+}
