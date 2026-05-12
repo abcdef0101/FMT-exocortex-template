@@ -39,6 +39,7 @@ NEVER_TOUCH=(
   "seed/settings.local.json"
   "workspaces/"
   "extensions/"
+  "scripts/test/__pycache__/"
 )
 
 # Нормализация перед хешированием

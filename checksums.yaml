@@ -2,8 +2,8 @@
 # Генерируется: scripts/generate-checksums.sh
 # ADR-005 §2: checksum-based enforcement при update.sh --apply
 
-version: 2026.05.11
-generated: 2026-05-11T17:58:50Z
+version: 2026.05.12
+generated: 2026-05-12T08:31:33Z
 
 never_touch:
   - seed/MEMORY.md
@@ -12,6 +12,7 @@ never_touch:
   - seed/settings.local.json
   - workspaces/
   - extensions/
+  - scripts/test/__pycache__/
 
 files:
   CLAUDE.md: "b5db9c026a4356bd49323e078f24625872153fbdb2ef74e76fae9e27b38990f8"
@@ -182,12 +183,11 @@ files:
   scripts/container/verify-container.sh: "cdaa3a94eb5ba066c3ea3564397e4c775e1c0c5b6a160d5b4b9c9160a49866d9"
   scripts/create-agents.sh: "12e72fd17ca14f3d1dc26e238302e4f972fcee1eb635b58903c77f92ff7bc8b0"
   scripts/enforce-semver.sh: "325a0c1d9e708103def738ca745c88c19217f1a950e02b1241abf535e364645f"
-  scripts/generate-checksums.sh: "a9996cfd77c2753ee464a82bef17c6f48b77f99c8a2ba7cb48ec2105b67c4678"
+  scripts/generate-checksums.sh: "f96a385b39d7743ab7ef4543b2496681e45133b23a78b8525b6acc179d0171d4"
   scripts/lib/manifest-lib.sh: "7fe64c90392fbfb634b232f5db183c86617e188cdfd97e0e9319ef210283fbbe"
   scripts/notify.sh: "18c01be51f00b9b0cf57d86211d9173a90a0ffeb1ebab52525829cd8c232b7fa"
   scripts/run-migrations.sh: "fd07418fa82a3e64949bfdf10923f6e664110afe54e25701ee98bf2de5b40c67"
   scripts/test/.archived/.gitkeep: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-  scripts/test/__pycache__/_parse_judge_output.cpython-312.pyc: "b9b17d1b9c5faf45e8a580d456bd3e032e64112d3bbb69504d5d950f59572224"
   scripts/test/_parse_judge_output.py: "56da284477a0b2c20408106db5e8ff97e25ed720ca3cd448f82ae18bea4cc51d"
   scripts/test/assert-archgate.sh: "01af01569ae5c5b2d7bf12ec00663c513b88885ed80c0240291ddecaff341491"
   scripts/test/assert-capture-to-pack.sh: "d6107d1b199082f5b56cdf6a623740bc0ec1009387806dfe1ceec956ac40f309"
@@ -220,7 +220,7 @@ files:
   scripts/test/e2e/e2e-fresh-install.sh: "54536a4a276d56e321c7eeb3709fe38cb9e6f77fe77b077d060a661ffeafb792"
   scripts/test/e2e/e2e-migration.sh: "4b760d8b76acd2ad3a4d361b4fdb9586271944aa731d4976baee05c862e49cc0"
   scripts/test/e2e/e2e-update-flow.sh: "8941bcd1ae1fdb6104805c80060c0417e656e2db3d160dd3ec16665076a02efa"
-  scripts/test/e2e/run-e2e-ai.sh: "22bd125f036d5e39c6256fc8367e95cb9f74469b2502b151a8929a982153fe34"
+  scripts/test/e2e/run-e2e-ai.sh: "3ecba00ba491c66cfa2e19a6f686b8d66653321499970bc94b9ead530da94c49"
   scripts/test/eval-archgate-e2e.sh: "89183192d1d9da0a18287229429084fe61c825cf70e2c122977c2b785c9a34f9"
   scripts/test/eval-day-close.sh: "62a6a663a37274c6ff7825042c8c4c7f0cf7b505074a117ccd9a7cee04010158"
   scripts/test/eval-day-open.sh: "05af369521384b52c58e06015797cb1362c7c8bc18f4cc199158e757855c3a67"
@@ -280,8 +280,8 @@ files:
   scripts/test/seed-wp-new.sh: "710214fb7cb688098b7b203306b12138e9fa00f02fe0a081598cca56bb587956"
   scripts/test/test-adr-structure.sh: "7307a906be06758c87cfa873772c581c328a0c4c6fdb49fbcc990f74d0ea8415"
   scripts/test/test-ai-cli-wrapper.sh: "f48cb7a549b3e95ef3d17710be68c3be149c9cba90d3f84939e0dc2d4be053ed"
-  scripts/test/test-archgate-rubric.sh: "8201c43b0b5a8effce93b2ab1460356f44ec7d02e280d220b0a0c70118769b2d"
-  scripts/test/test-checksums.sh: "f6cceb630cd2675f79ba9a77231bf4d31708b8566aee96c26fa7ba5941502830"
+  scripts/test/test-archgate-rubric.sh: "037152456ccbb4cab5a8b4ec092523ea7775442351ee04145f7403f7060e3630"
+  scripts/test/test-checksums.sh: "d4c9c6d7e66c941a0fd0eba08681501992a0c94bcb073323b953d09c952aa25a"
   scripts/test/test-ci-schedule.sh: "2dfb9d189c255cebc27db70ad6a51e4ec28faff03ffc82835a90d25b399af3c4"
   scripts/test/test-create-agents.sh: "de6ed3acf37c843bae7167e73e3721c28ddeb734fbc67d597139a544d3bc5243"
   scripts/test/test-day-rhythm-schema.sh: "994881e72aff84bbeea5c908459bc71065ad0333334a01989d8a29e130edd054"
@@ -297,7 +297,7 @@ files:
   scripts/test/test-mcp-json-schema.sh: "cab0e33b9c50d0bb7bdc2b3fdb9e0bcfdab38c41bc9981a738a392ccb3016836"
   scripts/test/test-memory-limits.sh: "cce8b6c378d1fb8614c2bb5be6bdf4421c2f9f20701ff29026ccfa3a47616c56"
   scripts/test/test-memory-metadata.sh: "6aa0946672f55c25c36face02cc3792cc345e3a353aae4d87a07a9d1439d8fe2"
-  scripts/test/test-migrations.sh: "21f6267b32d6f6e1aaed5cc77961e0f1b69b0746fe172984ac330226bb00cee3"
+  scripts/test/test-migrations.sh: "67f4d406c39998df50e32a96a4684b8c854d50e5d9b7a42692e1d36a7b03bec5"
   scripts/test/test-navigation-links.sh: "9704129b2f79a5884eeec680f2284c66632b7699e1991ba1a2bb448a7b90bc8b"
   scripts/test/test-never-touch.sh: "b97c78bb769616c4e946d3ba18268da9785515f91eb8333fc9171cf6112b4577"
   scripts/test/test-opencode-wp-session.sh: "317ed1d5d5d6ec6e6e2bf48d3ccc1cb8faf7c85dddd154c9a142a53b1829da8a"
@@ -326,8 +326,8 @@ files:
   scripts/test/test-template-sync-mock.sh: "0071eccb3df5a98658c08b66e22282937cb01c8022b00ac1feb97c9728c2668e"
   scripts/test/test-template-sync.sh: "688c2b291c2d530baddf0a23c67fc4ce7e212f2a2243c05eefe7a36507a99489"
   scripts/test/test-update-apply-mock.sh: "73e7e7e842cbe8f9ee0b99e7a14e7632c4b5afd1c237ebf8893a06e5d0805a71"
-  scripts/test/test-update-apply.sh: "3bec044b80ced46bdb8ec3dba1354b7af5ebf0f3afa92bd7e32ccda0e7b5a293"
-  scripts/test/test-update-check.sh: "b73e5fb0a03866c6c8ae60d9f84e84b61b4232e68350ec2802fdee8208977216"
+  scripts/test/test-update-apply.sh: "27cb91b024b738768d1c45a6841e6cb970bb9ea98c8ec33efc8534890dfecb08"
+  scripts/test/test-update-check.sh: "0dc3e866f601084eda9d4dcf9708d980acada11763e0c07b021264ee82da1cba"
   scripts/test/test-verify-scripts.sh: "0b41169f58ec9ffb83880ab43c4fe1e7fa2042f3bee4346764a8327cb19033c5"
   scripts/test/test-wp-context-structure.sh: "bee8573bc09c08b914ab90ffd9646479c6267b4afff9534e5f8950d6c77a896b"
   scripts/test/test-wp-gate-logic.sh: "09a88ac3c2809269c26945368bb770defd7983b23035d4c47f301ca843fe2b33"
