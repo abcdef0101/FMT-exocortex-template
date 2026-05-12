@@ -1,6 +1,6 @@
 # Test Coverage Map
 
-> Auto-generated: 2026-05-07. Updated after each audit.
+> Auto-generated: 2026-05-07. Updated after each audit (latest: re-audit #4, 2026-05-12).
 > Формат: `production-скрипт` → `test-скрипт` (что проверяется)
 
 ## Core Scripts
@@ -52,6 +52,19 @@
 | `migrations/0.25.1-fix-persistent-memory-symlink.sh` | `test-migrations.sh`, `e2e/e2e-migration.sh` | syntax (loop), idempotency, conventions |
 | `migrations/_template.sh` | `test-migrations.sh` | syntax, MIGRATION_NAME/LOG_FILE markers |
 
+## Libraries
+
+| Production | Test | Coverage |
+|------------|------|----------|
+| `lib/lib-env.sh` | `test-lib-env.sh` | repo root detection, workspace resolution, env validation (eval/source/dot-source rejection), env loading, require vars, idempotent source guard |
+| `lib/lib-telegram.sh` | `test-lib-telegram.sh` | env loading, JSON escaping, text truncation, curl error handling, ok=false handling, inline keyboard mode, python3 exit check |
+
+## Synchronizer (BATS)
+
+| Production | Test | Coverage |
+|------------|------|----------|
+| `roles/synchronizer/` | `adapters.bats`, `integration.bats`, `lib.bats`, `notify.bats`, `scripts.bats`, `templates.bats` | 102 BATS test cases; integrated in phase0 runner via `run-phase0.sh` |
+
 ## E2E Infrastructure
 
 | Production | Test | Coverage |
@@ -76,7 +89,9 @@
 | Claude Scripts | 2 | 2 | CI only | 2 |
 | Migrations | 5 | 5 | CI only | 5 |
 | AI CLI | 1 | 1 | CI only | 1 |
+| Libraries | 2 | 2 | CI only | 2 |
+| Synchronizer | 1 (6 bats) | 6 | CI only | 6 (102 cases) |
 | E2E Library | 1 | 1 | CI only | 1 |
-| **Total** | **23** | **23 (100%)** | **CI only** | **23 (100%)** |
+| **Total** | **26 (31 files)** | **31 (100%)** | **CI only** | **31 (100%)** |
 
-*Last updated: 2026-05-07. Based on audit #2026-05-07.*
+*Last updated: 2026-05-12. Based on re-audit #4 (`.audit/audit-report-2026-05-12-r4.md`).*
