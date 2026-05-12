@@ -3,7 +3,7 @@
 # ADR-005 §2: checksum-based enforcement при update.sh --apply
 
 version: 2026.05.12
-generated: 2026-05-12T19:10:24Z
+generated: 2026-05-12T20:01:43Z
 
 never_touch:
   - seed/MEMORY.md
@@ -22,7 +22,6 @@ files:
   persistent-memory/hard-distinctions.md: "3a86c7a9adbae846efd06a6fe27e8ea9d607966b47caee3f23bde892d3db0a64"
   persistent-memory/navigation.md: "b76cd1b7b023042d36f22b7e7de00824f018bbbcbbaf62648db8c89f93e13d52"
   persistent-memory/protocol-close.md: "d190dd2b443b0eef810ea94da4b82c1cb7111890c0a1d89a0c832c84ff518a9f"
-  persistent-memory/protocol-close.md.backup: "d190dd2b443b0eef810ea94da4b82c1cb7111890c0a1d89a0c832c84ff518a9f"
   persistent-memory/protocol-open.md: "9fcf462ff0887f4f851cc09e23cb14a9df1be95294b0a36115a1b8a269d3a699"
   persistent-memory/protocol-work.md: "b58dcb03c544863c0e5dbee698ff6f85b61cc7858372c2c4ecc7eee899c0676c"
   persistent-memory/repo-type-rules.md: "74b334884473d17b60f7aa45b8a45551fffe8926e5c1afdb92da075fd75baa67"
@@ -194,7 +193,7 @@ files:
   scripts/container/test-from-container.sh: "46fd220364c33f6023bd6d0a8a43e020fb738efb21a719ea218681090bf9433a"
   scripts/container/verify-container.sh: "cdaa3a94eb5ba066c3ea3564397e4c775e1c0c5b6a160d5b4b9c9160a49866d9"
   scripts/enforce-semver.sh: "325a0c1d9e708103def738ca745c88c19217f1a950e02b1241abf535e364645f"
-  scripts/generate-checksums.sh: "ca205ff3b4d89a3cc768b80ea6238b525fb8d079a00ff4a390383b323fb13fb2"
+  scripts/generate-checksums.sh: "32e4278ac6f2c26ce64ccf67b1d03cb498efe5cd6548591f9da345a75d700018"
   scripts/lib/manifest-lib.sh: "7fe64c90392fbfb634b232f5db183c86617e188cdfd97e0e9319ef210283fbbe"
   scripts/notify.sh: "18c01be51f00b9b0cf57d86211d9173a90a0ffeb1ebab52525829cd8c232b7fa"
   scripts/run-migrations.sh: "fd07418fa82a3e64949bfdf10923f6e664110afe54e25701ee98bf2de5b40c67"

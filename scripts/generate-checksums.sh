@@ -79,8 +79,9 @@ for dir in "${PLATFORM_DIRS[@]}"; do
     # Directory — recurse
     while IFS= read -r -d '' file; do
       rel="${file#$ROOT_DIR/}"
-      # Skip directories, non-files
+      # Skip directories, non-files, backup artifacts
       [ -f "$file" ] || continue
+      [[ "$rel" == *.backup ]] && continue
       sha=$(normalize "$file" | sha256sum | cut -d' ' -f1)
       echo "  $rel: \"$sha\"" >> "$OUTPUT"
     done < <(find "$ROOT_DIR/$dir" -type f -print0 | sort -z)
