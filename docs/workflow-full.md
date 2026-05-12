@@ -795,7 +795,7 @@ multiplier = budget_closed_hours / wakatime_tracked_hours
 
 ### FPF (First Principles Framework)
 
-Расположение: `{{HOME_DIR}}/IWE/FPF/FPF-Spec.md`. Структура: Part A (Kernel), Part B (Aggregation), Part C (Domain extensions), Part D (Ethics), Part E (Constitution), Part F (Terminology), Part G (SoTA Kit).
+Расположение: `fpf/FPF-Spec.md`. Структура: Part A (Kernel), Part B (Aggregation), Part C (Domain extensions), Part D (Ethics), Part E (Constitution), Part F (Terminology), Part G (SoTA Kit).
 
 ---
 

@@ -309,44 +309,74 @@ _compat_check() {
 }
 
 # =========================================================================
-# Pack freshness check (ADR-017 §D4)
+# Repo freshness check (ADR-017 §D4 — pack, spf, fpf, zp)
 # =========================================================================
-_pack_check() {
-  echo ""
-  echo "[4.5/5] Checking Pack freshness..."
-
-  local pack_dir="$ROOT_DIR/pack"
-  if [ ! -d "$pack_dir" ]; then
-    echo "  ⚠ pack/ not found — run setup.sh to clone Pack"
+_check_repo_dir() {
+  local dir="$1"
+  local label="$2"
+  if [ ! -d "$dir" ]; then
+    echo "  ⚠ $label/ not found — run setup.sh to clone"
     return 0
   fi
-
   local found=0
-  for pack_repo in "$pack_dir"/*/; do
-    [ -d "$pack_repo/.git" ] || continue
+  for repo in "$dir"/*/; do
+    [ -d "$repo/.git" ] || continue
     found=1
-    local pack_name
-    pack_name="$(basename "$pack_repo")"
+    local name
+    name="$(basename "$repo")"
     local local_sha
-    local_sha=$(git -C "$pack_repo" rev-parse HEAD 2>/dev/null || echo "?")
+    local_sha=$(git -C "$repo" rev-parse HEAD 2>/dev/null || echo "?")
     local remote_sha
-    remote_sha=$(git -C "$pack_repo" ls-remote origin HEAD 2>/dev/null | awk '{print $1}' || echo "?")
+    remote_sha=$(git -C "$repo" ls-remote origin HEAD 2>/dev/null | awk '{print $1}' || echo "?")
 
     if [ "$local_sha" = "$remote_sha" ] || [ "$local_sha" = "?" ] || [ "$remote_sha" = "?" ]; then
       if [ "$remote_sha" = "?" ]; then
-        echo "  ? $pack_name: cannot reach remote"
+        echo "  ? $name: cannot reach remote"
       else
-        echo "  ✓ $pack_name: up to date"
+        echo "  ✓ $name: up to date"
       fi
     else
-      echo "  ↑ $pack_name: stale (local ${local_sha:0:7}, remote ${remote_sha:0:7})"
-      echo "    Update: cd $pack_repo && git pull"
+      echo "  ↑ $name: stale (local ${local_sha:0:7}, remote ${remote_sha:0:7})"
+      echo "    Update: cd $repo && git pull"
     fi
   done
-
   if [ "$found" -eq 0 ]; then
-    echo "  — no Pack repositories found in pack/"
+    echo "  — no repositories found in $label/"
   fi
+}
+
+_check_single_repo() {
+  local dir="$1"
+  local label="$2"
+  if [ ! -d "$dir/.git" ]; then
+    echo "  ⚠ $label/ not found — run setup.sh to clone"
+    return 0
+  fi
+  local local_sha
+  local_sha=$(git -C "$dir" rev-parse HEAD 2>/dev/null || echo "?")
+  local remote_sha
+  remote_sha=$(git -C "$dir" ls-remote origin HEAD 2>/dev/null | awk '{print $1}' || echo "?")
+
+  if [ "$local_sha" = "$remote_sha" ] || [ "$local_sha" = "?" ] || [ "$remote_sha" = "?" ]; then
+    if [ "$remote_sha" = "?" ]; then
+      echo "  ? $label: cannot reach remote"
+    else
+      echo "  ✓ $label: up to date"
+    fi
+  else
+    echo "  ↑ $label: stale (local ${local_sha:0:7}, remote ${remote_sha:0:7})"
+    echo "    Update: cd $dir && git pull"
+  fi
+}
+
+_repos_check() {
+  echo ""
+  echo "[4.5/5] Checking repo freshness..."
+
+  _check_repo_dir "$ROOT_DIR/pack" "pack"
+  _check_single_repo "$ROOT_DIR/spf" "spf"
+  _check_single_repo "$ROOT_DIR/fpf" "fpf"
+  _check_single_repo "$ROOT_DIR/zp" "zp"
 }
 
 # =========================================================================
@@ -421,7 +451,7 @@ _checksum_verify || true  # non-fatal in --check mode
 _compat_check
 
 # Pack freshness check
-_pack_check
+_repos_check
 
 # If --check only, stop here
 if $CHECK_ONLY; then

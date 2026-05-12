@@ -3,7 +3,7 @@
 # ADR-005 §2: checksum-based enforcement при update.sh --apply
 
 version: 2026.05.12
-generated: 2026-05-12T20:37:20Z
+generated: 2026-05-12T21:11:03Z
 
 never_touch:
   - seed/MEMORY.md
@@ -18,13 +18,13 @@ files:
   CLAUDE.md: "9d555274bae9c5550980cfb07b9062b5c03cd7170bacf8a23db43144ce751f42"
   persistent-memory/MANIFEST.yaml: "a63ef05a81aa2625cfc6b0341aa42d2b4b891c1e68c48177a5a119f17614083f"
   persistent-memory/checklists.md: "e0a23d3cb619a92259595c8a947ffd76e328387525db9442491c5e3982546cc6"
-  persistent-memory/fpf-reference.md: "37bf7d2cb827d0ea9a100fffb21f3242248dc8a643ac94983b90abe4e8a75a28"
-  persistent-memory/hard-distinctions.md: "3a86c7a9adbae846efd06a6fe27e8ea9d607966b47caee3f23bde892d3db0a64"
-  persistent-memory/navigation.md: "b76cd1b7b023042d36f22b7e7de00824f018bbbcbbaf62648db8c89f93e13d52"
+  persistent-memory/fpf-reference.md: "4b845e8aecc9e5f4927dcfd4dc894fa9ab899851f110158662db5111cf761170"
+  persistent-memory/hard-distinctions.md: "b0d285d376da4bacf4164c8fb62e5cbec1d49570505bede175975863a1443bd9"
+  persistent-memory/navigation.md: "b6a2194cca97a6901b09f522329e8ced7313f74b8d9cfe325e7d407cdaa01a96"
   persistent-memory/protocol-close.md: "d190dd2b443b0eef810ea94da4b82c1cb7111890c0a1d89a0c832c84ff518a9f"
   persistent-memory/protocol-open.md: "9fcf462ff0887f4f851cc09e23cb14a9df1be95294b0a36115a1b8a269d3a699"
   persistent-memory/protocol-work.md: "b58dcb03c544863c0e5dbee698ff6f85b61cc7858372c2c4ecc7eee899c0676c"
-  persistent-memory/repo-type-rules.md: "74b334884473d17b60f7aa45b8a45551fffe8926e5c1afdb92da075fd75baa67"
+  persistent-memory/repo-type-rules.md: "7cd6d5904db42af02b97a8f96761b17586a7082dbdf2c574b6bebd326db5d67d"
   persistent-memory/roles.md: "6a9b7f82b241e6e503d23c6136dc11a424795a56b8bf5de7f3dc753f2c5efb8b"
   persistent-memory/sota-reference.md: "527a7af0509ac6dc37c1a9f009fe70fcea7fb1ad472843369c5550bd5fe02bc8"
   persistent-memory/templates-dayplan.md: "8efbcce8158fecc7f86f12f4c773e9b395cf2b0fb5835ee6ba0ed84c8746cadb"
@@ -44,11 +44,11 @@ files:
   .claude/skills/day-close/SKILL.md: "51482bb0750e1d0ad6109c2ec4520011ceb7b4abdfef1add88ad70cf68603c3c"
   .claude/skills/day-close/scripts/day-close.sh: "cc1a4a80bbddfb9f8171e9952f9dc8a24f1cfee8c8276712f8c65ca57a023d18"
   .claude/skills/day-open/MANIFEST.yaml: "332661f9b387a745ada366a3732833f153224ca47c0a8ba6dd0aa4a6bf9bf2c0"
-  .claude/skills/day-open/SKILL.md: "25d2d92a18ba0661b0f1af21b6a90ac185ab73cb7795f7e704d962af9cf3186f"
+  .claude/skills/day-open/SKILL.md: "e85b671380ceea568cd3bee123a8bee2ec4d3e10f50e815b3e18764f59184a42"
   .claude/skills/extend/MANIFEST.yaml: "03168591970c3848e5d0593b2c65030c82381c28da8c09b1405da57767714bc3"
   .claude/skills/extend/SKILL.md: "e809f9c95a1018fc99fe49329b9319702be79a46bd6bb857a8872ab5eb22340a"
   .claude/skills/fpf/MANIFEST.yaml: "13d43b35a9f9417145a29261fcbc5ceb52f650b7723192b8eb07a0b21868aed1"
-  .claude/skills/fpf/SKILL.md: "962a516a4c4d873422ff3aaf3a036d6ceb6b344c335fc81ba1d44c5132baf331"
+  .claude/skills/fpf/SKILL.md: "daeaafffdea1b325427febc75aab30c77f8df51144d3440f3b5f0b646d8b1ddd"
   .claude/skills/iwe-rules-review/MANIFEST.yaml: "85da7f3489aea00645829e73cd5f7a940b2cb6dedcf0057c423939e61e4ef55a"
   .claude/skills/iwe-rules-review/SKILL.md: "ba1408a75d585ea91a275e9c43ab6d2c7944064e7cd111282e2c66c07acf56c6"
   .claude/skills/iwe-update/MANIFEST.yaml: "d8dbd4250e51f254b418fa667df322935335088e014ad802c087a7a170b895a5"

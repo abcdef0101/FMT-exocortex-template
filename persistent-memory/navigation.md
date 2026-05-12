@@ -16,9 +16,9 @@
 | Day Close (полный алгоритм) | `.claude/skills/day-close/SKILL.md` |
 | Week Close (полный алгоритм) | `.claude/skills/week-close/SKILL.md` |
 | Шаблоны DayPlan/WeekPlan | `persistent-memory/templates-dayplan.md` |
-| Нулевые принципы + иерархия | `ZP/README.md` |
-| Кодирование сущностей | `SPF/spec/SPF.SPEC.001-entity-coding.md` |
-| Масштабируемость Pack | `SPF/spec/SPF.SPEC.003-pack-scalability.md` |
+| Нулевые принципы + иерархия | `zp/README.md` |
+| Кодирование сущностей | `spf/spec/SPF.SPEC.001-entity-coding.md` |
+| Масштабируемость Pack | `spf/spec/SPF.SPEC.003-pack-scalability.md` |
 
 ## Репозитории
 

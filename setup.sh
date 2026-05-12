@@ -424,6 +424,26 @@ fi
     fi
   fi
 
+  BASE_REPOS="spf:https://github.com/TserenTserenov/SPF.git
+fpf:https://github.com/ailev/FPF.git
+zp:https://github.com/TserenTserenov/ZP.git"
+
+  if $DRY_RUN; then
+    echo "[3.3/5] Would clone Base repos (SPF, FPF, ZP) → $ROOT_DIR/{spf,fpf,zp}/"
+  else
+    echo "[3.3/5] Cloning Base repos (SPF, FPF, ZP)..."
+    while IFS=: read -r subdir url; do
+      target="$ROOT_DIR/$subdir"
+      if [ -d "$target/.git" ]; then
+        echo "  ✓ $subdir: already cloned"
+      elif git clone --depth 1 "$url" "$target" 2>/dev/null; then
+        echo "  ✓ $subdir cloned: $target"
+      else
+        echo "  ⚠ $subdir clone failed — установи вручную: git clone $url $target"
+      fi
+    done <<< "$BASE_REPOS"
+  fi
+
 # === 4. Install roles (autodiscovery via role.yaml) ===
 if $CORE_ONLY; then
   echo "[4/5] Автоматизация... пропущена (core mode)"

@@ -13,3 +13,8 @@ tg2md/
 
 # Pack repositories (cloned at worktree level, not template content)
 pack/
+
+# Base repositories (SPF, FPF, ZP — cloned at worktree level)
+spf/
+fpf/
+zp/

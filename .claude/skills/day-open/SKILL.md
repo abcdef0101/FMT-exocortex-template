@@ -104,14 +104,14 @@ Scheduler report, MCP reindex, Scout. 🟢/🟡/🔴.
 
 **Проверка обновлений:** `[ -f "$FMT_DIR/update.sh" ] && bash "$FMT_DIR/update.sh" --check 2>&1`. Если доступно обновление → добавить в «Требует внимания»: «Доступно обновление IWE → `/iwe-update`».
 
-**Проверка Base-репо (FPF, SPF, ZP):**
-```bash
-for repo in FPF SPF ZP; do
-  dir="$WORKSPACE_DIR/$repo"
-  [ -d "$dir/.git" ] && (cd "$dir" 2>/dev/null || exit 1; git fetch --quiet 2>/dev/null && behind=$(git rev-list --count HEAD..origin/main 2>/dev/null || echo 0) && [ "$behind" -gt 0 ] && echo "$repo: $behind новых коммитов" || echo "$repo: актуален")
-done
-```
-Если есть новые коммиты → добавить в «Требует внимания»: «[repo] обновлён upstream → `cd "$WORKSPACE_DIR/[repo]" && git pull --rebase`». После pull FPF/SPF — запустить локальный reindex MCP-индекса, если установлен.
+ **Проверка Base-репо (FPF, SPF, ZP):**
+ ```bash
+ for repo in fpf spf zp; do
+   dir="$FMT_DIR/$repo"
+   [ -d "$dir/.git" ] && (cd "$dir" 2>/dev/null || exit 1; git fetch --quiet 2>/dev/null && behind=$(git rev-list --count HEAD..origin/main 2>/dev/null || echo 0) && [ "$behind" -gt 0 ] && echo "$repo: $behind новых коммитов" || echo "$repo: актуален")
+ done
+ ```
+ Если есть новые коммиты → добавить в «Требует внимания»: «[repo] обновлён upstream → `cd "$FMT_DIR/<repo>" && git pull --rebase`». После pull FPF/SPF — запустить локальный reindex MCP-индекса, если установлен.
 
 ### 11. Видео
 Если `$WORKSPACE_DIR/memory/day-rhythm-config.yaml → video.enabled: true`:
