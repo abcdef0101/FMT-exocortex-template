@@ -44,7 +44,7 @@ Pack (предметное) → SPF (корректность) → FPF (перв
    - Если первый уровень не дал результатов -- спускайся по fallback chain
 
 4. **Если iwe-knowledge недоступен** (нет в `/mcp`):
-   - Pack: читай файлы `$WORKSPACE_DIR/PACK-*/pack/` через Glob + Read
+   - Pack: читай файлы `pack/` (относительно корня репо) через Glob + Read
    - SPF: читай `$WORKSPACE_DIR/SPF/docs/` через Glob + Read. Если `$WORKSPACE_DIR/SPF` не существует → «SPF не клонирован локально, принципы SPF недоступны»
    - FPF: читай `$WORKSPACE_DIR/FPF/Readme.md` (обзор) или ищи через Grep по `$WORKSPACE_DIR/FPF/`. Если `$WORKSPACE_DIR/FPF` не существует → «FPF не клонирован локально, первые принципы недоступны»
 

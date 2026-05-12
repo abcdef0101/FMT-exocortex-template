@@ -310,8 +310,8 @@ if [ -d "$WORKSPACE_FULL_PATH" ]; then
   exit 1
 fi
 
-# PACK-репо — в корне workspace (архитектура: CLAUDE.md §1)
-PACK_DIR="${PACK_DIR:-$WORKSPACE_FULL_PATH/PACK-digital-platform}"
+# PACK-репо — на уровне worktree (ADR-017 §D4)
+PACK_DIR="${PACK_DIR:-$ROOT_DIR/pack/digital-platform}"
 MY_STRATEGY_DIR="${MY_STRATEGY_DIR:-$WORKSPACE_FULL_PATH}"
 
 # === Manifest-driven installation (ADR-005 §1) ===
@@ -415,6 +415,7 @@ fi
     echo "[3.2/5] Would clone PACK-digital-platform → $PACK_DIR"
   else
     echo "[3.2/5] Cloning PACK-digital-platform..."
+    mkdir -p "$ROOT_DIR/pack"
     if git clone --depth 1 https://github.com/TserenTserenov/PACK-digital-platform.git "$PACK_DIR" 2>/dev/null; then
       echo "  ✓ PACK-digital-platform cloned: $PACK_DIR"
     else

@@ -10,7 +10,7 @@ argument-hint: "[описание решения]"
 
 ## Шаг 0. Принципы (ДО оценки)
 
-Сверь решение с принципами 2-го уровня (DP.ARCH.001 §7). Если решение нарушает принцип — сообщи и предложи исправление до подачи на оценку.
+Сверь решение с принципами 2-го уровня. Прочитай `pack/digital-platform/02-domain-entities/DP.ARCH.001-platform-architecture.md` §7 (строки 366-440). Если решение нарушает принцип — сообщи и предложи исправление до подачи на оценку.
 
 ## Шаг 1. Два вопроса пользователю (БЛОКИРУЮЩЕЕ)
 
@@ -71,9 +71,9 @@ argument-hint: "[описание решения]"
 ### Чеклист современности (§С)
 
 Приоритетная тройка (всегда):
-1. **Context Engineering** (DP.SOTA.002): Write/Select/Compress/Isolate — что в контексте агента?
-2. **DDD Strategic** (DP.SOTA.001): BC определён? UL консистентен? Context Map есть?
-3. **Coupling Model** (DP.SOTA.011): knowledge/distance/volatility coupling оценены?
+1. **Context Engineering** (DP.SOTA.002): Write/Select/Compress/Isolate — что в контексте агента? → `pack/digital-platform/06-sota/DP.SOTA.002-context-engineering.md`
+2. **DDD Strategic** (DP.SOTA.001): BC определён? UL консистентен? Context Map есть? → `pack/digital-platform/06-sota/DP.SOTA.001-ddd-strategic.md`
+3. **Coupling Model** (DP.SOTA.011): knowledge/distance/volatility coupling оценены? → `pack/digital-platform/06-sota/DP.SOTA.011-coupling-model.md`
 
 Полный справочник: `$WORKSPACE_DIR/memory/persistent-memory/sota-reference.md`.
 
@@ -106,7 +106,7 @@ argument-hint: "[описание решения]"
 
 ## Шаг 4. Доменные расширения (L2)
 
-> L2 = информативный (не блокирующий до обкатки). Полное описание: DP.M.005 §9.
+> L2 = информативный (не блокирующий до обкатки). Полное описание: `pack/digital-platform/03-methods/DP.M.005-archgate.md` §9.
 
 **4a. Определи триггеры:**
 
@@ -124,7 +124,7 @@ argument-hint: "[описание решения]"
 
 **4b. Оцени сработавшие L2 (тоже ✅/⚠️/❌, без числовой шкалы):**
 
-Чеклисты: DP.ARCH.001 §4.8–4.14. Формат:
+Чеклисты: `pack/digital-platform/02-domain-entities/DP.ARCH.001-platform-architecture.md` §4.8–4.14. Формат:
 
 ```
 Доменные расширения:
@@ -149,7 +149,7 @@ argument-hint: "[описание решения]"
 > «[Характеристика] ⚠️. Выбери: (а) принимаю риск — [обоснование]; (б) митигация — [что конкретно].»
 
 Для каждой ⚠️/❌ (L1) → обратная связь по принципам:
-- Посмотреть DP.ARCH.001 §7.1 (покрытие принципами)
+- Посмотреть `pack/digital-platform/02-domain-entities/DP.ARCH.001-platform-architecture.md` §7.1 (покрытие принципами)
 - Принцип есть, решение противоречит → пересмотреть
 - Принцип есть, слабый → усилить
 - Принципа нет → предложить (уровень: 2-й = домен, 3-й = ADR)

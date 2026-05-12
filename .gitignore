@@ -10,3 +10,6 @@ workspaces/
 !.logs/.gitkeep
 tg2md/
 .tests/
+
+# Pack repositories (cloned at worktree level, not template content)
+pack/
