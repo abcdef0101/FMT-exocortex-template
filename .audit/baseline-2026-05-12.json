@@ -1,0 +1,88 @@
+{
+  "measurement_date": "2026-05-12T00:00:00+03:00",
+  "previous_baseline": "2026-05-10",
+  "test_results": {
+    "phase0_unit": {
+      "total": 53,
+      "passed": 52,
+      "failed": 1,
+      "failed_tests": [
+        "test-checksums.sh — orphan checksum: scripts/test/__pycache__/_parse_judge_output.cpython-312.pyc"
+      ],
+      "pass_rate": 0.981,
+      "assertion_count": 930
+    },
+    "e2e": {
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "pass_rate": 1.0
+    },
+    "ai_smoke": {
+      "status": "not run (requires LLM API keys)",
+      "count": 88,
+      "breakdown": "19 assert + 18 eval + 18 seed + 5 canary, orchestrated by run-e2e-ai.sh"
+    },
+    "bats": {
+      "status": "not run (no runner integration)",
+      "count": 6,
+      "directory": "roles/synchronizer/tests/"
+    },
+    "vm": {
+      "status": "not run (requires QEMU/KVM)",
+      "count": 10
+    },
+    "container": {
+      "status": "not run (requires Podman)",
+      "count": 3
+    }
+  },
+  "code_quality": {
+    "shellcheck_local": "not installed",
+    "shellcheck_ci": "present (validate-template.yml)",
+    "strict_mode": {
+      "adherence": "100%",
+      "files_with_set_euo_pipefail": 125,
+      "total_test_files": 125
+    },
+    "antipatterns": {
+      "or_true_instances": 174,
+      "top_offenders": [
+        "test-ai-cli-wrapper.sh: 12",
+        "test-extension-points.sh: 8",
+        "canary-wp-gate.sh: 6"
+      ],
+      "stderr_masking_2devnull": 711,
+      "exit_code_swallowing_rc_patterns": 3
+    },
+    "tempfile_hygiene": {
+      "mktemp_without_trap": 0,
+      "status": "FIXED (was 18 in 2026-05-10)"
+    }
+  },
+  "ci_metrics": {
+    "validate_template_workflow": "ALL FAILING (5/5 recent runs)",
+    "root_cause": "run-phase0.sh fails (test-checksums.sh orphan entry)",
+    "container_test_wall_time_seconds": 90,
+    "shellcheck_job_wall_time": "varies (includes full phase0 run)"
+  },
+  "coverage_metrics": {
+    "line_coverage": null,
+    "branch_coverage": null,
+    "mutation_score": null,
+    "note": "No code coverage or mutation tools exist for Bash. Use production-script→test mapping as proxy.",
+    "production_script_count": 49,
+    "tested_production_scripts": 43,
+    "untested_production_scripts": 6,
+    "untested_lines": 195
+  },
+  "baseline_maturity_estimate": {
+    "overall": 3,
+    "unit_test_quality": 3,
+    "e2e_coverage": 3,
+    "ci_gates": 2,
+    "tooling": 1,
+    "scale": "1_basic / 2_repeatable / 3_documented / 4_measured / 5_optimizing",
+    "note": "CI gates regressed from 3 to 2 — all recent runs failing due to orphan checksum entry"
+  }
+}

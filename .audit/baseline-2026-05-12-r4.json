@@ -1,0 +1,80 @@
+{
+  "measurement_date": "2026-05-12T11:00:00+03:00",
+  "audit_number": 4,
+  "previous_baselines": ["2026-05-07", "2026-05-10", "2026-05-12"],
+  "test_results": {
+    "phase0_unit_plus_bats": {
+      "total": 61,
+      "passed": 61,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "assertion_count": 970,
+      "breakdown": "55 unit test files + 6 BATS files = 61 test modules",
+      "trend": "100% (was 98.1%)"
+    },
+    "e2e": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "pass_rate": 1.0
+    },
+    "ai_smoke": {
+      "status": "not run (requires LLM API keys)",
+      "count": 88,
+      "breakdown": "19 assert + 18 eval + 18 seed + 5 canary, orchestrated by run-e2e-ai.sh"
+    },
+    "vm": {
+      "status": "not run (requires QEMU/KVM)",
+      "count": 10
+    },
+    "container": {
+      "status": "not run (requires Podman)",
+      "count": 3
+    }
+  },
+  "code_quality": {
+    "shellcheck_local": "installed (available via which)",
+    "shellcheck_ci": "present (validate-template.yml)",
+    "strict_mode": {
+      "test_files_with_set_euo_pipefail": "100% (55/55 unit + BATS)",
+      "production_files_scope": "hooks intentionally skip set -e (must not crash agent loop, as documented in test-hooks.sh:4)",
+      "lib_files_without": "lib/lib-env.sh, lib/lib-telegram.sh (new, should be sourced; strict mode check needed)",
+      "total_sh_files": 204,
+      "strict_mode_all": "not applicable (hooks by design)"
+    },
+    "antipatterns": {
+      "or_true_instances": 175,
+      "trend": "+1 since last audit (was 174)",
+      "stderr_masking_2devnull": 736,
+      "trend": "+25 since last audit (was 711)"
+    },
+    "tempfile_hygiene": {
+      "mktemp_without_trap": 0,
+      "status": "CLEAN"
+    }
+  },
+  "ci_metrics": {
+    "validate_template_workflow": "ALL FAILING (5/5 recent runs, local fix exists but not pushed)",
+    "root_cause": "P0-BUG-01 — checksums.yaml orphan __pycache__ entry (FIXED in working tree, not committed)",
+    "expected_after_push": "ALL PASSING"
+  },
+  "coverage_metrics": {
+    "line_coverage": null,
+    "branch_coverage": null,
+    "mutation_score": null,
+    "note": "No code coverage or mutation tools exist for Bash. Use production-script->test mapping (TEST-COVERAGE.md) as proxy.",
+    "production_script_count": 80,
+    "test_coverage_tracked_scripts": 23,
+    "untracked_production_scripts": 57,
+    "untracked_prod_lines_estimate": "~2000+ (most are small utility/config scripts)"
+  },
+  "baseline_maturity_estimate": {
+    "overall": 3,
+    "unit_test_quality": 3,
+    "e2e_coverage": 3,
+    "ci_gates": 2,
+    "tooling": 1,
+    "scale": "1_basic / 2_repeatable / 3_documented / 4_measured / 5_optimizing",
+    "note": "Phase0 + E2E pass rates both 100% locally. CI is blocked only by unpushed fix. BATS now integrated into runner."
+  }
+}

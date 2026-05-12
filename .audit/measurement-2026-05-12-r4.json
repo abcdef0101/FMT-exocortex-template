@@ -1,0 +1,48 @@
+{
+  "measurement_date": "2026-05-12T12:00:00+03:00",
+  "baseline_ref": ".audit/baseline-2026-05-12-r4.json",
+  "phase": 11,
+  "test_results": {
+    "phase0": {
+      "total": 61,
+      "passed": 61,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "flake_check": "3 runs, 0 variance"
+    },
+    "e2e": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "pass_rate": 1.0
+    }
+  },
+  "code_quality_post": {
+    "strict_mode_test_files": "123/124 (99.2%)",
+    "strict_mode_note": "_lib.sh lacks strict mode — library, intentional",
+    "or_true_instances": 175,
+    "stderr_masking_2devnull": 735,
+    "mktemp_without_trap": 0
+  },
+  "coverage_post": {
+    "assertion_hits": 970,
+    "test_files": 130,
+    "bats_integrated": true,
+    "new_test_lines": 354
+  },
+  "ci_post": {
+    "upstream_validate_template": "success (09:52Z)",
+    "local_full_suite": "61/61"
+  },
+  "deltas": {
+    "p0_bugs": "3 → 0",
+    "p0_anti_stderr_masking": "RESOLVED",
+    "p1_gap_lib_tests": "RESOLVED (+355 lines)",
+    "p2_anti_python3_masking": "RESOLVED",
+    "or_true_delta": 0,
+    "stderr_masking_delta": -1,
+    "phase0_delta": "98.1% → 100%",
+    "flake_rate_delta": "stable at 0%",
+    "total_improvement_lines": "~458 lines changed/added"
+  }
+}

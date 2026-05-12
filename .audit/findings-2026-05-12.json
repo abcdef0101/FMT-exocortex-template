@@ -1,0 +1,224 @@
+{
+  "audit_date": "2026-05-12",
+  "previous_audit": "2026-05-10",
+  "findings_count": 12,
+  "severity_counts": {
+    "P0": 3,
+    "P1": 5,
+    "P2": 4
+  },
+  "findings": [
+    {
+      "id": "P0-BUG-01",
+      "title": "test-checksums.sh fails: orphan __pycache__ entry breaks test suite + CI",
+      "severity": "P0",
+      "category": "bug",
+      "evidence": [
+        "checksums.yaml:190 — scripts/test/__pycache__/_parse_judge_output.cpython-312.pyc entry present",
+        "scripts/test/__pycache__/ — directory empty or nonexistent on disk",
+        "scripts/test/test-checksums.sh:122-124 — orphan check loop fails on this entry: '_fail \"orphan checksum entry: $f (not on disk)\"'",
+        "run-phase0.sh output: '✗ FAIL: test-checksums.sh'",
+        "CI validate-template.yml: 5/5 recent runs failed — shellcheck job calls run-phase0.sh which calls test-checksums.sh"
+      ],
+      "why": "The .pyc file is in checksums.yaml but doesn't exist on disk (likely gitignored after checksums was generated). The test-checksums.sh orphan loop catches this legitimately, but since run-phase0.sh runs test-checksums.sh AND CI now runs run-phase0.sh, this single stale entry blocks the entire CI pipeline. This is a cascading failure: one stale checksum → test failure → runner failure → CI failure.",
+      "source": "SWE@Google Ch.12 Principle 1 — tests must be reliable indicators; cascading failures from stale data erode trust in the suite",
+      "fix_sketch": "1. Delete the orphan .pyc entry from checksums.yaml (regenerate with correct file set). 2. Add .pyc to .gitignore if not already present. 3. Consider adding __pycache__/ to checksums.yaml never_touch list to prevent recurrence. 4. Re-run test-checksums.sh to verify clean.",
+      "effort": "S",
+      "affected_modules": ["checksums.yaml", "scripts/test/test-checksums.sh", ".github/workflows/validate-template.yml"],
+      "fix_is_essential_for": ["P0-CI-01"]
+    },
+    {
+      "id": "P0-CI-01",
+      "title": "CI validate-template.yml failing ALL 5 recent runs — shellcheck job blocked by test-checksums.sh",
+      "severity": "P0",
+      "category": "bug",
+      "evidence": [
+        ".github/workflows/validate-template.yml:85-94 — shellcheck job runs 'bash scripts/test/run-phase0.sh'",
+        "gh run list output: 5/5 recent runs show 'conclusion: failure'",
+        "run-phase0.sh:61 — 'if bash \"$test\" ... else FAIL=$((FAIL+1))' — any test failure blocks the job"
+      ],
+      "why": "Since the previous audit, the shellcheck job was expanded from 2 hand-picked scripts to the full run-phase0.sh suite. This is architecturally correct (comprehensive testing in CI), but the expansion happened without fixing the pre-existing test-checksums.sh failure. The CI now gates on a test that's known to fail, meaning regressions in other tests are invisible — everything is masked by the first failure in test-checksums.sh.",
+      "source": "SWE@Google Ch.11 — CI gates must be reliable; failing CI that the team ignores is worse than no CI (alarm fatigue)",
+      "fix_sketch": "1. Fix P0-BUG-01 (orphan checksum). 2. Re-run run-phase0.sh locally to verify 100% pass. 3. Verify CI passes after fix. 4. Consider making phase0 failures per-file rather than blocking — accumulate failures, report all at end (already done by run-phase0.sh, but CI treats any failure as job failure).",
+      "effort": "S",
+      "affected_modules": [".github/workflows/validate-template.yml"],
+      "parent_finding_id": "P0-BUG-01",
+      "depends_on": ["P0-BUG-01"]
+    },
+    {
+      "id": "P0-ANTI-01",
+      "title": "run-e2e-ai.sh masks ALL subprocess stderr with 2>/dev/null — 18 AI E2E workflows produce false PASS on crash",
+      "severity": "P0",
+      "category": "antipattern",
+      "evidence": [
+        "scripts/test/e2e/run-e2e-ai.sh:24 — WS=$(bash \"$seed\" 2>/dev/null | tail -1) — seed stderr hidden (partially mitigated: added explicit rc check)",
+        "scripts/test/e2e/run-e2e-ai.sh:33 — ln -sfn . \"$WS/DS-strategy\" 2>/dev/null || true — symlink failure silenced",
+        "scripts/test/e2e/run-e2e-ai.sh:41 — if bash \"$TEST_DIR/$eval\" \"$WS\" --run 2>/dev/null — run stderr hidden",
+        "scripts/test/e2e/run-e2e-ai.sh:52 — if bash \"$TEST_DIR/$eval\" \"$WS\" \"$ARTIFACT\" 2>/dev/null — judge stderr hidden",
+        "scripts/test/e2e/run-e2e-ai.sh:66 — if bash \"$TEST_DIR/$assert\" \"$WS\" 2>/dev/null — assert stderr hidden"
+      ],
+      "why": "When any of the 18 AI E2E workflows' sub-steps (seed, eval, assert, judge) crash with a bash error, the stderr is silently discarded. The 'if bash ... 2>/dev/null; then' pattern only detects the exit code, but provides ZERO diagnostic information about what went wrong. This is the Command Substitution Without Exit Check antipattern at the orchestrator level. A seed crash, Python JSON parse error, or network failure in any of 18 scenarios is invisible. Previous audit P0-ANTI-01 was partially addressed: seed line 24 now has explicit rc check, but lines 41,52,66 remain with bare 2>/dev/null masks.",
+      "source": "Failure-mode antipattern: Command substitution without exit check (bash manual); Auto-retry as Flake Mitigation antipattern (Google Testing Blog, ICSE 2024 FTW)",
+      "fix_sketch": "1. Capture stderr to temp files: 'bash script ... >out 2>err' and display err contents on failure. 2. Replace '2>/dev/null || true' on symlink with explicit error check 'if [ -d \"$WS\" ]; then ln -sfn ... || echo \"symlink fail\" >&2; fi'. 3. Log all output to structured directory per scenario for post-mortem (e.g., /tmp/e2e-ai/<scenario>/stdout,stderr).",
+      "effort": "M",
+      "affected_modules": ["scripts/test/e2e/run-e2e-ai.sh"]
+    },
+    {
+      "id": "P1-GAP-01",
+      "title": "lib/lib-env.sh + lib/lib-telegram.sh — new core libraries, zero test coverage",
+      "severity": "P1",
+      "category": "white-spot",
+      "evidence": [
+        "lib/lib-env.sh:1-70 — env loading, workspace resolution, validation (70 lines, no test)",
+        "lib/lib-telegram.sh:1-44 — Telegram API send with python3 JSON escaping (44 lines, no test)",
+        "lib/lib-telegram.sh:28 — python3 -c '... json.dumps(sys.stdin.read())' — no error handling on JSON parse failure",
+        "lib/lib-telegram.sh:38 — curl --fail ... 2>/dev/null — network call, no retry, no diagnostic on failure",
+        "lib/lib-telegram.sh:42 — python3 -c '... json.loads(...)' || echo '' — exit code swallowed, empty string on error",
+        "Grep in scripts/test/ shows zero references to lib/ in any test file"
+      ],
+      "why": "These libraries were added since the last audit without any test coverage. lib-env.sh provides workspace resolution (critical for all AI operations). lib-telegram.sh handles notification delivery with network calls and JSON parsing — if the curl or JSON parsing fails, the || echo '' silently returns empty string without error propagation. This is the Beyoncé Rule violation: if you rely on it, you should have tested it.",
+      "source": "SWE@Google Ch.11 — Beyoncé Rule: any production behavior the team relies on must be guarded by an automated test",
+      "fix_sketch": "1. Add test-lib-env.sh: test workspace resolution from various directory depths, validation of env files with dangerous patterns, idempotent source guard. 2. Add test-lib-telegram.sh: mock curl and python3, test JSON escaping, test empty response handling, test network error handling. 3. Integrate both into run-phase0.sh.",
+      "effort": "M",
+      "affected_modules": ["lib/lib-env.sh", "lib/lib-telegram.sh", "scripts/test/"]
+    },
+    {
+      "id": "P1-ANTI-01",
+      "title": "174 || true instances — continued growth from 156, masks assertion failures",
+      "severity": "P1",
+      "category": "antipattern",
+      "evidence": [
+        "scripts/test/test-ai-cli-wrapper.sh:38 — unset -f command 2>/dev/null || true (safe, cleanup)",
+        "scripts/test/test-ai-cli-wrapper.sh:68 — echo \"$flags\" | grep -q '\"Read' && _fail ... || true (assertion bypass)",
+        "scripts/test/test-ai-cli-wrapper.sh:100,106,112,168,173,231 — unset 2>/dev/null || true (safe)",
+        "scripts/test/test-extension-points.sh:18,36,56,73,78,129,134,159 — grep -q && _ok || true (assertion bypass)",
+        "scripts/test/canary-wp-gate.sh:58-60 — git init/add/commit || true (critical git masking)",
+        "scripts/test/test-checksums.sh:54 — _fail ... || true (assertion bypass on never_touch check)",
+        "scripts/test/test-checksums.sh:127 — _fail ... || true (assertion bypass on orphan check)"
+      ],
+      "why": "Three categories: (1) Safe unset cleanup — OK, but could use trap EXIT. (2) Assertion bypass — the '_fail ... || true' pattern makes assertions advisory, not blocking. In test-checksums.sh:54 and :127, _fail increments FAIL counter but || true prevents script exit. This is the 'Assertion Roulette' antipattern: the assertion fires but has no effect on outcome. (3) Critical git masking — git init/add/commit in canary-wp-gate.sh masked with || true means a canary reports HEALTHY when git is broken.",
+      "source": "Auto-retry as Flake Mitigation antipattern (Google Testing Blog); SWE@Google Ch.12 — test assertions must affect outcome",
+      "fix_sketch": "Classification: Classify every || true into safe-unset, error-masking, cleanup-masking. Replace safe-unset with trap EXIT or explicit if-checks. Replace error-masking with '|| { _fail \"reason\"; }'. Replace assertion-bypass (|| true after _fail) with '|| true' removed entirely — _fail already handles the counter. Target: reduce from 174 to <40 (only legitimate unset/cleanup).",
+      "effort": "L",
+      "affected_modules": ["scripts/test/test-ai-cli-wrapper.sh", "scripts/test/test-extension-points.sh", "scripts/test/canary-wp-gate.sh", "scripts/test/test-checksums.sh"]
+    },
+    {
+      "id": "P1-ANTI-02",
+      "title": "711 2>/dev/null instances in test scripts — diagnostic blackout during failures",
+      "severity": "P1",
+      "category": "antipattern",
+      "evidence": [
+        "scripts/test/test-ai-cli-wrapper.sh — 21 instances of 2>/dev/null (top offender)",
+        "scripts/test/seed-day-open.sh — 18 instances",
+        "scripts/test/canary-day-close.sh — 18 instances",
+        "scripts/test/eval-session-prep.sh — 14 instances",
+        "scripts/test/canary-wp-gate.sh — 13 instances",
+        "scripts/test/assert-day-close.sh — 13 instances",
+        "Total across test suite: 711 instances"
+      ],
+      "why": "2>/dev/null hides stderr across 711 call sites in test scripts. When a subprocess (grep, curl, bash, python3) produces diagnostic output on stderr — warnings, parse errors, deprecations — it's silently discarded. Combined with the || true pattern, this creates a double-blind: errors are neither detected (|| true) nor visible (2>/dev/null). In CI, a test failure with 2>/dev/null is a black box — impossible to diagnose without re-running locally.",
+      "source": "SWE@Google Ch.12 Principle 9 — clear failure messages must survive the CI→developer pipeline; Stderr is a diagnostic channel, not noise",
+      "fix_sketch": "1. Audit each 2>/dev/null: is it suppressing known noise or hiding real errors? 2. Replace with 2>&1 redirect on test wrappers (capture both streams). 3. For deliberate noise suppression (known false warnings), use specific grep -v on known patterns rather than blanket 2>/dev/null. 4. Add a lint check: forbid 2>/dev/null in test/*.sh files through pre-commit hook.",
+      "effort": "L",
+      "affected_modules": ["scripts/test/test-ai-cli-wrapper.sh", "scripts/test/seed-*.sh", "scripts/test/canary-*.sh", "scripts/test/assert-*.sh", "scripts/test/eval-*.sh"]
+    },
+    {
+      "id": "P1-GAP-02",
+      "title": "test-update-check.sh grep -q && without || _fail — silent assertion drop",
+      "severity": "P1",
+      "category": "bug",
+      "evidence": [
+        "scripts/test/test-update-check.sh:94 — grep -q \"MANIFEST_LIB=.*manifest-lib\" \"$UPDATER\" && grep -q 'source.*MANIFEST_LIB' \"$UPDATER\" \\",
+        "scripts/test/test-update-check.sh:94 — the line continues to line 95 with _pass on success, but no _fail on grep failure",
+        "When grep fails (text not in file): no assertion is recorded — neither pass nor fail. The test silently skips this check."
+      ],
+      "why": "The 'grep -q && _ok' pattern without '|| _fail' means if the expected text is missing, no assertion is produced. The assertion counter isn't incremented. The test reports N assertions but actually ran N-1. This is Assertion Roulette (Meszaros): you can't tell from the output whether the check passed or was simply skipped.",
+      "source": "Assertion Roulette antipattern (Meszaros, xUnit Test Patterns); SWE@Google Ch.12 Principle 9",
+      "fix_sketch": "Add '|| _fail \"<description> missing from file\"' to every grep -q that doesn't have a fallback. Same fix as previous audit P1-BUG-01 which was applied to VM tests. Audit all test-*.sh for the pattern.",
+      "effort": "S",
+      "affected_modules": ["scripts/test/test-update-check.sh"]
+    },
+    {
+      "id": "P1-GAP-03",
+      "title": "BATS tests (6 files) not integrated into run-phase0.sh or CI",
+      "severity": "P1",
+      "category": "white-spot",
+      "evidence": [
+        "roles/synchronizer/tests/adapters.bats, integration.bats, lib.bats, notify.bats, scripts.bats, templates.bats — 6 files, zero integration",
+        "scripts/test/run-phase0.sh:55 — only runs test-*.sh, doesn't include BATS",
+        ".github/workflows/validate-template.yml — no BATS invocation step"
+      ],
+      "why": "6 BATS test files were added for synchronizer role since the last audit but are disconnected from the test infrastructure. They run with a different framework (BATS) and aren't discoverable by run-phase0.sh or CI. This means regressions in synchronizer code won't be caught by the standard test suite or CI pipeline. New contributors wouldn't know BATS tests even exist.",
+      "source": "SWE@Google Ch.11 — tests must be discoverable and runnable; invisible tests are not tests",
+      "fix_sketch": "1. Add a BATS step to run-phase0.sh: detect BATS installation, run *.bats files if available, report results. 2. Add BATS installation + run step to validate-template.yml. 3. Or: if BATS installation is heavy, add a separate 'make test-bats' target documented in TEST-COVERAGE.md.",
+      "effort": "S",
+      "affected_modules": ["scripts/test/run-phase0.sh", ".github/workflows/validate-template.yml", "roles/synchronizer/tests/"]
+    },
+    {
+      "id": "P2-BUG-01",
+      "title": "test-checksums.sh:54 and :127 — _fail followed by || true bypasses failure counter effect",
+      "severity": "P2",
+      "category": "bug",
+      "evidence": [
+        "scripts/test/test-checksums.sh:54 — [ '$nt_violations' -eq 0 ] && _pass ... || true",
+        "scripts/test/test-checksums.sh:127 — [ '$orphan_count' -eq 0 ] && _pass ... || true",
+        "Previous lines 48,123 call _fail which increments FAIL counter, but the || true on these lines means the test exits 0 regardless"
+      ],
+      "why": "The _fail calls on preceding lines do increment the FAIL counter, so the test DOES fail (exit $FAIL). However, the || true on the summary lines is misleading — it suggests the test author expected those checks to be non-blocking. In isolation, these lines would silently skip pass/fail. It's a hygiene issue: the test works correctly only because earlier _fail calls accumulate, not because of correct exit handling.",
+      "source": "Assertion Roulette antipattern (Meszaros); relies on side-effect (FAIL counter) rather than explicit error flow",
+      "fix_sketch": "Remove || true from both lines. Keep the && _pass pattern for when checks pass. When checks fail, the _fail calls on preceding lines already handle the counter.",
+      "effort": "S",
+      "affected_modules": ["scripts/test/test-checksums.sh"]
+    },
+    {
+      "id": "P2-QUAL-01",
+      "title": "run-phase0.sh:65 grep filter hides intermediate test output in normal mode",
+      "severity": "P2",
+      "category": "quality",
+      "evidence": [
+        "scripts/test/run-phase0.sh:65 — cat \"$TEST_LOG\" | grep -E '✓|✗|All tests|passed|failed|FAIL|SKIP|PASS|WARN|•' || cat \"$TEST_LOG\"",
+        "Filter hides: bash warnings ('declare: -g: invalid option'), deprecation notices, debug output, intermediate computation logs",
+        "Only triggered when grep pattern fails to match → falls through to cat the full log"
+      ],
+      "why": "The filter is applied even when the test PASSES. This means 'intermediate progress' output (not matching ✓|✗|PASS|etc.) is hidden in normal mode. The only time full output is shown is when the grep pattern fails entirely (fall-through). Since all test-*.sh scripts now use _pass/_fail output markers, the filter mostly works — but edge cases like shell warnings from bash itself would be hidden.",
+      "source": "SWE@Google Ch.12 Principle 9 — clear failure messages; filtering output should preserve diagnostic context",
+      "fix_sketch": "Add '•' pattern already in the grep (recent addition). Consider always showing full output on test failure (already done on line 72-73). Consider adding 'error' and 'warning' patterns to the grep filter.",
+      "effort": "S",
+      "affected_modules": ["scripts/test/run-phase0.sh"]
+    },
+    {
+      "id": "P2-QUAL-02",
+      "title": "lib/lib-telegram.sh:42 — curl error swallowed by || echo '' pattern",
+      "severity": "P2",
+      "category": "quality",
+      "evidence": [
+        "lib/lib-telegram.sh:38 — response=$(curl --fail --max-time 10 --connect-timeout 5 -s ... 2>/dev/null)",
+        "lib/lib-telegram.sh:42 — ok=$(echo \"$response\" | python3 -c '...' 2>/dev/null || echo \"\")",
+        "If curl fails (network error, timeout, 5xx): $response is empty → python3 gets empty stdin → json.loads('') raises → || echo '' returns empty → [[ '' == 'True' ]] is false → function returns 1",
+        "This works correctly but fails silently — no indication whether it was network timeout or invalid response"
+      ],
+      "why": "The function correctly returns false on failure, but provides zero diagnostic information. If a notification fails, the caller can't tell why (timeout? bad token? malformed response?). For a notification library, this is acceptable (fail gracefully), but the || echo '' is unnecessary — the preceding 2>/dev/null already suppresses stderr, and python3 exit code already propagates through $().",
+      "source": "SWE@Google Ch.11 — production code should fail with clear errors; silent failures waste debugging time",
+      "fix_sketch": "1. Remove the || echo '' on line 42 — let the exit code propagate naturally. 2. Optionally: add error message when [[ '$ok' != 'True' ]] to indicate failure reason. 3. Remove 2>/dev/null from curl to surface network errors during debugging.",
+      "effort": "S",
+      "affected_modules": ["lib/lib-telegram.sh"]
+    },
+    {
+      "id": "P2-QUAL-03",
+      "title": "No integration tests for new adapters: lib/lib-env.sh calls python3 without error handling",
+      "severity": "P2",
+      "category": "quality",
+      "evidence": [
+        "lib/lib-env.sh:39 — grep -qE '^[[:blank:]]*(eval|source|\\.)' \"$filepath\" 2>/dev/null — grep errors hidden",
+        "lib/lib-env.sh:57 — source \"${filepath}\" — if env file has syntax errors, source crashes the caller",
+        "lib/lib-telegram.sh:28 — python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))' — if python3 missing, crashes with unclear error"
+      ],
+      "why": "These new libraries form a dependency chain: lib-env → resolve workspace → load env → validate env → source env. If any step fails, the caller inherits the failure without context. The source command on line 57 is particularly dangerous — a syntax error in the env file crashes the parent script, not just this function.",
+      "source": "SWE@Google Ch.11 — test infrastructure and library code needs testing as much as application code",
+      "fix_sketch": "Covered by P1-GAP-01 (add test-lib-env.sh and test-lib-telegram.sh). No separate fix needed — testing will validate the error paths.",
+      "effort": "S",
+      "affected_modules": ["lib/lib-env.sh", "lib/lib-telegram.sh"],
+      "parent_finding_id": "P1-GAP-01"
+    }
+  ]
+}

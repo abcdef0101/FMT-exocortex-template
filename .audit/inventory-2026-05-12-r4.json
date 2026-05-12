@@ -1,0 +1,96 @@
+{
+  "audit_date": "2026-05-12",
+  "audit_number": 4,
+  "repo": "FMT-exocortex-template",
+  "repo_type": "Base/Formats",
+  "previous_audits": ["2026-05-07", "2026-05-10", "2026-05-12"],
+  "stack": {
+    "primary_language": "Bash 5",
+    "test_framework": "Custom (_pass/_fail) + BATS 1.10.0",
+    "config_formats": ["YAML", "JSON", "Markdown"],
+    "total_sh_files": 204,
+    "build_system": "none",
+    "static_analysis": "bash -n, ShellCheck (CI only)"
+  },
+  "test_inventory": {
+    "unit_tests": {
+      "count": 55,
+      "directory": "scripts/test/test-*.sh",
+      "framework": "custom (_pass/_fail functions)",
+      "runner": "scripts/test/run-phase0.sh",
+      "assertion_hits": 970
+    },
+    "assert_tests": {
+      "count": 19,
+      "directory": "scripts/test/assert-*.sh",
+      "framework": "structural invariants verification",
+      "note": "requires LLM API keys"
+    },
+    "eval_tests": {
+      "count": 18,
+      "directory": "scripts/test/eval-*.sh",
+      "framework": "LLM-as-Judge evaluation",
+      "note": "requires LLM API keys"
+    },
+    "seed_tests": {
+      "count": 18,
+      "directory": "scripts/test/seed-*.sh",
+      "framework": "AI smoke test data generators",
+      "note": "requires LLM API keys"
+    },
+    "canary_tests": {
+      "count": 5,
+      "directory": "scripts/test/canary-*.sh",
+      "framework": "Weekly health checks",
+      "note": "requires LLM API keys"
+    },
+    "e2e_tests": {
+      "count": 5,
+      "directory": "scripts/test/e2e/e2e-*.sh",
+      "framework": "custom (_pass/_fail with E2E labels)",
+      "runner": "scripts/test/e2e/run-e2e.sh"
+    },
+    "bats_tests": {
+      "count": 6,
+      "directory": "roles/synchronizer/tests/*.bats",
+      "framework": "BATS 1.10.0",
+      "test_cases": 102,
+      "runner": "scripts/test/run-phase0.sh (integrated in phase0 runner)",
+      "note": "Previously unintegrated — now part of phase0 suite"
+    },
+    "runners_and_libs": {
+      "count": 4,
+      "files": ["run-phase0.sh", "run-e2e.sh", "run-e2e-ai.sh", "e2e/_lib.sh"]
+    },
+    "total_test_files": 126
+  },
+  "ci_inventory": {
+    "platform": "GitHub Actions",
+    "workflows": {
+      "validate-template.yml": "markdownlint + yamllint + shellcheck + bash -n + phase0 suite",
+      "test-golden.yml": "QEMU/KVM golden image tests (self-hosted runner)",
+      "test-container.yml": "Podman container tests (self-hosted runner)",
+      "cloud-scheduler.yml": "Daily backup/health cron",
+      "notify-update.yml": "Update notifications via Telegram"
+    },
+    "ci_status": {
+      "last_5_runs": "ALL FAILED",
+      "root_cause": "test-checksums.sh failing on orphan __pycache__ entry (FIXED locally, not pushed)",
+      "note": "Fix (checksums.yaml orphan removal + __pycache__ never_touch) in working tree, not yet committed/pushed"
+    }
+  },
+  "missing_tools": {
+    "coverage": "null (no code coverage tool for bash)",
+    "mutation": "null (no mutation testing tool available for bash)",
+    "linting": "ShellCheck (present in CI, not installed locally)",
+    "static_analysis": "bash -n (used)"
+  },
+  "changes_since_last_audit": {
+    "test_files": "126 (was 122, +4 — 2 new lib tests + counting correction)",
+    "new_test_files": ["scripts/test/test-lib-env.sh (169 lines)", "scripts/test/test-lib-telegram.sh (185 lines)"],
+    "new_production_code": [],
+    "p0_bug01_fixed": "yes (locally, not committed)",
+    "bats_integration": "now integrated into run-phase0.sh (was standalone)",
+    "phase0_pass_rate": "100% (61/61, was 98.1% 52/53)"
+  }
+}

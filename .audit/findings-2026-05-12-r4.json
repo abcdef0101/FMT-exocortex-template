@@ -1,0 +1,112 @@
+{
+  "audit_date": "2026-05-12",
+  "audit_number": 4,
+  "previous_audit": "2026-05-12 (audit #3)",
+  "findings_count": 4,
+  "resolved_count": 4,
+  "severity_counts": {
+    "P0": 0,
+    "P1": 2,
+    "P2": 2
+  },
+  "findings": [
+    {
+      "id": "P1-CI-01-UPDATED",
+      "title": "CI validate-template.yml still failing — fixes exist locally but not committed/pushed",
+      "severity": "P1",
+      "category": "bug",
+      "evidence": [
+        "checksums.yaml:15 — __pycache__ directory entry (old .pyc entry removed, fix in working tree)",
+        "gh run list: 5/5 recent CI runs showing 'conclusion: failure'",
+        "run-phase0.sh local: 61/61 passed (100%)",
+        "test-checksums.sh local: orphan check passes (0 orphans)"
+      ],
+      "why": "The P0-BUG-01 fix (removing orphan .pyc checksum entry + adding __pycache__ to never_touch) resolved the local failure, but the changes are in the working tree only. The CI tests the committed/pushed version which still has the old checksums.yaml. This is a process gap: local fixes that aren't committed don't flow to CI.",
+      "source": "SWE@Google Ch.11 — CI gates must reflect current state; divergence between local and CI state erodes trust",
+      "fix_sketch": "1. Commit checksums.yaml fix. 2. Commit new test files (test-lib-env.sh, test-lib-telegram.sh). 3. Commit other modified files. 4. Push. 5. Verify CI passes.",
+      "effort": "S",
+      "affected_modules": ["checksums.yaml", ".github/workflows/validate-template.yml", "scripts/test/run-phase0.sh"],
+      "cross_reference": "Update of P0-CI-01 (from audit #3): P0-BUG-01 is fixed locally, but CI is still failing because fix isn't propagated"
+    },
+    {
+      "id": "P1-PROC-01",
+      "title": "|| true and 2>/dev/null instances still growing — process anti-pattern",
+      "severity": "P1",
+      "category": "quality",
+      "evidence": [
+        "|| true count: 175 (was 174, +1 since audit #3, was 16 in audit #1)",
+        "2>/dev/null count: 736 (was 711, +25 since audit #3)",
+        "Top || true offenders: test-ai-cli-wrapper.sh:12, test-extension-points.sh:8, canary-wp-gate.sh:6"
+      ],
+      "why": "Growth slowed significantly (only +1 || true, +25 2>/dev/null vs +18 for each in previous audit), but the trend is still upward. Each instance is a potential silent failure point. While Bash scripts legitimately need some error suppression (command not found guards, optional tools), the aggregate count of 911 suppressions in a ~55-file test suite is high. This is the 'auto-retry as flake mitigation' anti-pattern in a different form: instead of fixing why errors occur, they're suppressed.",
+      "source": "Google Testing Blog Flaky Tests series; bash manual §Shell Builtin Commands (command substitution without exit check is a failure-mode antipattern)",
+      "fix_sketch": "1. Set a cap: no new || true or 2>/dev/null without comment explaining why. 2. Audit top-10 offenders each week. 3. Replace 2>/dev/null with explicit stderr capture + display-on-failure pattern (as done in run-e2e-ai.sh fix).",
+      "effort": "M",
+      "affected_modules": ["scripts/test/ (all test files)", "lib/", ".claude/hooks/"],
+      "parent_finding_id": "P1-PROC-01 (from audit #3)"
+    },
+    {
+      "id": "P2-ANTI-01",
+      "title": "lib/lib-telegram.sh:42 masks python3 JSON parse errors with 2>/dev/null",
+      "severity": "P2",
+      "category": "antipattern",
+      "evidence": [
+        "lib/lib-telegram.sh:42 — ok=$(echo \"$response\" | python3 -c 'import sys,json; print(json.loads(sys.stdin.read()).get(\"ok\",\"\"))' 2>/dev/null)",
+        "lib/lib-telegram.sh:38-40 — response=$(curl --fail ...) — curl failures produce empty response",
+        "lib/lib-telegram.sh:43 — [[ \"$ok\" == \"True\" ]] — correctly returns 1 on failure (behavior is correct)"
+      ],
+      "why": "The function correctly returns exit code 1 when curl fails or the API returns non-'ok' (verified by test-lib-telegram.sh:125-129, 149-153). However, the 2>/dev/null on python3 swallows the diagnostic error message. If python3 is not installed, the script fails silently — the user gets 'send failed' with no clue whether the issue is network, token, or missing python3. This is a Command Substitution Without Exit Check failure-mode antipattern at P2 severity because the rc propagates correctly — only diagnostics are lost.",
+      "source": "bash manual §Shell Builtin Commands; failure-injection-gate.md §Common Failure Modes",
+      "fix_sketch": "Replace 2>/dev/null with explicit stderr capture to temp file, display on failure. Or add a python3 availability check at function entry with clear error message.",
+      "effort": "S",
+      "affected_modules": ["lib/lib-telegram.sh"]
+    },
+    {
+      "id": "P2-PROC-02",
+      "title": "6 modified files + 2 new test files untracked — changes exist in working tree only",
+      "severity": "P2",
+      "category": "quality",
+      "evidence": [
+        "git status: M checksums.yaml, M lib/lib-telegram.sh, M scripts/generate-checksums.sh, M scripts/test/canary-wp-gate.sh, M scripts/test/e2e/run-e2e-ai.sh, M scripts/test/run-phase0.sh",
+        "git status: ?? scripts/test/test-lib-env.sh (169 lines), ?? scripts/test/test-lib-telegram.sh (185 lines)",
+        "git status: ?? .audit/ files from audit #3, ?? CLAUDE.md.migration backup files"
+      ],
+      "why": "All P0/P1 fixes from audit #3 are implemented but uncommitted. The new test files (355 lines) close P1-GAP-01 but are untracked. If the working directory is lost (disk failure, accidental rm), these changes are gone. More importantly, CI can't verify them until they're pushed.",
+      "source": "SWE@Google Ch.11 — tests are infrastructure; untracked tests are invisible to CI and the team",
+      "fix_sketch": "1. Add new test files to git. 2. Commit all modified files with descriptive messages referencing findings they fix. 3. Push. 4. Remove stale backup files (CLAUDE.md.migration-0.18.0.backup, protocol-close.md.backup).",
+      "effort": "S",
+      "affected_modules": ["* (working tree)"],
+      "parent_finding_id": "P1-CI-01-UPDATED"
+    }
+  ],
+  "resolved_from_previous_audit": [
+    {
+      "id": "P0-BUG-01 (from #3)",
+      "title": "test-checksums.sh orphan __pycache__ entry",
+      "status": "RESOLVED (local)",
+      "note": "checksums.yaml:15 now references directory not .pyc file. test-checksums.sh orphan check passes with 0 orphans."
+    },
+    {
+      "id": "P0-CI-01 (from #3)",
+      "title": "CI failing ALL runs",
+      "status": "RESOLVED pending push",
+      "note": "Root cause fixed (P0-BUG-01). run-phase0.sh local run: 61/61 passed. CI will pass after push."
+    },
+    {
+      "id": "P0-ANTI-01 (from #3)",
+      "title": "run-e2e-ai.sh masks stderr",
+      "status": "RESOLVED",
+      "note": "All subprocess calls now capture stderr to log files and display on failure (lines 27, 58, 72, 89). No more 2>/dev/null on AI E2E subprocesses."
+    },
+    {
+      "id": "P1-GAP-01 (from #3)",
+      "title": "lib/lib-env.sh + lib/lib-telegram.sh untested",
+      "status": "RESOLVED",
+      "note": "test-lib-env.sh (169 lines, ~30 checks) and test-lib-telegram.sh (185 lines, ~28 checks) created. Both pass in phase0 runner."
+    }
+  ],
+  "trend_comparison": {
+    "audit_1_to_3_progress": "P0 bugs fixed (3→0), CI blocked (→unblocked), stderr masking fixed, new lib tests added",
+    "remaining_risk": "|| true / 2>/dev/null trend needs cap; lib-telegram diagnostic gap; changes need to be committed"
+  }
+}
