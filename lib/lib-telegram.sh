@@ -39,6 +39,11 @@ function iwe_telegram_send() {
     -H "Content-Type: application/json" \
     -d "$json_body")
 
-  ok=$(echo "$response" | python3 -c 'import sys,json; print(json.loads(sys.stdin.read()).get("ok",""))' 2>/dev/null || echo "")
+  ok=$(echo "$response" | python3 -c 'import sys,json; print(json.loads(sys.stdin.read()).get("ok",""))')
+  local py_rc=$?
+  if [ "$py_rc" -ne 0 ]; then
+    echo "ERROR: iwe_telegram_send: python3 failed to parse API response (rc=$py_rc)" >&2
+    return 1
+  fi
   [[ "$ok" == "True" ]]
 }
