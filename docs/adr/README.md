@@ -15,3 +15,5 @@
 | 011 | Automatic Session Handoff After Work Product Creation | Accepted | 2026-05-09 |
 | 012 | CI Gate Completeness | Proposed | 2026-05-09 |
 | 013 | Model Tier Abstraction — Provider-Agnostic Model Selection | Proposed | 2026-05-10 |
+| 015 | User-Level Verbalized Sampling Skills | Implemented | 2026-05-12 |
+| 016 | Verbalized Sampling Router Skill | Implemented | 2026-05-12 |

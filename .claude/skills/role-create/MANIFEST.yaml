@@ -1,0 +1,11 @@
+component: skill/role-create
+version: 2.0.0
+description: Создание новой роли — agent definition + prompts + scripts
+dependencies:
+  - .opencode/agents/
+api_contract:
+  inputs:
+    - persistent-memory/roles.md
+  outputs:
+    - .opencode/agents/{name}.md
+    - roles/{name}/prompts/

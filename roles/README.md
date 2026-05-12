@@ -79,15 +79,19 @@ export TELEGRAM_CHAT_ID="your-id"
 
 ## Как добавить роль
 
-Роли — точка расширения шаблона. Каждая роль следует [контракту](ROLE-CONTRACT.md) — формализованной спецификации структуры.
+Роли — точка расширения шаблона. Каждая роль = agent definition + bash scripts.
 
-1. Создай `roles/<name>/`
-2. Создай `role.yaml` по схеме из [ROLE-CONTRACT.md](ROLE-CONTRACT.md)
-3. Добавь `README.md` с описанием (шаблон: [DP.D.033 §3](https://github.com/TserenTserenov/PACK-digital-platform/blob/main/pack/digital-platform/01-domain-contract/DP.D.033-role-centric-architecture.md))
-4. Добавь `install.sh` (скопируй из существующей роли, адаптируй)
-5. Если ИИ-агент: добавь `prompts/` со сценариями
+1. Создай `.opencode/agents/<name>.md` — agent definition (mode, model, permission, prompt)
+2. Создай `roles/<name>/` для bash-автоматизации
+3. Добавь `install.sh` (скопируй из существующей роли, адаптируй)
+4. Добавь `role.yaml` (для setup.sh autodiscovery: id, install.auto, runner)
+5. Если нужно: добавь `prompts/` со сценариями
 6. Если нужно расписание: добавь секцию в `synchronizer/config.yaml`
 7. Для уведомлений: добавь шаблон `synchronizer/scripts/templates/<name>.sh`
+8. Добавь description роли в `persistent-memory/roles.md`
+
+Agent definition — основной артефакт для AI-части. `role.yaml` — только для bash-автоматизации (setup.sh).
+Подробный алгоритм создания роли: `.claude/skills/role-create/SKILL.md`
 
 `setup.sh` обнаружит роль автоматически:
 - `install.auto: true` в role.yaml → установит при полном setup

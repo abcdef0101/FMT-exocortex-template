@@ -5,26 +5,29 @@
 
 ## Каталог ролей (ИИ)
 
-| ID | Роль | FX | Типичные задачи |
-|----|------|-----|----------------|
-| R1 | **Стратег** | — | План дня/недели, сессия стратегирования, ревью, note-review |
-| R2 | **Экстрактор** | — | KE в Pack, inbox check, ontology sync |
-| R3 | **Консультант** | — | Q&A ученика, проверка ДЗ, генерация контента ленты/марафона |
-| R4 | **Автор** | FX1 | Посты, презентации, питчи, описания |
-| R5 | **Архитектор** | FX5 | ArchGate, ADR, BC-mapping, SOTA-update |
-| R6 | **Кодировщик** | FX5, FX8 | Код, рефакторинг, баг-фикс |
-| R7 | **Триажёр** | — | Auto-triage feedback, triage-session |
-| R8 | **Синхронизатор** | — | Scheduler, code-scan, pack projection, notify |
-| R9 | **Шаблонизатор** | FX8 | Template sync, drift detection, validation |
-| R10 | **Статистик** | — | Метрики, аналитика, time tracking |
-| R11 | **Наладчик** | — | FSM unstick, auto-fix, restart, escalate |
-| R12 | **Оценщик** | — | Bloom eval, WP validation, fixation |
-| R13 | **Проводник** | FX6 | FSM routing, tier gating, progressive disclosure |
-| R21 | **Публикатор** | FX1 | Scan ready posts, scheduled publish, comment check |
-| R23 | **Верификатор** | — | Формальная (bash-скрипты) + качественная (AI sub-agents через Agent tool). `/verify`. 6 типов: code/archgate/capture/wp/chain/adversarial |
-| R24 | **Аудитор** | — | Проверка полноты и согласованности (coverage, кросс-контекст) |
-| R27 | **Навигатор** | — | Траектория развития, выбор программы, ритм обучения, мемы, итоги |
-| R28 | **Диагност** | — | Определение ступени мастерства (0-4) и bottleneck через диалог |
+> Agent = `.opencode/agents/*.md`. Skills = `.claude/skills/*/SKILL.md`.
+> R6 Кодировщик = primary agent `build` (нет отдельного agent file).
+
+| ID | Роль | FX | Agent | Skills | Типичные задачи |
+|----|------|-----|-------|--------|----------------|
+| R1 | **Стратег** | — | `strategist` (primary) | day-open, day-close, week-close, wakatime | План дня/недели, сессия стратегирования |
+| R2 | **Экстрактор** | — | `extractor` (all) | ke, session-topic-archiver | KE в Pack, inbox check |
+| R3 | **Консультант** | — | — | — | Q&A ученика, ДЗ (не реализован) |
+| R4 | **Автор** | FX1 | — | — | Посты, презентации (не реализован) |
+| R5 | **Архитектор** | FX5 | `architect` (all) | archgate, role-create, think, fpf | ArchGate, ADR, роли |
+| R6 | **Кодировщик** | FX5,FX8 | `build` (primary) | extend, iwe-update | Код, рефакторинг |
+| R7 | **Триажёр** | — | — | — | Auto-triage (не реализован) |
+| R8 | **Синхронизатор** | — | `synchronizer` (all) | — | Scheduler, code-scan, notify |
+| R9 | **Шаблонизатор** | FX8 | — | — | Template sync (не реализован) |
+| R10 | **Статистик** | — | — | wakatime | Метрики, time tracking |
+| R11 | **Наладчик** | — | — | — | FSM unstick (не реализован) |
+| R12 | **Оценщик** | — | — | — | Bloom eval (не реализован) |
+| R13 | **Проводник** | FX6 | — | — | FSM routing (не реализован) |
+| R21 | **Публикатор** | FX1 | — | — | Scheduled publish (не реализован) |
+| R23 | **Верификатор** | — | `verifier` (sub, sonnet) + `verifier-heavy` (sub, opus) | verify, archgate | `/verify`. code/capture/chain/adversarial (sonnet); archgate/wp (opus) |
+| R24 | **Аудитор** | — | `auditor` (subagent) | — | Полнота и согласованность |
+| R27 | **Навигатор** | — | — | — | Траектория развития (не реализован) |
+| R28 | **Диагност** | — | — | — | Ступень мастерства (не реализован) |
 
 ## Проектные подроли (S2R матрица 3×3)
 

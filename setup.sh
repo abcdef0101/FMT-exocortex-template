@@ -428,7 +428,7 @@ if $CORE_ONLY; then
   echo "[4/5] Автоматизация... пропущена (core mode)"
 else
   echo "  Роли используют launchd (macOS) / systemd user timers (Linux)."
-  echo "  См. $ROOT_DIR/roles/ROLE-CONTRACT.md"
+  echo "  См. $ROOT_DIR/roles/"
   echo "[6/7] Installing roles..."
 
   MANUAL_ROLES=()
@@ -488,7 +488,7 @@ else
     echo ""
     echo "  Additional roles (install later when ready):"
     printf '%s\n' "${MANUAL_ROLES[@]}"
-    echo "  See: $ROOT_DIR/roles/ROLE-CONTRACT.md"
+    echo "  See: $ROOT_DIR/roles/"
   fi
 fi
 
