@@ -7,7 +7,7 @@
 | 003 | Хостинг-платформа | Accepted | 2026-04-29 |
 | 004 | Memory Topology | Accepted | 2026-04-25 |
 | 005 | Архитектура доставки обновлений | Accepted | 2026-05-01 |
-| 006 | Интеграция DS-agent-workspace в ядро | Accepted | 2026-04-30 |
+| 006 | Интеграция agent-output в ядро (ревизия 2026-05-13) | Accepted | 2026-04-30 |
 | 007 | Golden Image Build Pipeline for IWE Testing | Implemented | 2026-05-04 |
 | 008 | AI Provider Abstraction — Multi-Provider CLI Support | Implemented | 2026-05-06 |
 | 009 | Testing Strategy — E2E, Canary, Multilayer | Accepted | 2026-05-07 |
