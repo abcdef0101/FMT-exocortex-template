@@ -282,7 +282,7 @@ api_contract:
 Этот ADR не определяет:
 
 - Конкретную реализацию `update.sh` (отдельные issues в проекте)
-- Структуру `DS-strategy` или `DS-agent-workspace`
+- Структуру `DS-strategy` или `DS-strategy/agent-output/`
 - Содержимое `MEMORY.md`
 - Семантику протоколов Open/Work/Close
 - Поддержку non-Git доставки (хостинг-платформа — ADR-003)

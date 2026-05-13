@@ -73,7 +73,7 @@ source "$_resolve_lib"
 unset _resolve_lib
 
 resolve_config() {
-  LOG_FILE="${IWE_DAY_CLOSE_LOG:-$WORKSPACE_DIR/DS-agent-workspace/scheduler/day-close.log}"
+  LOG_FILE="${IWE_DAY_CLOSE_LOG:-$WORKSPACE_DIR/DS-strategy/agent-output/scheduler/day-close.log}"
 }
 
 resolve_paths() {

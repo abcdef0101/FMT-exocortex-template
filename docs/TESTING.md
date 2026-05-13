@@ -1016,7 +1016,7 @@ From `seed/agents/tester/promptfoo/promptfoo.yaml`:
 
 - Executor: Claude CLI headless
 - Budget: $5.00/run
-- Trust: read-only (traces/DB), no code modification. Results in `DS-agent-workspace/tester/` for human review.
+- Trust: read-only (traces/DB), no code modification. Results in `DS-strategy/agent-output/tester/` for human review.
 
 ---
 

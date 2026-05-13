@@ -208,9 +208,9 @@ MEMORY
 # =========================================================================
 # SPOKE: mock WORKPLAN.md in a sibling repo
 # =========================================================================
-mkdir -p "$TARGET/../DS-agent-workspace"
-cat > "$TARGET/../DS-agent-workspace/WORKPLAN.md" <<'SPOKE'
-# WORKPLAN: DS-agent-workspace
+mkdir -p "$TARGET/agent-output"
+cat > "$TARGET/agent-output/WORKPLAN.md" <<'SPOKE'
+# WORKPLAN: agent-output
 
 | # | РП | Статус | Бюджет |
 |---|-----|--------|--------|

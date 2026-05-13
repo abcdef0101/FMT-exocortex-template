@@ -272,7 +272,7 @@ print(json.dumps(result))
 # ============================================================
 
 collect_sessions() {
-  local SESSION_LOG="$WORKSPACE_DIR/DS-agent-workspace/scheduler/open-sessions.log"
+  local SESSION_LOG="$WORKSPACE_DIR/DS-strategy/agent-output/scheduler/open-sessions.log"
 
   python3 -c "
 import json, os, re
@@ -680,7 +680,7 @@ print(json.dumps(result))
 # ============================================================
 
 collect_scheduler_reports() {
-  local REPORTS_DIR="$WORKSPACE_DIR/DS-agent-workspace/scheduler/reports"
+  local REPORTS_DIR="$WORKSPACE_DIR/DS-strategy/agent-output/scheduler/reports"
 
   python3 -c "
 import json, os, re, glob

@@ -59,7 +59,7 @@
 | fsm-mcp (исходники) | `DS-MCP/fsm-mcp/src/index.ts` |
 <!-- | Activity Hub | `your-org/activity-hub/` | -->
 | Автономные агенты (код) | `DS-autonomous-agents/` |
-| Данные агентов (workspace) | `DS-agent-workspace/` |
+| Данные агентов (workspace) | `DS-strategy/agent-output/` |
 
 ## Стратегия
 

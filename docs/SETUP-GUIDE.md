@@ -283,7 +283,7 @@ bash setup.sh
    - `merge-mcp`: .mcp.json (слияние с пользовательскими MCP)
    - `structure-only`: extensions/mcps/ (пользовательские MCP-серверы)
 3. Установит автоматический запуск ролей (launchd/systemd)
-4. Создаст `DS-strategy/` + `DS-agent-workspace/` + склонирует `PACK-digital-platform/`
+4. Создаст `DS-strategy/` (включая `agent-output/`) + склонирует `PACK-digital-platform/`
 5. Выведет MCP-инструкции и команду для обновления: `bash update.sh --check`
 
 ### 1.3 Проверь установку
@@ -579,22 +579,23 @@ video:
 
 ### Что это
 
-`DS-agent-workspace` — отдельный git-репозиторий для машинного output агентов:
+`DS-strategy/agent-output/` — встроенная директория для машинного output агентов:
 отчёты планировщика, QA-находки бота, extraction-reports, Scout-results.
 
-Создаётся автоматически при setup и интегрирован в ядро (ADR-006).
-Дополнительных действий не требует.
+Создаётся автоматически при setup внутри основного governance-репо (ADR-006).
+Дополнительных действий не требует. Живёт в одном git-репо с DS-strategy,
+без отдельного remote.
 
 ### Зачем
 
 Агенты (Стратег, Экстрактор, Синхронизатор) генерируют десятки файлов.
-Agent Workspace отделяет машинный output от человеческих решений в DS-strategy,
-сохраняя чистую git-историю governance-хаба.
+`agent-output/` отделяет машинный output от человеческих решений в DS-strategy,
+сохраняя чистую структуру governance-хаба.
 
 ### Структура
 
 ```
-DS-agent-workspace/
+DS-strategy/agent-output/
 ├── scheduler/reports/              ← SchedulerReport (daily-report.sh)
 ├── scheduler/feedback-triage/      ← QA-отчёты бота
 ├── scout/                          ← результаты разведчика
@@ -605,7 +606,7 @@ DS-agent-workspace/
 
 ### См. также
 
-- ADR-006: интеграция DS-agent-workspace в ядро
+- ADR-006: интеграция agent-output в ядро (встроенная директория)
 
 </details>
 <details>
@@ -675,7 +676,7 @@ schtasks /create /tn "ExocortexWake" /tr "wsl ~/IWE/scripts/scheduler.sh dispatc
 | **Вечер (23:00)** | Стратег | Note-Review классифицирует заметки из Telegram | Целевые документы в DS-strategy |
 | **Ночь (00:00)** | Синхронизатор* | Code-scan — обзор изменений в downstream-репо | `DS-strategy/current/CodeScan YYYY-MM-DD.md` |
 | **Ночь (Вс→Пн)** | Стратег | Week Review — итоги недели | Секция «Итоги W{N}» в `DS-strategy/current/WeekPlan W{N}.md` |
-| **Утро (06:00)** | Синхронизатор* | Daily report — сводка ночных задач | `DS-agent-workspace/scheduler/reports/` |
+| **Утро (06:00)** | Синхронизатор* | Daily report — сводка ночных задач | `DS-strategy/agent-output/scheduler/reports/` |
 
 > *Экстрактор и Синхронизатор работают только если установлены (Этап 1.4).*
 

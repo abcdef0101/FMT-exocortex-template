@@ -21,7 +21,7 @@ trust_stack:
   legible_reasoning: "Каждая оценка содержит reasoning"
   bounded_agency: "Только читает traces/DB. Не модифицирует код"
   goal_transparency: "Оценить качество AI-ответов и обнаружить деградацию"
-  contestability: "Результаты в DS-agent-workspace/tester/. Человек ревьюит утром"
+  contestability: "Результаты в DS-strategy/agent-output/tester/. Человек ревьюит утром"
 
 core:
   method: "LLM-as-Judge + Red Team (Promptfoo)"

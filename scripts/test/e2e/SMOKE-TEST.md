@@ -54,7 +54,7 @@
 |---|-----|-------------------|
 | 1 | `bash setup.sh` (полный режим, свежий workspace) | DS-strategy создан на GitHub |
 | 2 | Проверить `https://github.com/<user>/DS-strategy` | Репозиторий существует, приватный |
-| 3 | Проверить `https://github.com/<user>/DS-agent-workspace` | Репозиторий существует, приватный |
+| 3 | Проверить `DS-strategy/agent-output/` в workspace | Директория существует |
 
 ---
 

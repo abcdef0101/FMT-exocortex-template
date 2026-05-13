@@ -12,7 +12,6 @@ mapfile -t manifests < <(find "$ROOT_DIR" -name "MANIFEST.yaml" \
   -not -path "*/.git/*" \
   -not -path "*/workspaces/*" \
   -not -path "*/DS-strategy/*" \
-  -not -path "*/DS-agent-workspace/*" \
   | sort)
 
 [ "${#manifests[@]}" -gt 0 ] || { _fail "no MANIFEST.yaml files found"; exit 1; }

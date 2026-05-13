@@ -7,7 +7,7 @@
 # Адаптировать:
 #   BOT_DIR — путь к тестируемому DS-instrument
 #   AGENT_DIR — путь к этой папке
-#   WORKSPACE_DIR — путь к DS-agent-workspace/tester
+#   WORKSPACE_DIR — путь к DS-strategy/agent-output/tester
 
 set -uo pipefail
 
@@ -20,7 +20,7 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 AGENT_DIR="$SCRIPT_DIR"
 BOT_DIR="${BOT_DIR:?BOT_DIR not set. Set it in .env or pass as environment variable, e.g.: BOT_DIR=\$HOME/IWE/your-bot-repo}"
-WORKSPACE_DIR="${WORKSPACE_DIR:-$HOME/IWE/DS-agent-workspace/tester}"
+WORKSPACE_DIR="${WORKSPACE_DIR:-$HOME/IWE/DS-strategy/agent-output/tester}"
 DATE=$(date +%Y-%m-%d)
 REPORT="$WORKSPACE_DIR/weekly-$DATE.md"
 
