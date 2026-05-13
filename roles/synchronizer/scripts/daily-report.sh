@@ -271,7 +271,10 @@ archive_old_reports() {
     basename=$(basename "$old_report")
     [[ "$basename" == *"$DATE"* ]] && continue
     mv "$old_report" "$ARCHIVE_DIR/"
-
+    log "Archived: $basename"
+    count=$((count + 1))
+  done
+}
 
 # === Main ===
 
